@@ -16,7 +16,7 @@ const FAQS = [
   },
   {
     q: "Can I run on multiple devices?",
-    a: "Each license activates on one device at a time. You can swap devices yourself any time from the Manage license dashboard at no extra cost. If you want a second machine running at the same time (24/7), you'll need to purchase a second license — that's another $150 setup fee + $50/mo, so $200 up front for the first month and $50/mo after that, per additional device.",
+    a: "Each license activates on one device at a time. You can swap devices yourself any time from the Manage license dashboard at no extra cost. If you want a second machine running at the same time (24/7), you'll need to purchase a second license — same pricing: $200 for the first 3 months, then $50/mo after that, per additional device.",
   },
   {
     q: "Do I need an account on this site?",
