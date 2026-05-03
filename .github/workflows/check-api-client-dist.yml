@@ -1,0 +1,27 @@
+name: Check api-client-react dist
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  check-dist:
+    name: Ensure api-client-react dist is up to date
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Rebuild api-client-react dist and check for drift
+        run: pnpm --filter @workspace/api-client-react run check-dist
