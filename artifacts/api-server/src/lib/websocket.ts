@@ -9,6 +9,7 @@ export interface LogMessage {
   level: LogLevel;
   message: string;
   timestamp: string;
+  seq: number;
 }
 
 export interface StatusMessage {
@@ -21,6 +22,25 @@ export type WsMessage = LogMessage | StatusMessage;
 
 const subscribers = new Map<number, Set<WebSocket>>();
 
+const LOG_RING_BUFFER_SIZE = 200;
+const logBuffers = new Map<number, LogMessage[]>();
+let globalSeq = 0;
+
+function appendToBuffer(taskId: number, msg: LogMessage): void {
+  if (!logBuffers.has(taskId)) {
+    logBuffers.set(taskId, []);
+  }
+  const buf = logBuffers.get(taskId)!;
+  buf.push(msg);
+  if (buf.length > LOG_RING_BUFFER_SIZE) {
+    buf.splice(0, buf.length - LOG_RING_BUFFER_SIZE);
+  }
+}
+
+export function clearLogBuffer(taskId: number): void {
+  logBuffers.delete(taskId);
+}
+
 export function createWebSocketServer(server: Server): WebSocketServer {
   const wss = new WebSocketServer({ server, path: "/ws" });
 
@@ -32,6 +52,7 @@ export function createWebSocketServer(server: Server): WebSocketServer {
         const msg = JSON.parse(data.toString()) as {
           type: string;
           taskId: number;
+          fromSeq?: number;
         };
         if (msg.type === "subscribe" && typeof msg.taskId === "number") {
           if (subscribedTaskId !== null) {
@@ -42,6 +63,17 @@ export function createWebSocketServer(server: Server): WebSocketServer {
             subscribers.set(subscribedTaskId, new Set());
           }
           subscribers.get(subscribedTaskId)!.add(ws);
+
+          // Replay buffered log lines the client hasn't seen yet (fromSeq filter)
+          const buffered = logBuffers.get(subscribedTaskId);
+          if (buffered && buffered.length > 0 && ws.readyState === WebSocket.OPEN) {
+            const fromSeq = typeof msg.fromSeq === "number" ? msg.fromSeq : -1;
+            for (const entry of buffered) {
+              if (entry.seq > fromSeq) {
+                ws.send(JSON.stringify(entry));
+              }
+            }
+          }
         }
       } catch {
         // ignore malformed messages
@@ -78,13 +110,16 @@ export function broadcastLog(
   level: LogLevel,
   message: string,
 ): void {
-  sendToTaskSubscribers(taskId, {
+  const logMsg: LogMessage = {
     type: "log",
     taskId,
     level,
     message,
     timestamp: new Date().toISOString(),
-  });
+    seq: ++globalSeq,
+  };
+  appendToBuffer(taskId, logMsg);
+  sendToTaskSubscribers(taskId, logMsg);
 }
 
 export function broadcastStatus(taskId: number, status: string): void {

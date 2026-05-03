@@ -7,35 +7,44 @@ export interface TaskLogEntry {
   level: LogLevel;
   message: string;
   timestamp: string;
+  seq: number;
 }
 
 export interface UseTaskLogsResult {
   logs: TaskLogEntry[];
   liveStatus: string | null;
+  isReconnecting: boolean;
   clear: () => void;
   copyLogs: () => void;
 }
 
+const MAX_BACKOFF_MS = 30_000;
+const BASE_BACKOFF_MS = 500;
+
 export function useTaskLogs(taskId: number, enabled: boolean): UseTaskLogsResult {
   const [logs, setLogs] = useState<TaskLogEntry[]>([]);
   const [liveStatus, setLiveStatus] = useState<string | null>(null);
+  const [isReconnecting, setIsReconnecting] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
+  const retryCountRef = useRef(0);
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const destroyedRef = useRef(false);
+  // Tracks the highest seq number received so reconnects only replay missed entries
+  const lastSeqRef = useRef(-1);
 
-  useEffect(() => {
-    if (!enabled) {
-      wsRef.current?.close();
-      wsRef.current = null;
-      return;
-    }
+  const connect = useCallback(() => {
+    if (destroyedRef.current) return;
 
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
     const wsUrl = `${protocol}//${window.location.host}/ws`;
-
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
 
     ws.onopen = () => {
-      ws.send(JSON.stringify({ type: "subscribe", taskId }));
+      if (destroyedRef.current) { ws.close(); return; }
+      retryCountRef.current = 0;
+      setIsReconnecting(false);
+      ws.send(JSON.stringify({ type: "subscribe", taskId, fromSeq: lastSeqRef.current }));
     };
 
     ws.onmessage = (event) => {
@@ -46,9 +55,14 @@ export function useTaskLogs(taskId: number, enabled: boolean): UseTaskLogsResult
           level?: LogLevel;
           message?: string;
           timestamp?: string;
+          seq?: number;
           status?: string;
         };
         if (msg.type === "log" && msg.level && msg.message && msg.timestamp) {
+          const seq = typeof msg.seq === "number" ? msg.seq : -1;
+          // Drop entries we have already seen (duplicate guard)
+          if (seq <= lastSeqRef.current) return;
+          if (seq > lastSeqRef.current) lastSeqRef.current = seq;
           setLogs((prev) => [
             ...prev,
             {
@@ -56,6 +70,7 @@ export function useTaskLogs(taskId: number, enabled: boolean): UseTaskLogsResult
               level: msg.level!,
               message: msg.message!,
               timestamp: msg.timestamp!,
+              seq,
             },
           ]);
         } else if (msg.type === "status" && msg.status) {
@@ -67,18 +82,57 @@ export function useTaskLogs(taskId: number, enabled: boolean): UseTaskLogsResult
     };
 
     ws.onerror = () => {
-      // WebSocket error - connection may not be available yet
+      // will be followed by onclose — handle reconnect there
     };
 
-    return () => {
-      ws.close();
+    ws.onclose = () => {
+      if (destroyedRef.current) return;
       wsRef.current = null;
+
+      if (!enabled) return;
+
+      retryCountRef.current += 1;
+      const delay = Math.min(
+        BASE_BACKOFF_MS * Math.pow(2, retryCountRef.current - 1),
+        MAX_BACKOFF_MS,
+      );
+      setIsReconnecting(true);
+      retryTimerRef.current = setTimeout(connect, delay);
     };
   }, [taskId, enabled]);
+
+  useEffect(() => {
+    destroyedRef.current = false;
+
+    if (!enabled) {
+      wsRef.current?.close();
+      wsRef.current = null;
+      if (retryTimerRef.current) {
+        clearTimeout(retryTimerRef.current);
+        retryTimerRef.current = null;
+      }
+      setIsReconnecting(false);
+      retryCountRef.current = 0;
+      return;
+    }
+
+    connect();
+
+    return () => {
+      destroyedRef.current = true;
+      if (retryTimerRef.current) {
+        clearTimeout(retryTimerRef.current);
+        retryTimerRef.current = null;
+      }
+      wsRef.current?.close();
+      wsRef.current = null;
+    };
+  }, [taskId, enabled, connect]);
 
   const clear = useCallback(() => {
     setLogs([]);
     setLiveStatus(null);
+    lastSeqRef.current = -1;
   }, []);
 
   const copyLogs = useCallback(() => {
@@ -86,7 +140,6 @@ export function useTaskLogs(taskId: number, enabled: boolean): UseTaskLogsResult
       .map((l) => `[${l.timestamp}] [${l.level}] ${l.message}`)
       .join("\n");
     navigator.clipboard.writeText(text).catch(() => {
-      // fallback - create temp textarea
       const ta = document.createElement("textarea");
       ta.value = text;
       document.body.appendChild(ta);
@@ -96,5 +149,5 @@ export function useTaskLogs(taskId: number, enabled: boolean): UseTaskLogsResult
     });
   }, [logs]);
 
-  return { logs, liveStatus, clear, copyLogs };
+  return { logs, liveStatus, isReconnecting, clear, copyLogs };
 }

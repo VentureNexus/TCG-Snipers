@@ -29,6 +29,7 @@ import {
   X,
   Loader2,
   Pencil,
+  ArrowDown,
 } from "lucide-react";
 import { RetailerBadge } from "@/components/shared/RetailerBadge";
 import { useQueryClient } from "@tanstack/react-query";
@@ -135,8 +136,10 @@ function LogPanel({
   enabled: boolean;
   onStatusChange?: (s: string) => void;
 }) {
-  const { logs, liveStatus, clear, copyLogs } = useTaskLogs(taskId, enabled);
+  const { logs, liveStatus, isReconnecting, clear, copyLogs } = useTaskLogs(taskId, enabled);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [isAtBottom, setIsAtBottom] = useState(true);
   const { toast } = useToast();
 
   const onStatusChangeRef = useRef(onStatusChange);
@@ -147,8 +150,22 @@ function LogPanel({
   }, [liveStatus]);
 
   useEffect(() => {
+    if (isAtBottom) {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [logs, isAtBottom]);
+
+  const handleScroll = useCallback(() => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 8;
+    setIsAtBottom(atBottom);
+  }, []);
+
+  const scrollToBottom = useCallback(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [logs]);
+    setIsAtBottom(true);
+  }, []);
 
   const handleCopy = () => {
     copyLogs();
@@ -158,7 +175,15 @@ function LogPanel({
   return (
     <div className="bg-black/60 border-t border-border/30 rounded-b-lg">
       <div className="flex items-center justify-between px-4 py-2 border-b border-border/20">
-        <span className="text-xs font-mono text-muted-foreground uppercase tracking-wider">Task Log</span>
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-mono text-muted-foreground uppercase tracking-wider">Task Log</span>
+          {isReconnecting && (
+            <span className="inline-flex items-center gap-1 text-xs font-mono text-yellow-400 bg-yellow-400/10 border border-yellow-400/20 px-2 py-0.5 rounded" data-testid={`badge-reconnecting-${taskId}`}>
+              <Loader2 className="w-2.5 h-2.5 animate-spin" />
+              Reconnecting…
+            </span>
+          )}
+        </div>
         <div className="flex items-center gap-1">
           <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground" onClick={handleCopy} data-testid={`button-copy-logs-${taskId}`} title="Copy logs">
             <Copy className="w-3 h-3" />
@@ -168,23 +193,41 @@ function LogPanel({
           </Button>
         </div>
       </div>
-      <div className="h-48 overflow-y-auto p-3 font-mono text-xs space-y-0.5" data-testid={`log-panel-${taskId}`}>
-        {logs.length === 0 ? (
-          <div className="text-muted-foreground/50 text-center py-4">
-            {enabled ? "Waiting for log output..." : "Start task to see logs"}
-          </div>
-        ) : (
-          logs.map((entry: TaskLogEntry, i: number) => (
-            <div key={i} className="flex gap-2 leading-5">
-              <span className="text-muted-foreground/40 shrink-0">
-                {new Date(entry.timestamp).toLocaleTimeString("en-US", { hour12: false, hour: "2-digit", minute: "2-digit", second: "2-digit" })}
-              </span>
-              <span className={`font-bold w-10 shrink-0 ${LOG_COLORS[entry.level] ?? "text-foreground"}`}>{entry.level}</span>
-              <span className={`flex-1 break-all ${LOG_COLORS[entry.level] ?? "text-foreground/80"}`}>{entry.message}</span>
+      <div className="relative">
+        <div
+          ref={scrollContainerRef}
+          onScroll={handleScroll}
+          className="h-48 overflow-y-auto p-3 font-mono text-xs space-y-0.5"
+          data-testid={`log-panel-${taskId}`}
+        >
+          {logs.length === 0 ? (
+            <div className="text-muted-foreground/50 text-center py-4">
+              {enabled ? "Waiting for log output..." : "Start task to see logs"}
             </div>
-          ))
+          ) : (
+            logs.map((entry: TaskLogEntry, i: number) => (
+              <div key={i} className="flex gap-2 leading-5">
+                <span className="text-muted-foreground/40 shrink-0">
+                  {new Date(entry.timestamp).toLocaleTimeString("en-US", { hour12: false, hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+                </span>
+                <span className={`font-bold w-10 shrink-0 ${LOG_COLORS[entry.level] ?? "text-foreground"}`}>{entry.level}</span>
+                <span className={`flex-1 break-all ${LOG_COLORS[entry.level] ?? "text-foreground/80"}`}>{entry.message}</span>
+              </div>
+            ))
+          )}
+          <div ref={bottomRef} />
+        </div>
+        {!isAtBottom && (
+          <button
+            onClick={scrollToBottom}
+            className="absolute bottom-2 right-3 flex items-center gap-1 bg-primary/80 hover:bg-primary text-primary-foreground text-xs font-mono px-2 py-1 rounded shadow-lg transition-colors"
+            data-testid={`button-scroll-bottom-${taskId}`}
+            title="Scroll to bottom"
+          >
+            <ArrowDown className="w-3 h-3" />
+            Bottom
+          </button>
         )}
-        <div ref={bottomRef} />
       </div>
     </div>
   );
