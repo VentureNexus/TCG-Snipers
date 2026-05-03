@@ -1,0 +1,18 @@
+artifacts/mockup-sandbox build: Error: PORT environment variable is required but was not provided.
+artifacts/mockup-sandbox build:     at file:///vercel/path0/artifacts/mockup-sandbox/node_modules/.vite-temp/vite.config.ts.timestamp-1777787245011-9ad369ed8c68c.mjs:145:9
+artifacts/mockup-sandbox build:     at ModuleJob.run (node:internal/modules/esm/module_job:430:25)
+artifacts/mockup-sandbox build:     at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:661:26)
+artifacts/mockup-sandbox build:     at async loadConfigFromBundledFile (file:///vercel/path0/node_modules/.pnpm/vite@7.3.2_@types+node@25.3.5_jiti@2.6.1_lightningcss@1.31.1_tsx@4.21.0_yaml@2.8.2/node_modules/vite/dist/node/chunks/config.js:35920:12)
+artifacts/mockup-sandbox build:     at async bundleAndLoadConfigFile (file:///vercel/path0/node_modules/.pnpm/vite@7.3.2_@types+node@25.3.5_jiti@2.6.1_lightningcss@1.31.1_tsx@4.21.0_yaml@2.8.2/node_modules/vite/dist/node/chunks/config.js:35808:17)
+artifacts/mockup-sandbox build:     at async loadConfigFromFile (file:///vercel/path0/node_modules/.pnpm/vite@7.3.2_@types+node@25.3.5_jiti@2.6.1_lightningcss@1.31.1_tsx@4.21.0_yaml@2.8.2/node_modules/vite/dist/node/chunks/config.js:35775:42)
+artifacts/mockup-sandbox build:     at async resolveConfig (file:///vercel/path0/node_modules/.pnpm/vite@7.3.2_@types+node@25.3.5_jiti@2.6.1_lightningcss@1.31.1_tsx@4.21.0_yaml@2.8.2/node_modules/vite/dist/node/chunks/config.js:35424:22)
+artifacts/mockup-sandbox build:     at async createBuilder (file:///vercel/path0/node_modules/.pnpm/vite@7.3.2_@types+node@25.3.5_jiti@2.6.1_lightningcss@1.31.1_tsx@4.21.0_yaml@2.8.2/node_modules/vite/dist/node/chunks/config.js:33879:19)
+artifacts/mockup-sandbox build:     at async CAC.<anonymous> (file:///vercel/path0/node_modules/.pnpm/vite@7.3.2_@types+node@25.3.5_jiti@2.6.1_lightningcss@1.31.1_tsx@4.21.0_yaml@2.8.2/node_modules/vite/dist/node/cli.js:629:10)
+artifacts/mockup-sandbox build: Failed
+/vercel/path0/artifacts/mockup-sandbox:
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @workspace/mockup-sandbox@2.0.0 build: `vite build`
+Exit status 1
+ ELIFECYCLE  Command failed with exit code 1.
+Error: Command "pnpm run build" exited with 1
+Deployment Summary
+Deployment Checks

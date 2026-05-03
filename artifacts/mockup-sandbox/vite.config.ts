@@ -5,13 +5,10 @@ import path from "path";
 import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 import { mockupPreviewPlugin } from "./mockupPreviewPlugin";
 
-const rawPort = process.env.PORT;
-
-if (!rawPort) {
-  throw new Error(
-    "PORT environment variable is required but was not provided.",
-  );
-}
+// PORT and BASE_PATH are injected by Replit at dev time. For `vite build`
+// (e.g. when Vercel/CI runs the entire workspace) they may be absent — fall
+// back to sane defaults so the build never errors.
+const rawPort = process.env.PORT ?? "8081";
 
 const port = Number(rawPort);
 
@@ -19,7 +16,7 @@ if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
 }
 
-const basePath = process.env.BASE_PATH;
+const basePath = process.env.BASE_PATH ?? "/__mockup";
 
 if (!basePath) {
   throw new Error(
