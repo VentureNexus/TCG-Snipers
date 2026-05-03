@@ -4,39 +4,80 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import type { UpdateSettingsBody } from "@workspace/api-client-react";
+
+const API_BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
+
+async function fetchSettings(): Promise<UpdateSettingsBody & { id: number }> {
+  const res = await fetch(`${API_BASE}/api/settings`);
+  if (!res.ok) throw new Error("Failed to load settings");
+  return res.json();
+}
+
+async function saveSettings(data: UpdateSettingsBody): Promise<void> {
+  const res = await fetch(`${API_BASE}/api/settings`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Failed to save settings");
+}
+
+const DEFAULT_SETTINGS: UpdateSettingsBody = {
+  concurrency: 5,
+  monitorDelay: 3000,
+  webhookUrl: "",
+  imapHost: "",
+  imapPort: "993",
+  imapEmail: "",
+  imapPassword: "",
+};
 
 export default function SettingsPage() {
   const { toast } = useToast();
-  const [settings, setSettings] = useState({
-    concurrency: "50",
-    monitorDelay: "3000",
-    webhookUrl: "",
-    imapHost: "",
-    imapPort: "993",
-    imapEmail: "",
-    imapPassword: ""
-  });
+  const [settings, setSettings] = useState<UpdateSettingsBody>(DEFAULT_SETTINGS);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    const saved = localStorage.getItem("sniper_settings");
-    if (saved) {
-      try {
-        setSettings(JSON.parse(saved));
-      } catch (e) {}
-    }
+    fetchSettings()
+      .then((data) => {
+        setSettings({
+          concurrency: data.concurrency,
+          monitorDelay: data.monitorDelay,
+          webhookUrl: data.webhookUrl,
+          imapHost: data.imapHost,
+          imapPort: data.imapPort,
+          imapEmail: data.imapEmail,
+          imapPassword: data.imapPassword,
+        });
+      })
+      .catch(() => {
+        toast({ title: "Could not load settings", description: "Using defaults.", variant: "destructive" });
+      })
+      .finally(() => setLoading(false));
   }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSettings(s => ({ ...s, [e.target.name]: e.target.value }));
+    const { name, value, type } = e.target;
+    setSettings((s) => ({ ...s, [name]: type === "number" ? Number(value) : value }));
   };
 
-  const handleSave = () => {
-    localStorage.setItem("sniper_settings", JSON.stringify(settings));
-    toast({
-      title: "Settings Saved",
-      description: "Your local settings have been updated.",
-    });
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await saveSettings(settings);
+      toast({ title: "Settings Saved", description: "Your settings have been persisted to the server." });
+    } catch {
+      toast({ title: "Save Failed", description: "Could not save settings.", variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
   };
+
+  if (loading) {
+    return <div className="text-muted-foreground p-6">Loading settings…</div>;
+  }
 
   return (
     <div className="max-w-4xl space-y-6">
@@ -49,13 +90,13 @@ export default function SettingsPage() {
           <div className="grid grid-cols-2 gap-6">
             <div className="space-y-2">
               <Label htmlFor="concurrency">Global Concurrency Limit</Label>
-              <Input id="concurrency" name="concurrency" type="number" value={settings.concurrency} onChange={handleChange} />
-              <p className="text-xs text-muted-foreground">Maximum simultaneous requests.</p>
+              <Input id="concurrency" name="concurrency" type="number" min={1} max={50} value={settings.concurrency} onChange={handleChange} />
+              <p className="text-xs text-muted-foreground">Maximum simultaneous tasks running at once.</p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="monitorDelay">Default Monitor Delay (ms)</Label>
-              <Input id="monitorDelay" name="monitorDelay" type="number" value={settings.monitorDelay} onChange={handleChange} />
-              <p className="text-xs text-muted-foreground">Time between stock checks.</p>
+              <Input id="monitorDelay" name="monitorDelay" type="number" min={500} value={settings.monitorDelay} onChange={handleChange} />
+              <p className="text-xs text-muted-foreground">Time between stock checks per task.</p>
             </div>
           </div>
         </CardContent>
@@ -102,7 +143,9 @@ export default function SettingsPage() {
       </Card>
 
       <div className="flex justify-end">
-        <Button onClick={handleSave} size="lg" className="px-8">Save All Settings</Button>
+        <Button onClick={handleSave} disabled={saving} size="lg" className="px-8">
+          {saving ? "Saving…" : "Save All Settings"}
+        </Button>
       </div>
     </div>
   );

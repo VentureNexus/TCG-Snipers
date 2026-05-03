@@ -253,7 +253,13 @@ async function runTaskAutomation(task: TaskRow, token: { cancelled: boolean }) {
     broadcastStatus(task.id, "failed");
   } finally {
     activeConcurrency--;
-    cancellationTokens.delete(task.id);
+    // Only delete from the map if this run's token is still the current one.
+    // If the task was restarted, launchTask already placed a new token in the
+    // map — deleting unconditionally would evict the new run's token and make
+    // subsequent stop calls miss the active run.
+    if (cancellationTokens.get(task.id) === token) {
+      cancellationTokens.delete(task.id);
+    }
     // Drain the next pending task now that a slot freed up
     drainQueue();
   }

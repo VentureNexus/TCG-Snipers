@@ -238,6 +238,29 @@ export interface UpdateTaskBody {
 export interface BulkActionResult {
   affected: number;
   message: string;
+  started?: number;
+  queued?: number;
+}
+
+export interface AppSettings {
+  id: number;
+  concurrency: number;
+  monitorDelay: number;
+  webhookUrl: string;
+  imapHost: string;
+  imapPort: string;
+  imapEmail: string;
+  imapPassword: string;
+}
+
+export interface UpdateSettingsBody {
+  concurrency?: number;
+  monitorDelay?: number;
+  webhookUrl?: string;
+  imapHost?: string;
+  imapPort?: string;
+  imapEmail?: string;
+  imapPassword?: string;
 }
 
 export interface CheckoutResult {

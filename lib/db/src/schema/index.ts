@@ -4,3 +4,4 @@ export * from "./proxies";
 export * from "./taskGroups";
 export * from "./tasks";
 export * from "./checkoutResults";
+export * from "./settings";

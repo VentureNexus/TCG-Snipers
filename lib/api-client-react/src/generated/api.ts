@@ -44,6 +44,8 @@ import type {
   UpdateProxyBody,
   UpdateTaskBody,
   UpdateTaskGroupBody,
+  AppSettings,
+  UpdateSettingsBody,
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
