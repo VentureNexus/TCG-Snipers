@@ -74,6 +74,7 @@ import {
   X,
   Loader2,
   Search,
+  AlertTriangle,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -83,13 +84,13 @@ const profileSchema = z.object({
   name: z.string().min(1, "Required"),
   email: z.string().email("Invalid email"),
   phone: z.string().optional(),
-  shipFirstName: z.string().min(1, "Required"),
-  shipLastName: z.string().min(1, "Required"),
-  shipAddress1: z.string().min(1, "Required"),
+  shipFirstName: z.string().optional(),
+  shipLastName: z.string().optional(),
+  shipAddress1: z.string().optional(),
   shipAddress2: z.string().optional(),
-  shipCity: z.string().min(1, "Required"),
-  shipState: z.string().min(1, "Required"),
-  shipZip: z.string().min(1, "Required"),
+  shipCity: z.string().optional(),
+  shipState: z.string().optional(),
+  shipZip: z.string().optional(),
   shipCountry: z.string().default("US"),
   billSameAsShip: z.boolean().default(true),
   billFirstName: z.string().optional(),
@@ -142,6 +143,17 @@ const EMPTY_PROFILE: ProfileFormValues = {
   addressJigEnabled: false,
   costcoMembershipId: "",
 };
+
+function isProfileIncomplete(profile: Profile): boolean {
+  return (
+    !profile.shipFirstName ||
+    !profile.shipLastName ||
+    !profile.shipAddress1 ||
+    !profile.shipCity ||
+    !profile.shipState ||
+    !profile.shipZip
+  );
+}
 
 const CARD_TYPE_COLORS: Record<string, string> = {
   visa: "text-yellow-300",
@@ -771,6 +783,11 @@ function ProfileCard({
         </div>
 
         <div className="flex flex-wrap gap-1.5 mt-2">
+          {isProfileIncomplete(profile) && (
+            <Badge variant="outline" className="text-yellow-500 border-yellow-500/30 bg-yellow-500/10 text-[10px] gap-1">
+              <AlertTriangle className="w-2.5 h-2.5" /> Incomplete
+            </Badge>
+          )}
           {profile.addressJigEnabled && (
             <Badge variant="outline" className="text-yellow-400 border-yellow-400/20 bg-yellow-400/5 text-[10px] gap-1">
               <Zap className="w-2.5 h-2.5" /> Jig On
