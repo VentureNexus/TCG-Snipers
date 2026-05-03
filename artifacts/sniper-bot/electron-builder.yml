@@ -1,6 +1,6 @@
-appId: com.sniperbot.app
-productName: Sniper Bot
-copyright: Copyright © 2025 Sniper Bot
+appId: com.tcgsnipers.app
+productName: TCG Snipers
+copyright: Copyright © 2026 TCG Snipers
 
 directories:
   output: release
@@ -26,7 +26,7 @@ win:
       arch:
         - x64
   icon: build/icon.ico
-  artifactName: SniperBot-Setup-${version}.${ext}
+  artifactName: TCGSnipers-Setup-${version}.${ext}
 
 nsis:
   oneClick: false
@@ -34,7 +34,7 @@ nsis:
   installerHeaderIcon: build/icon.ico
   createDesktopShortcut: true
   createStartMenuShortcut: true
-  shortcutName: Sniper Bot
+  shortcutName: TCG Snipers
 
 mac:
   target:
@@ -46,10 +46,10 @@ mac:
   category: public.app-category.utilities
   hardenedRuntime: true
   gatekeeperAssess: false
-  artifactName: SniperBot-${version}-${arch}.${ext}
+  artifactName: TCGSnipers-${version}-${arch}.${ext}
 
 dmg:
-  title: Sniper Bot Installer
+  title: TCG Snipers Installer
   background: build/dmg-background.png
   window:
     width: 540
@@ -68,6 +68,6 @@ linux:
     - deb
   icon: build/icon.png
   category: Utility
-  artifactName: SniperBot-${version}.${ext}
+  artifactName: TCGSnipers-${version}.${ext}
 
 publish: null

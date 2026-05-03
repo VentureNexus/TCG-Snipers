@@ -5,3 +5,7 @@ export * from "./taskGroups";
 export * from "./tasks";
 export * from "./checkoutResults";
 export * from "./settings";
+export * from "./customers";
+export * from "./licenses";
+export * from "./devices";
+export * from "./magicLinkTokens";

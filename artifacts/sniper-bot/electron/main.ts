@@ -2,6 +2,8 @@ import { app, BrowserWindow, shell, ipcMain } from "electron";
 import { spawn, type ChildProcess } from "child_process";
 import path from "path";
 import { fileURLToPath } from "url";
+import { computeFingerprint, osLabel } from "./fingerprint.js";
+import { readLicense, writeLicense, clearLicense } from "./secureStorage.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -107,6 +109,22 @@ ipcMain.handle("app:version", () => app.getVersion());
 ipcMain.handle("app:platform", () => process.platform);
 // Renderer calls this to discover the local API origin
 ipcMain.handle("app:apiBaseUrl", () => `http://localhost:${API_PORT}`);
+
+// ── License IPC ─────────────────────────────────────────────────────────────
+ipcMain.handle("license:fingerprint", () => ({
+  fingerprint: computeFingerprint(),
+  osPlatform: osLabel(),
+}));
+ipcMain.handle("license:read", () => readLicense());
+ipcMain.handle("license:write", (_e, value: { token: string; email: string }) => {
+  writeLicense(value);
+  return { ok: true };
+});
+ipcMain.handle("license:clear", () => {
+  clearLicense();
+  return { ok: true };
+});
+ipcMain.handle("app:openExternal", (_e, url: string) => shell.openExternal(url));
 
 // ── App lifecycle ────────────────────────────────────────────────────────────
 app.whenReady().then(async () => {

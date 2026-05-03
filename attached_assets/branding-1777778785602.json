@@ -1,0 +1,112 @@
+{
+  "colorScheme": "dark",
+  "fonts": [
+    {
+      "family": "Inter",
+      "role": "body"
+    }
+  ],
+  "colors": {
+    "primary": "#666D85",
+    "secondary": "#474C60",
+    "accent": "#181B3F",
+    "background": "#080812",
+    "textPrimary": "#FFFFFF",
+    "link": "#D7DFEF"
+  },
+  "typography": {
+    "fontFamilies": {
+      "primary": "Inter",
+      "heading": "Inter"
+    },
+    "fontStacks": {
+      "heading": [
+        "Inter"
+      ],
+      "body": [
+        "Inter"
+      ],
+      "paragraph": [
+        "Inter"
+      ]
+    },
+    "fontSizes": {
+      "h1": "64px",
+      "h2": "48px",
+      "body": "16px"
+    }
+  },
+  "spacing": {
+    "baseUnit": 4,
+    "borderRadius": "12px"
+  },
+  "components": {
+    "buttonPrimary": {
+      "background": "#181B3F",
+      "textColor": "#5865F2",
+      "borderRadius": "20px",
+      "borderRadiusCorners": {
+        "topLeft": "20px",
+        "topRight": "20px",
+        "bottomRight": "20px",
+        "bottomLeft": "20px"
+      },
+      "shadow": "none"
+    },
+    "buttonSecondary": {
+      "background": "#14141E",
+      "textColor": "#FFFFFF",
+      "borderRadius": "12px",
+      "borderRadiusCorners": {
+        "topLeft": "12px",
+        "topRight": "12px",
+        "bottomRight": "12px",
+        "bottomLeft": "12px"
+      },
+      "shadow": "rgba(47, 43, 67, 0.1) 0px -2.425px 0px 0px inset, rgba(47, 43, 67, 0.1) 0px 2.425px 7.275px 0px"
+    }
+  },
+  "images": {
+    "logo": null,
+    "favicon": "File saved at: attached_assets/favicon.png",
+    "ogImage": null
+  },
+  "__llm_button_reasoning": {
+    "primary": {
+      "index": 5,
+      "text": "What is Stellar?",
+      "reasoning": "Button #5 has a vibrant and distinct background color (#181B3F) compared to other buttons, making it stand out as the primary CTA. The text 'What is Stellar?' suggests an introductory or key action, aligning with primary CTA characteristics."
+    },
+    "secondary": {
+      "index": 1,
+      "text": "Buy Quarterly",
+      "reasoning": "Button #1 has a different background color (#14141E) from the primary button and features action-oriented text 'Buy Quarterly', making it suitable as a secondary CTA."
+    },
+    "confidence": 0.95
+  },
+  "personality": {
+    "tone": "modern",
+    "energy": "medium",
+    "targetAudience": "tech-savvy sneaker enthusiasts"
+  },
+  "designSystem": {
+    "framework": "custom",
+    "componentLibrary": ""
+  },
+  "confidence": {
+    "buttons": 0.95,
+    "colors": 0.9,
+    "overall": 0.925
+  },
+  "__llm_metadata": {
+    "logoSelection": {
+      "llmCalled": false,
+      "llmSucceeded": false,
+      "finalSource": "none"
+    },
+    "buttonClassification": {
+      "llmCalled": true,
+      "llmSucceeded": true
+    }
+  }
+}

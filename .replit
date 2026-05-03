@@ -29,11 +29,15 @@ externalPort = 8081
 
 [[ports]]
 localPort = 8082
-externalPort = 3002
+externalPort = 3001
 
 [[ports]]
 localPort = 19939
 externalPort = 3000
+
+[[ports]]
+localPort = 21209
+externalPort = 3002
 
 [nix]
 channel = "stable-25_05"
@@ -41,3 +45,4 @@ channel = "stable-25_05"
 [userenv]
 
 [userenv.shared]
+LICENSE_JWT_SECRET = "mPt7mzGXeL5-yXU0vAMlLU6qfvKq6MlwM-_DNsUtHSriDGoIeT9VRRrr9y2GqqsI"

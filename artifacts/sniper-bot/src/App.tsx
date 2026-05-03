@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { ThemeProvider } from "@/lib/theme";
+import { LicenseGate } from "@/components/LicenseGate";
 
 import DashboardPage from "@/pages/dashboard";
 import TasksPage from "@/pages/tasks";
@@ -40,9 +41,11 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <TooltipProvider>
-          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-            <Router />
-          </WouterRouter>
+          <LicenseGate>
+            <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+              <Router />
+            </WouterRouter>
+          </LicenseGate>
           <Toaster />
         </TooltipProvider>
       </ThemeProvider>

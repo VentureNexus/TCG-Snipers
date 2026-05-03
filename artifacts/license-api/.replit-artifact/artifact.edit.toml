@@ -1,0 +1,31 @@
+kind = "api"
+previewPath = "/license"
+title = "License API"
+version = "1.0.0"
+id = "license-api-001"
+
+[[services]]
+localPort = 8082
+name = "License API"
+paths = ["/license"]
+
+[services.development]
+run = "pnpm --filter @workspace/license-api run dev"
+
+[services.production]
+
+[services.production.build]
+args = ["pnpm", "--filter", "@workspace/license-api", "run", "build"]
+
+[services.production.build.env]
+NODE_ENV = "production"
+
+[services.production.run]
+args = ["node", "--enable-source-maps", "artifacts/license-api/dist/index.mjs"]
+
+[services.production.run.env]
+PORT = "8082"
+NODE_ENV = "production"
+
+[services.production.health.startup]
+path = "/license/healthz"
