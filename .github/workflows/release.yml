@@ -1,2 +1,84 @@
-git pull --rebase origin main          # pull the workflow file GitHub just created
-git push                                # push the rest (gitignore + electron-builder.yml)
+name: Release Installers
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag (e.g. v1.0.1)"
+        required: true
+        type: string
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            target: dist:win
+            artifacts: |
+              artifacts/sniper-bot/release/TCGSnipers-Setup-*.exe
+          - os: macos-latest
+            target: dist:mac
+            artifacts: |
+              artifacts/sniper-bot/release/TCGSnipers-*-x64.dmg
+              artifacts/sniper-bot/release/TCGSnipers-*-arm64.dmg
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build api-server (bundled into desktop app)
+        run: pnpm --filter @workspace/api-server run build
+
+      - name: Build sniper-bot frontend
+        run: pnpm --filter @workspace/sniper-bot run build
+
+      - name: Compile Electron main process
+        run: pnpm --filter @workspace/sniper-bot run electron:compile
+
+      - name: Build installer
+        run: pnpm --filter @workspace/sniper-bot run ${{ matrix.target }}
+        env:
+          # Skip code signing — we ship unsigned installers for now.
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+          # GH_TOKEN only needed if electron-builder publishes itself; we
+          # use softprops/action-gh-release below instead.
+
+      - name: List built artifacts
+        shell: bash
+        run: ls -la artifacts/sniper-bot/release/
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name || inputs.tag }}
+          files: ${{ matrix.artifacts }}
+          fail_on_unmatched_files: true
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
