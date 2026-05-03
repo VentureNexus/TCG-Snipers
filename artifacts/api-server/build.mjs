@@ -3,7 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { build as esbuild } from "esbuild";
 import esbuildPluginPino from "esbuild-plugin-pino";
-import { rm } from "node:fs/promises";
+import { rm, copyFile } from "node:fs/promises";
 
 // Plugins (e.g. 'esbuild-plugin-pino') may use `require` to resolve dependencies
 globalThis.require = createRequire(import.meta.url);
@@ -106,7 +106,6 @@ async function buildAll() {
       // pino relies on workers to handle logging, instead of externalizing it we use a plugin to handle it
       esbuildPluginPino({ transports: ["pino-pretty"] })
     ],
-    // Make sure packages that are cjs only (e.g. express) but are bundled continue to work in our esm output file
     banner: {
       js: `import { createRequire as __bannerCrReq } from 'node:module';
 import __bannerPath from 'node:path';
@@ -118,6 +117,40 @@ globalThis.__dirname = __bannerPath.dirname(globalThis.__filename);
     `,
     },
   });
+
+  await copyPgliteAssets(distDir);
+}
+
+async function copyPgliteAssets(distDir) {
+  // PGlite loads postgres.wasm and postgres.data at runtime via:
+  //   new URL("./postgres.wasm", import.meta.url)
+  // After esbuild bundles everything into dist/index.mjs, import.meta.url
+  // at runtime resolves to dist/index.mjs, so PGlite looks for these files
+  // right next to the bundle. We copy them here explicitly because esbuild
+  // cannot statically detect the new URL() pattern inside PGlite's pre-built
+  // chunk files.
+  //
+  // Resolve PGlite's dist directory from lib/db (where it is installed as a dep).
+  // Resolve PGlite's main entry (dist/index.js) from lib/db's perspective,
+  // then use its parent directory as the dist dir where postgres.wasm lives.
+  const libDbReq = createRequire(
+    path.resolve(artifactDir, "../../lib/db/src/index.ts")
+  );
+  const pgliteMain = libDbReq.resolve("@electric-sql/pglite");
+  const pgliteDist = path.dirname(pgliteMain);
+
+  await Promise.all([
+    copyFile(
+      path.join(pgliteDist, "postgres.wasm"),
+      path.join(distDir, "postgres.wasm")
+    ),
+    copyFile(
+      path.join(pgliteDist, "postgres.data"),
+      path.join(distDir, "postgres.data")
+    ),
+  ]);
+
+  console.log("✓ Copied PGlite binary assets (postgres.wasm, postgres.data) to dist/");
 }
 
 buildAll().catch((err) => {
