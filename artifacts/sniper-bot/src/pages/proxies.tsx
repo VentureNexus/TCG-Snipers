@@ -153,10 +153,16 @@ function ProxyFormDialog({ open, onOpenChange, editingProxy }: ProxyFormDialogPr
   }, [open, editingProxy?.id]);
 
   function onSubmit(values: ProxyFormValues) {
-    const data = {
+    const base = {
       ...values,
       label: values.label || `${values.host}:${values.port}`,
     };
+
+    // When editing, omit password from the payload if left blank so the
+    // stored credential is not overwritten (backend leaves it unchanged).
+    const data = isEditing && !values.password
+      ? (({ password: _omit, ...rest }) => rest)(base)
+      : base;
 
     if (isEditing && editingProxy) {
       updateProxy.mutate(
