@@ -17,6 +17,14 @@ router.post("/task-groups", async (req, res): Promise<void> => {
   res.status(201).json(group);
 });
 
+router.get("/task-groups/:id", async (req, res): Promise<void> => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  const [group] = await db.select().from(taskGroupsTable).where(eq(taskGroupsTable.id, id));
+  if (!group) { res.status(404).json({ error: "Task group not found" }); return; }
+  res.json(group);
+});
+
 router.patch("/task-groups/:id", async (req, res): Promise<void> => {
   const params = UpdateTaskGroupParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }

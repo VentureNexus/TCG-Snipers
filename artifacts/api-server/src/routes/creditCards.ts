@@ -1,7 +1,13 @@
 import { Router, type IRouter } from "express";
 import { eq } from "drizzle-orm";
 import { db, creditCardsTable } from "@workspace/db";
-import { ListCreditCardsQueryParams, CreateCreditCardBody, UpdateCreditCardParams, UpdateCreditCardBody, DeleteCreditCardParams } from "@workspace/api-zod";
+import {
+  ListCreditCardsQueryParams,
+  CreateCreditCardBody,
+  UpdateCreditCardParams,
+  UpdateCreditCardBody,
+  DeleteCreditCardParams,
+} from "@workspace/api-zod";
 import { encrypt, getLastFour, detectCardType } from "../lib/crypto";
 
 const router: IRouter = Router();
@@ -30,6 +36,15 @@ router.post("/credit-cards", async (req, res): Promise<void> => {
   }).returning();
   const { encryptedNumber: _n, encryptedCvv: _c, ...safe } = card;
   res.status(201).json(safe);
+});
+
+router.get("/credit-cards/:id", async (req, res): Promise<void> => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  const [card] = await db.select().from(creditCardsTable).where(eq(creditCardsTable.id, id));
+  if (!card) { res.status(404).json({ error: "Credit card not found" }); return; }
+  const { encryptedNumber: _n, encryptedCvv: _c, ...safe } = card;
+  res.json(safe);
 });
 
 router.patch("/credit-cards/:id", async (req, res): Promise<void> => {

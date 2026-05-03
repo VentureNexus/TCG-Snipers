@@ -19,6 +19,15 @@ router.post("/proxies", async (req, res): Promise<void> => {
   res.status(201).json(safe);
 });
 
+router.get("/proxies/:id", async (req, res): Promise<void> => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  const [proxy] = await db.select().from(proxiesTable).where(eq(proxiesTable.id, id));
+  if (!proxy) { res.status(404).json({ error: "Proxy not found" }); return; }
+  const { password: _p, ...safe } = proxy;
+  res.json(safe);
+});
+
 router.patch("/proxies/:id", async (req, res): Promise<void> => {
   const params = UpdateProxyParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
@@ -50,7 +59,10 @@ router.post("/proxies/:id/test", async (req, res): Promise<void> => {
 
   try {
     await new Promise<void>((resolve, reject) => {
-      const r = https.request({ host: proxy.host, port: parseInt(proxy.port, 10), method: "CONNECT", path: "api.ipify.org:443", timeout: 8000 }, () => { testSuccess = true; resolve(); });
+      const r = https.request(
+        { host: proxy.host, port: parseInt(proxy.port, 10), method: "CONNECT", path: "api.ipify.org:443", timeout: 8000 },
+        () => { testSuccess = true; resolve(); }
+      );
       r.on("error", reject);
       r.on("timeout", () => reject(new Error("timeout")));
       r.end();
@@ -60,7 +72,9 @@ router.post("/proxies/:id/test", async (req, res): Promise<void> => {
   }
 
   const latency = `${Date.now() - start}ms`;
-  await db.update(proxiesTable).set({ lastTestStatus: testSuccess ? "pass" : "fail", lastTestLatency: latency }).where(eq(proxiesTable.id, params.data.id));
+  await db.update(proxiesTable)
+    .set({ lastTestStatus: testSuccess ? "pass" : "fail", lastTestLatency: latency })
+    .where(eq(proxiesTable.id, params.data.id));
   res.json({ success: testSuccess, latency, ip: proxy.host, message: message || (testSuccess ? "Connected" : "Failed") });
 });
 

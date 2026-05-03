@@ -1,0 +1,73 @@
+appId: com.sniperbot.app
+productName: Sniper Bot
+copyright: Copyright © 2025 Sniper Bot
+
+directories:
+  output: release
+  buildResources: build
+
+files:
+  - dist/**
+  - electron/dist/**
+  - "!node_modules/**"
+
+extraResources:
+  - from: ../api-server/dist
+    to: api-server
+    filter:
+      - "**/*.mjs"
+      - "**/*.cjs"
+      - "**/*.json"
+      - "!**/*.map"
+
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  icon: build/icon.ico
+  artifactName: SniperBot-Setup-${version}.${ext}
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  installerHeaderIcon: build/icon.ico
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: Sniper Bot
+
+mac:
+  target:
+    - target: dmg
+      arch:
+        - x64
+        - arm64
+  icon: build/icon.icns
+  category: public.app-category.utilities
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  artifactName: SniperBot-${version}-${arch}.${ext}
+
+dmg:
+  title: Sniper Bot Installer
+  background: build/dmg-background.png
+  window:
+    width: 540
+    height: 380
+  contents:
+    - x: 130
+      y: 220
+    - x: 410
+      y: 220
+      type: link
+      path: /Applications
+
+linux:
+  target:
+    - AppImage
+    - deb
+  icon: build/icon.png
+  category: Utility
+  artifactName: SniperBot-${version}.${ext}
+
+publish: null
