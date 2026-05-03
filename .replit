@@ -49,3 +49,4 @@ channel = "stable-25_05"
 [userenv]
 
 [userenv.shared]
+INSTALLER_OBJECT_KEY_LINUX = "public/installers/TCGSnipers-1.0.0.AppImage"

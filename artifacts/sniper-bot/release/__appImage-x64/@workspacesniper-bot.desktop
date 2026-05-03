@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=TCG Snipers
+Exec=AppRun --no-sandbox %U
+Terminal=false
+Type=Application
+Icon=@workspacesniper-bot
+StartupWMClass=TCG Snipers
+X-AppImage-Version=1.0.0
+Comment=TCG Snipers desktop app for automated retail sniping
+Categories=Utility;

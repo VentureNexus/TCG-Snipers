@@ -51,3 +51,21 @@ export function verifyPortalSession(token: string): PortalSessionPayload | null 
     return null;
   }
 }
+
+export interface DownloadTokenPayload {
+  customerId: number;
+  os: "win" | "mac" | "linux";
+}
+
+export function signDownloadToken(payload: DownloadTokenPayload): string {
+  // Short-lived: just enough for the browser to redirect and start streaming
+  return jwt.sign(payload, PORTAL_SECRET, { expiresIn: "5m" });
+}
+
+export function verifyDownloadToken(token: string): DownloadTokenPayload | null {
+  try {
+    return jwt.verify(token, PORTAL_SECRET) as DownloadTokenPayload;
+  } catch {
+    return null;
+  }
+}

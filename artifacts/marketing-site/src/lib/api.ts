@@ -71,9 +71,23 @@ export const licenseApi = {
       headers: { Authorization: `Bearer ${session}` },
     });
   },
-  installerDownload(session: string, os: "win" | "mac" | "linux"): Promise<{ url: string; os: string }> {
-    return request(`/license/download/installer?os=${os}`, {
-      headers: { Authorization: `Bearer ${session}` },
+  async installerDownload(
+    session: string,
+    os: "win" | "mac" | "linux",
+  ): Promise<{ url?: string; os: string; comingSoon?: boolean; message?: string }> {
+    const res = await fetch(`${LICENSE_API_URL}/license/download/installer?os=${os}`, {
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${session}` },
     });
+    const body = (await res.json().catch(() => ({}))) as {
+      url?: string;
+      os?: string;
+      comingSoon?: boolean;
+      error?: string;
+    };
+    if (body.comingSoon) {
+      return { os: body.os ?? os, comingSoon: true, message: body.error };
+    }
+    if (!res.ok) throw new Error(body.error ?? `Request failed (${res.status})`);
+    return { url: body.url, os: body.os ?? os };
   },
 };

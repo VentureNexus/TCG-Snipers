@@ -65,9 +65,9 @@ dmg:
 linux:
   target:
     - AppImage
-    - deb
   icon: build/icon.png
   category: Utility
+  maintainer: support@tcgsnipers.com
   artifactName: TCGSnipers-${version}.${ext}
 
 publish: null

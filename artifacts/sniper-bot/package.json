@@ -3,6 +3,12 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
+  "description": "TCG Snipers desktop app for automated retail sniping",
+  "homepage": "https://www.tcgsnipers.com",
+  "author": {
+    "name": "TCG Snipers",
+    "email": "support@tcgsnipers.com"
+  },
   "main": "electron/dist/main.js",
   "scripts": {
     "dev": "vite --config vite.config.ts --host 0.0.0.0",
