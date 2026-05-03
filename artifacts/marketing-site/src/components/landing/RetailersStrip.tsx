@@ -1,12 +1,12 @@
 const base = import.meta.env.BASE_URL;
 
 const RETAILERS = [
-  { name: "Target", region: "US Only", logo: `${base}retailers/target.png` },
-  { name: "Walmart", region: "US Only", logo: `${base}retailers/walmart.png` },
-  { name: "Best Buy", region: "US / CA", logo: `${base}retailers/bestbuy.png` },
-  { name: "Amazon", region: "All Regions", logo: `${base}retailers/amazon.png` },
-  { name: "TCGplayer", region: "US Only", logo: `${base}retailers/tcgplayer.png` },
-  { name: "Pokémon Center", region: "US / EU / JP", logo: `${base}retailers/pokemoncenter.png` },
+  { name: "Target", region: "US Only", logo: `${base}retailers/target.png`, sizeClass: "max-h-10" },
+  { name: "Walmart", region: "US Only", logo: `${base}retailers/walmart.png`, sizeClass: "max-h-12" },
+  { name: "Best Buy", region: "US / CA", logo: `${base}retailers/bestbuy.png`, sizeClass: "max-h-12" },
+  { name: "Amazon", region: "All Regions", logo: `${base}retailers/amazon.png`, sizeClass: "max-h-7" },
+  { name: "TCGplayer", region: "US Only", logo: `${base}retailers/tcgplayer.png`, sizeClass: "max-h-12" },
+  { name: "Pokémon Center", region: "US / EU / JP", logo: `${base}retailers/pokemoncenter.png`, sizeClass: "max-h-12" },
 ];
 
 export function RetailersStrip() {
@@ -30,7 +30,7 @@ export function RetailersStrip() {
               <img
                 src={r.logo}
                 alt={`${r.name} logo`}
-                className="max-h-12 w-auto object-contain"
+                className={`${r.sizeClass} w-auto object-contain`}
                 loading="lazy"
               />
             </div>
