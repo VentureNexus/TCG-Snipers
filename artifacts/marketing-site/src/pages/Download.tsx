@@ -6,6 +6,22 @@ const SESSION_KEY = "tcgsnipers_portal_session";
 
 type Os = "win" | "mac" | "linux";
 
+// Programmatically trigger a download without navigating the current page.
+// For cross-origin URLs the browser ignores the `download` attribute, but
+// the response's Content-Disposition: attachment header (set by both the
+// License API streaming endpoint and GitHub Release asset URLs) forces a
+// download regardless. The hidden anchor avoids the URL-bar flash you get
+// from window.location.href.
+function triggerDownload(url: string) {
+  const a = document.createElement("a");
+  a.href = url;
+  a.rel = "noopener";
+  a.download = "";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
 const OPTIONS: { os: Os; label: string; sub: string }[] = [
   { os: "win", label: "Windows", sub: "Setup .exe (NSIS)" },
   { os: "mac", label: "macOS", sub: "DMG (Intel + Apple Silicon)" },
@@ -31,7 +47,7 @@ export default function Download() {
       if (result.comingSoon) {
         setInfo(result.message ?? "This installer is coming soon.");
       } else if (result.url) {
-        window.location.href = result.url;
+        triggerDownload(result.url);
       } else {
         setError("Could not start download.");
       }
