@@ -1,11 +1,11 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "pnpm --filter @workspace/marketing-site... build",
-  "outputDirectory": "dist/public",
+  "outputDirectory": "artifacts/marketing-site/dist/public",
   "installCommand": "pnpm install --frozen-lockfile",
   "framework": null,
   "rewrites": [
     { "source": "/license/:path*", "destination": "https://tcgsnipers.replit.app/license/:path*" },
-    { "source": "/(.*)", "destination": "/index.html" }
+    { "source": "/((?!assets/|.*\\.).*)", "destination": "/index.html" }
   ]
 }
