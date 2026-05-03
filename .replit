@@ -50,3 +50,5 @@ channel = "stable-25_05"
 
 [userenv.shared]
 INSTALLER_OBJECT_KEY_LINUX = "public/installers/TCGSnipers-1.0.0.AppImage"
+INSTALLER_URL_WIN = "https://github.com/VentureNexus/TCG-Snipers/releases/download/main/TCGSnipers-Setup-1.0.0.exe"
+INSTALLER_URL_MAC = "https://github.com/VentureNexus/TCG-Snipers/releases/download/main/TCGSnipers-1.0.0-arm64.dmg"
