@@ -10,6 +10,12 @@ import {
   getLastResult,
   openDownloadPage,
 } from "./updateChecker.js";
+import {
+  startAutoUpdater,
+  getDownloadedUpdate,
+  quitAndInstallUpdate,
+  checkForUpdatesNow,
+} from "./autoUpdater.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -154,9 +160,17 @@ ipcMain.handle("license:clear", () => {
 ipcMain.handle("app:openExternal", (_e, url: string) => shell.openExternal(url));
 
 // ── Update IPC ───────────────────────────────────────────────────────────────
-ipcMain.handle("update:check", () => checkForUpdate(mainWindow));
+ipcMain.handle("update:check", async () => {
+  // Kick off both the manifest check (drives the "available" banner) and the
+  // electron-updater check (drives the in-app silent download). They run
+  // independently so a failure in one doesn't block the other.
+  void checkForUpdatesNow();
+  return checkForUpdate(mainWindow);
+});
 ipcMain.handle("update:latest", () => getLastResult());
 ipcMain.handle("update:openDownload", () => openDownloadPage());
+ipcMain.handle("update:downloaded", () => getDownloadedUpdate());
+ipcMain.handle("update:install", () => quitAndInstallUpdate());
 
 // ── App lifecycle ────────────────────────────────────────────────────────────
 app.whenReady().then(async () => {
@@ -171,6 +185,11 @@ app.whenReady().then(async () => {
     startUpdateChecker(() => mainWindow);
   } catch (err) {
     console.error("[startup] startUpdateChecker threw:", err);
+  }
+  try {
+    startAutoUpdater(() => mainWindow);
+  } catch (err) {
+    console.error("[startup] startAutoUpdater threw:", err);
   }
 
   app.on("activate", () => {

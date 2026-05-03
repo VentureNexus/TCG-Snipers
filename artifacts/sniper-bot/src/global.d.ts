@@ -11,6 +11,20 @@ interface UpdateInfo {
   checkedAt: string;
 }
 
+interface DownloadedUpdate {
+  version: string;
+  releaseNotes?: string | null;
+  releaseName?: string | null;
+  releaseDate?: string;
+}
+
+interface UpdateProgress {
+  percent: number;
+  bytesPerSecond: number;
+  transferred: number;
+  total: number;
+}
+
 declare global {
   interface Window {
     electronAPI?: {
@@ -26,6 +40,14 @@ declare global {
         latest: () => Promise<UpdateInfo | null>;
         openDownload: () => Promise<void>;
         onAvailable: (handler: (info: UpdateInfo) => void) => () => void;
+        /** Returns the staged update (downloaded + ready to install) if any. */
+        downloaded: () => Promise<DownloadedUpdate | null>;
+        /** Quit, install the staged update, and relaunch. */
+        install: () => Promise<boolean>;
+        /** Fires when electron-updater has finished downloading a new version. */
+        onDownloaded: (handler: (info: DownloadedUpdate) => void) => () => void;
+        /** Fires periodically while a new version is being downloaded. */
+        onProgress: (handler: (p: UpdateProgress) => void) => () => void;
       };
       /** License management — Electron secureStorage + machine fingerprint. */
       license: {

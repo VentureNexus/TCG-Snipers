@@ -90,5 +90,8 @@
     "wait-on": "^8.0.1",
     "wouter": "^3.3.5",
     "zod": "catalog:"
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.3"
   }
 }

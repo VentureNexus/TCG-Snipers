@@ -11,6 +11,20 @@ interface UpdateInfo {
   checkedAt: string;
 }
 
+interface DownloadedUpdate {
+  version: string;
+  releaseNotes?: string | null;
+  releaseName?: string | null;
+  releaseDate?: string;
+}
+
+interface UpdateProgress {
+  percent: number;
+  bytesPerSecond: number;
+  transferred: number;
+  total: number;
+}
+
 const api = {
   getVersion:    (): Promise<string> => ipcRenderer.invoke("app:version"),
   getPlatform:   (): Promise<string> => ipcRenderer.invoke("app:platform"),
@@ -27,6 +41,23 @@ const api = {
       const listener = (_e: unknown, info: UpdateInfo) => handler(info);
       ipcRenderer.on("update:available", listener);
       return () => ipcRenderer.removeListener("update:available", listener);
+    },
+    /** Returns the staged update (downloaded + ready to install) if any. */
+    downloaded: (): Promise<DownloadedUpdate | null> =>
+      ipcRenderer.invoke("update:downloaded"),
+    /** Quit, install the staged update, and relaunch. No-op if nothing staged. */
+    install: (): Promise<boolean> => ipcRenderer.invoke("update:install"),
+    /** Fires when electron-updater has finished downloading a new version. */
+    onDownloaded: (handler: (info: DownloadedUpdate) => void): (() => void) => {
+      const listener = (_e: unknown, info: DownloadedUpdate) => handler(info);
+      ipcRenderer.on("update:downloaded", listener);
+      return () => ipcRenderer.removeListener("update:downloaded", listener);
+    },
+    /** Fires periodically while a new version is being downloaded. */
+    onProgress: (handler: (p: UpdateProgress) => void): (() => void) => {
+      const listener = (_e: unknown, p: UpdateProgress) => handler(p);
+      ipcRenderer.on("update:progress", listener);
+      return () => ipcRenderer.removeListener("update:progress", listener);
     },
   },
 

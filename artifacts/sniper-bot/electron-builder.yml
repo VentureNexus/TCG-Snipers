@@ -9,7 +9,9 @@ directories:
 files:
   - dist/**
   - electron/dist/**
-  - "!node_modules/**"
+  # Default electron-builder behavior (omitted "!node_modules/**") includes
+  # production dependencies from node_modules — required so electron-updater
+  # and its transitive deps are bundled into the asar at runtime.
 
 extraResources:
   - from: ../api-server/dist
@@ -42,7 +44,13 @@ nsis:
 
 mac:
   target:
+    # dmg is the user-facing installer; zip is required by electron-updater
+    # to perform staged in-app updates on macOS.
     - target: dmg
+      arch:
+        - x64
+        - arm64
+    - target: zip
       arch:
         - x64
         - arm64
@@ -75,4 +83,12 @@ linux:
   maintainer: support@tcgsnipers.com
   artifactName: TCGSnipers-${version}.${ext}
 
-publish: null
+# electron-updater reads this block at runtime to discover new releases.
+# `github` provider works for public repos with no token required.
+# Owner/repo intentionally match license-api's GITHUB_RELEASES_REPO default
+# (artifacts/license-api/src/lib/githubReleases.ts).
+publish:
+  - provider: github
+    owner: VentureNexus
+    repo: TCG-Snipers
+    releaseType: release
