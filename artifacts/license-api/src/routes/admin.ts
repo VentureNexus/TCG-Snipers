@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { z } from "zod";
+import { randomUUID, timingSafeEqual } from "node:crypto";
 import { db, customersTable, licensesTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { generateLicenseKey, hashToken, last4 } from "../lib/crypto";
@@ -15,7 +16,11 @@ function adminAuth(req: { headers: { authorization?: string } }): boolean {
   if (!ADMIN_TOKEN || ADMIN_TOKEN.length < 16) return false;
   const auth = req.headers.authorization ?? "";
   const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
-  return token === ADMIN_TOKEN;
+  // Constant-time compare to defeat timing attacks
+  const a = Buffer.from(token);
+  const b = Buffer.from(ADMIN_TOKEN);
+  if (a.length !== b.length) return false;
+  return timingSafeEqual(a, b);
 }
 
 const issueSchema = z.object({
@@ -54,28 +59,43 @@ router.post("/admin/issue-license", async (req, res) => {
   }
   const { email, count, sendEmail: shouldEmail, note } = parsed.data;
 
-  // Upsert customer (no Stripe customer id since this bypasses Stripe)
-  const existing = await db.select().from(customersTable).where(eq(customersTable.email, email)).limit(1);
-  const customerId =
-    existing.length > 0
-      ? existing[0].id
-      : (
-          await db
-            .insert(customersTable)
-            .values({ email, stripeCustomerId: "" })
-            .returning({ id: customersTable.id })
-        )[0].id;
+  // Upsert customer atomically (handles concurrent webhook/admin races on the
+  // unique email index). Try insert-or-do-nothing first; if no row was returned
+  // (because a row already existed), fall back to a select.
+  const insertedCustomer = await db
+    .insert(customersTable)
+    .values({ email, stripeCustomerId: "" })
+    .onConflictDoNothing({ target: customersTable.email })
+    .returning({ id: customersTable.id });
+  let customerId: number;
+  if (insertedCustomer.length > 0) {
+    customerId = insertedCustomer[0].id;
+  } else {
+    const existing = await db
+      .select({ id: customersTable.id })
+      .from(customersTable)
+      .where(eq(customersTable.email, email))
+      .limit(1);
+    if (existing.length === 0) {
+      res.status(500).json({ error: "Customer upsert failed" });
+      return;
+    }
+    customerId = existing[0].id;
+  }
 
   const issued: { id: number; key: string; last4: string }[] = [];
   for (let i = 0; i < count; i++) {
     const rawKey = generateLicenseKey();
+    // Use a UUID so the synthetic stripeSubscriptionId is globally unique
+    // and never collides across concurrent admin calls.
+    const compSubId = `comp_${randomUUID()}`;
     const inserted = await db
       .insert(licensesTable)
       .values({
         customerId,
         keyHash: hashToken(rawKey),
         keyLast4: last4(rawKey),
-        stripeSubscriptionId: `comp_${Date.now()}_${i}`,
+        stripeSubscriptionId: compSubId,
         status: "active",
         currentPeriodEnd: null, // perpetual until manually revoked
       })

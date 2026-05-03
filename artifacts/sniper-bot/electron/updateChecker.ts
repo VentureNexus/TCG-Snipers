@@ -1,6 +1,6 @@
 import { app, BrowserWindow, shell } from "electron";
 
-const LICENSE_API_URL = (process.env.LICENSE_API_URL ?? "https://tcgsnipers.com").replace(/\/$/, "");
+const LICENSE_API_URL = (process.env.LICENSE_API_URL ?? "https://tcgsnipers.replit.app").replace(/\/$/, "");
 const CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000; // every 6 hours
 
 export interface UpdateInfo {
