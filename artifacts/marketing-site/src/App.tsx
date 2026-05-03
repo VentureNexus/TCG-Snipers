@@ -3,7 +3,7 @@ import { Switch, Route, Router as WouterRouter, Link } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Menu, X } from "lucide-react";
 
-import logoUrl from "@assets/3092-removebg-preview_(1)_1777781722336.png";
+import logoUrl from "@/assets/logo-icon.png";
 import Landing from "@/pages/Landing";
 import Manage from "@/pages/Manage";
 import ManageSession from "@/pages/ManageSession";
@@ -45,9 +45,9 @@ function Header() {
     <>
       <AnnouncementBar />
       <header className="border-b border-border/60 bg-background/70 backdrop-blur sticky top-0 z-50">
-        <div className="max-w-6xl mx-auto px-6 py-1 flex items-center justify-between">
+        <div className="max-w-6xl mx-auto px-6 py-3 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <img src={logoUrl} alt="TCG Snipers" className="h-16 w-auto object-contain -my-2" />
+            <img src={logoUrl} alt="TCG Snipers" className="h-12 w-12 object-contain" />
             <span className="text-xl font-bold tracking-tight">
               <span className="text-primary">TCG</span> Snipers
             </span>
@@ -120,7 +120,7 @@ function Footer() {
       <div className="max-w-6xl mx-auto px-6 py-12">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 text-sm">
           <div className="flex items-center gap-2">
-            <img src={logoUrl} alt="TCG Snipers" className="h-8 w-auto object-contain" />
+            <img src={logoUrl} alt="TCG Snipers" className="h-8 w-8 object-contain" />
             <span className="font-bold text-foreground">
               <span className="text-primary">TCG</span> Snipers
             </span>
