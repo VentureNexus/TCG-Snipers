@@ -53,6 +53,10 @@ declare global {
       diagnostics: {
         getLogs: () => Promise<string[]>;
         getHealth: () => Promise<{ alive: boolean; port: number }>;
+        getStartStatus: () => Promise<{ ok: boolean; reason: string }>;
+        onStartFailed: (handler: (info: { reason: string }) => void) => () => void;
+        onCrashed: (handler: (info: { reason: string }) => void) => () => void;
+        onRecovered: (handler: () => void) => () => void;
       };
       /** License management — Electron secureStorage + machine fingerprint. */
       license: {
