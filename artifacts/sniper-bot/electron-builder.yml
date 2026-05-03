@@ -20,6 +20,8 @@ extraResources:
       - "**/*.mjs"
       - "**/*.cjs"
       - "**/*.json"
+      - "**/*.wasm"
+      - "**/*.data"
       - "!**/*.map"
 
 win:
