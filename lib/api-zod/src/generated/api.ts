@@ -457,6 +457,8 @@ export const StartTaskGroupParams = zod.object({
 export const StartTaskGroupResponse = zod.object({
   affected: zod.number(),
   message: zod.string(),
+  started: zod.number().optional(),
+  queued: zod.number().optional(),
 });
 
 /**
@@ -635,6 +637,8 @@ export const StopTaskResponse = zod.object({
 export const StartAllTasksResponse = zod.object({
   affected: zod.number(),
   message: zod.string(),
+  started: zod.number().optional(),
+  queued: zod.number().optional(),
 });
 
 /**
