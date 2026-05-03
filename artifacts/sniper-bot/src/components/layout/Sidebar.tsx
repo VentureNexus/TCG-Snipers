@@ -22,11 +22,12 @@ export function Sidebar() {
 
   return (
     <div className={`flex flex-col h-full bg-sidebar border-r border-sidebar-border transition-all duration-300 ${collapsed ? 'w-16' : 'w-64'}`}>
-      <div className="flex items-center justify-center p-2 border-b border-sidebar-border h-14">
+      <div className="flex items-center justify-center p-2 border-b border-sidebar-border h-16">
         <img
           src={theme.logo}
           alt="TCG Snipers"
-          className={collapsed ? "h-9 w-9 object-contain" : "h-11 object-contain"}
+          className={collapsed ? "h-12 w-auto object-contain" : "h-14 w-auto object-contain"}
+          style={{ aspectRatio: "832 / 1248" }}
           data-testid="img-sidebar-logo"
         />
       </div>
@@ -54,7 +55,7 @@ export function Sidebar() {
           <HelpCircle className="w-5 h-5" />
           {!collapsed && <span className="text-sm">Support</span>}
         </Link>
-        {!collapsed && <div className="text-xs text-muted-foreground/50 font-mono mt-2">v1.0.0</div>}
+        {!collapsed && <div className="text-xs text-muted-foreground/50 font-mono mt-2">v1.0.1</div>}
       </div>
     </div>
   );
