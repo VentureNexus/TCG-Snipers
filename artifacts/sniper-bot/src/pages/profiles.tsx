@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   useListProfiles,
   useCreateProfile,
@@ -57,6 +57,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Separator } from "@/components/ui/separator";
 import {
   User,
   MapPin,
@@ -71,8 +72,11 @@ import {
   Info,
   Zap,
   X,
+  Loader2,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+
+// ─── Schemas ────────────────────────────────────────────────────────────────
 
 const profileSchema = z.object({
   name: z.string().min(1, "Required"),
@@ -111,14 +115,40 @@ const creditCardSchema = z.object({
 type ProfileFormValues = z.infer<typeof profileSchema>;
 type CreditCardFormValues = z.infer<typeof creditCardSchema>;
 
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+const EMPTY_PROFILE: ProfileFormValues = {
+  name: "",
+  email: "",
+  phone: "",
+  shipFirstName: "",
+  shipLastName: "",
+  shipAddress1: "",
+  shipAddress2: "",
+  shipCity: "",
+  shipState: "",
+  shipZip: "",
+  shipCountry: "US",
+  billSameAsShip: true,
+  billFirstName: "",
+  billLastName: "",
+  billAddress1: "",
+  billAddress2: "",
+  billCity: "",
+  billState: "",
+  billZip: "",
+  billCountry: "US",
+  addressJigEnabled: false,
+  costcoMembershipId: "",
+};
+
 const CARD_TYPE_COLORS: Record<string, string> = {
   visa: "text-blue-400",
   mastercard: "text-orange-400",
   amex: "text-green-400",
   discover: "text-yellow-400",
 };
-
-function getCardTypeColor(type: string) {
+function cardTypeColor(type: string) {
   return CARD_TYPE_COLORS[type?.toLowerCase()] ?? "text-primary";
 }
 
@@ -130,10 +160,129 @@ function SectionHeader({ children }: { children: React.ReactNode }) {
   );
 }
 
+// ─── Add Card inline form ─────────────────────────────────────────────────────
+
+interface AddCardInlineProps {
+  profileId: number;
+  existingCount: number;
+  onAdded: () => void;
+}
+
+function AddCardInline({ profileId, existingCount, onAdded }: AddCardInlineProps) {
+  const [open, setOpen] = useState(false);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const createCreditCard = useCreateCreditCard();
+
+  const form = useForm<CreditCardFormValues>({
+    resolver: zodResolver(creditCardSchema),
+    defaultValues: { cardNickname: "", cardholderName: "", cardNumber: "", cvv: "", expiryMonth: "", expiryYear: "" },
+  });
+
+  function onSubmit(values: CreditCardFormValues) {
+    createCreditCard.mutate(
+      { data: { ...values, profileId } },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getListCreditCardsQueryKey() });
+          toast({ title: "Card added" });
+          setOpen(false);
+          form.reset();
+          onAdded();
+        },
+        onError: () => toast({ title: "Failed to add card", variant: "destructive" }),
+      }
+    );
+  }
+
+  if (existingCount >= 5) return null;
+
+  if (!open) {
+    return (
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className="w-full text-xs gap-1.5 border-dashed"
+        onClick={() => setOpen(true)}
+        data-testid={`button-add-card-inline-${profileId}`}
+      >
+        <Plus className="w-3.5 h-3.5" /> Add Payment Card
+      </Button>
+    );
+  }
+
+  return (
+    <div className="rounded-lg border border-border/50 p-4 bg-muted/10 space-y-3">
+      <p className="text-xs font-medium text-foreground/80">New Card</p>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <FormField control={form.control} name="cardNickname" render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-xs">Nickname</FormLabel>
+                <FormControl><Input className="h-8 text-xs" placeholder="Main Visa" {...field} data-testid="input-card-nickname" /></FormControl>
+              </FormItem>
+            )} />
+            <FormField control={form.control} name="cardholderName" render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-xs">Cardholder Name</FormLabel>
+                <FormControl><Input className="h-8 text-xs" {...field} data-testid="input-cardholder-name" /></FormControl>
+                <FormMessage className="text-[10px]" />
+              </FormItem>
+            )} />
+          </div>
+          <FormField control={form.control} name="cardNumber" render={({ field }) => (
+            <FormItem>
+              <FormLabel className="text-xs">Card Number</FormLabel>
+              <FormControl><Input className="h-8 text-xs font-mono" placeholder="•••• •••• •••• ••••" maxLength={19} {...field} data-testid="input-card-number" /></FormControl>
+              <FormMessage className="text-[10px]" />
+            </FormItem>
+          )} />
+          <div className="grid grid-cols-3 gap-3">
+            <FormField control={form.control} name="expiryMonth" render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-xs">Month</FormLabel>
+                <FormControl><Input className="h-8 text-xs" placeholder="MM" maxLength={2} {...field} data-testid="input-expiry-month" /></FormControl>
+                <FormMessage className="text-[10px]" />
+              </FormItem>
+            )} />
+            <FormField control={form.control} name="expiryYear" render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-xs">Year</FormLabel>
+                <FormControl><Input className="h-8 text-xs" placeholder="YY" maxLength={4} {...field} data-testid="input-expiry-year" /></FormControl>
+                <FormMessage className="text-[10px]" />
+              </FormItem>
+            )} />
+            <FormField control={form.control} name="cvv" render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-xs">CVV</FormLabel>
+                <FormControl><Input className="h-8 text-xs" type="password" maxLength={4} {...field} data-testid="input-cvv" /></FormControl>
+                <FormMessage className="text-[10px]" />
+              </FormItem>
+            )} />
+          </div>
+          <div className="flex gap-2">
+            <Button type="button" variant="ghost" size="sm" className="flex-1 text-xs" onClick={() => { setOpen(false); form.reset(); }}>
+              Cancel
+            </Button>
+            <Button type="submit" size="sm" className="flex-1 text-xs" disabled={createCreditCard.isPending} data-testid="button-add-card-submit">
+              {createCreditCard.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : "Save Card"}
+            </Button>
+          </div>
+        </form>
+      </Form>
+    </div>
+  );
+}
+
+// ─── Profile Form Dialog ──────────────────────────────────────────────────────
+
 interface ProfileFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   editingProfile: Profile | null;
+  profileCards: CreditCard[];
   onDone: () => void;
 }
 
@@ -141,45 +290,21 @@ function ProfileFormDialog({
   open,
   onOpenChange,
   editingProfile,
+  profileCards,
   onDone,
 }: ProfileFormDialogProps) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const createProfile = useCreateProfile();
   const updateProfile = useUpdateProfile();
-
-  const defaultValues: ProfileFormValues = {
-    name: "",
-    email: "",
-    phone: "",
-    shipFirstName: "",
-    shipLastName: "",
-    shipAddress1: "",
-    shipAddress2: "",
-    shipCity: "",
-    shipState: "",
-    shipZip: "",
-    shipCountry: "US",
-    billSameAsShip: true,
-    billFirstName: "",
-    billLastName: "",
-    billAddress1: "",
-    billAddress2: "",
-    billCity: "",
-    billState: "",
-    billZip: "",
-    billCountry: "US",
-    addressJigEnabled: false,
-    costcoMembershipId: "",
-  };
+  const deleteCreditCard = useDeleteCreditCard();
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
-    defaultValues,
+    defaultValues: EMPTY_PROFILE,
   });
 
   const billSameAsShip = useWatch({ control: form.control, name: "billSameAsShip" });
-
   const isEditing = !!editingProfile;
   const isPending = createProfile.isPending || updateProfile.isPending;
 
@@ -211,17 +336,27 @@ function ProfileFormDialog({
         costcoMembershipId: editingProfile.costcoMembershipId ?? "",
       });
     } else {
-      form.reset(defaultValues);
+      form.reset(EMPTY_PROFILE);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, editingProfile?.id]);
 
+  function handleDeleteCard(cardId: number) {
+    deleteCreditCard.mutate(
+      { id: cardId },
+      {
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: getListCreditCardsQueryKey() }),
+        onError: () => toast({ title: "Failed to remove card", variant: "destructive" }),
+      }
+    );
+  }
+
   function onSubmit(values: ProfileFormValues) {
     const data = {
       ...values,
-      phone: values.phone || "",
-      shipAddress2: values.shipAddress2 || "",
-      costcoMembershipId: values.costcoMembershipId || "",
+      phone: values.phone ?? "",
+      shipAddress2: values.shipAddress2 ?? "",
+      costcoMembershipId: values.costcoMembershipId ?? "",
     };
 
     if (isEditing && editingProfile) {
@@ -246,7 +381,7 @@ function ProfileFormDialog({
             toast({ title: "Profile created" });
             onOpenChange(false);
             onDone();
-            form.reset(defaultValues);
+            form.reset(EMPTY_PROFILE);
           },
           onError: () => toast({ title: "Failed to create profile", variant: "destructive" }),
         }
@@ -270,36 +405,28 @@ function ProfileFormDialog({
                 <FormField control={form.control} name="name" render={({ field }) => (
                   <FormItem className="col-span-2">
                     <FormLabel>Profile Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="My Main Profile" {...field} data-testid="input-profile-name" />
-                    </FormControl>
+                    <FormControl><Input placeholder="My Main Profile" {...field} data-testid="input-profile-name" /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )} />
                 <FormField control={form.control} name="email" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input type="email" placeholder="john@example.com" {...field} data-testid="input-profile-email" />
-                    </FormControl>
+                    <FormControl><Input type="email" placeholder="john@example.com" {...field} data-testid="input-profile-email" /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )} />
                 <FormField control={form.control} name="phone" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Phone</FormLabel>
-                    <FormControl>
-                      <Input placeholder="555-555-5555" {...field} data-testid="input-profile-phone" />
-                    </FormControl>
+                    <FormControl><Input placeholder="555-555-5555" {...field} data-testid="input-profile-phone" /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )} />
                 <FormField control={form.control} name="costcoMembershipId" render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Costco Membership ID</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Optional" {...field} data-testid="input-costco-membership" />
-                    </FormControl>
+                    <FormLabel>Costco Membership ID <span className="text-muted-foreground text-xs">(optional)</span></FormLabel>
+                    <FormControl><Input placeholder="Optional" {...field} data-testid="input-costco-membership" /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )} />
@@ -379,11 +506,7 @@ function ProfileFormDialog({
               <FormField control={form.control} name="billSameAsShip" render={({ field }) => (
                 <FormItem className="flex flex-row items-center gap-3 mb-4">
                   <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                      data-testid="switch-bill-same-as-ship"
-                    />
+                    <Switch checked={field.value} onCheckedChange={field.onChange} data-testid="switch-bill-same-as-ship" />
                   </FormControl>
                   <FormLabel className="!mt-0 cursor-pointer">Same as shipping address</FormLabel>
                 </FormItem>
@@ -455,17 +578,63 @@ function ProfileFormDialog({
               )}
             </div>
 
-            {/* Address Jig */}
+            {/* Payment Methods (edit mode) */}
+            {isEditing && editingProfile && (
+              <div>
+                <SectionHeader>
+                  Payment Methods ({profileCards.length}/5 slots)
+                </SectionHeader>
+
+                {profileCards.length === 0 && (
+                  <p className="text-xs text-muted-foreground mb-3">No cards saved for this profile.</p>
+                )}
+
+                <div className="space-y-2 mb-3">
+                  {profileCards.map((card) => (
+                    <div
+                      key={card.id}
+                      className="flex items-center justify-between gap-2 bg-muted/20 rounded-md px-3 py-2 border border-border/30 group/card"
+                      data-testid={`card-slot-${card.id}`}
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className={`font-mono font-semibold text-xs ${cardTypeColor(card.cardType)}`}>
+                          {card.cardType ? card.cardType.toUpperCase() : "CARD"}
+                        </span>
+                        <span className="font-mono text-xs">••••&nbsp;{card.lastFour}</span>
+                        {card.cardNickname && (
+                          <span className="text-muted-foreground text-[11px] truncate">({card.cardNickname})</span>
+                        )}
+                        <span className="text-muted-foreground text-[11px]">{card.expiryMonth}/{card.expiryYear}</span>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 opacity-0 group-hover/card:opacity-100 text-muted-foreground hover:text-destructive transition-opacity"
+                        onClick={() => handleDeleteCard(card.id)}
+                        data-testid={`button-delete-card-slot-${card.id}`}
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+
+                <AddCardInline
+                  profileId={editingProfile.id}
+                  existingCount={profileCards.length}
+                  onAdded={() => {}}
+                />
+              </div>
+            )}
+
+            {/* Options */}
             <div>
               <SectionHeader>Options</SectionHeader>
               <FormField control={form.control} name="addressJigEnabled" render={({ field }) => (
                 <FormItem className="flex flex-row items-start gap-3 rounded-lg border border-border/50 p-4 bg-muted/10">
                   <FormControl>
-                    <Checkbox
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                      data-testid="checkbox-address-jig"
-                    />
+                    <Checkbox checked={field.value} onCheckedChange={field.onChange} data-testid="checkbox-address-jig" />
                   </FormControl>
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
@@ -490,22 +659,13 @@ function ProfileFormDialog({
               )} />
             </div>
 
+            <Separator />
+
             <div className="flex gap-3">
-              <Button
-                type="button"
-                variant="outline"
-                className="flex-1"
-                onClick={() => onOpenChange(false)}
-                data-testid="button-cancel-profile"
-              >
+              <Button type="button" variant="outline" className="flex-1" onClick={() => onOpenChange(false)} data-testid="button-cancel-profile">
                 Cancel
               </Button>
-              <Button
-                type="submit"
-                className="flex-1"
-                disabled={isPending}
-                data-testid="button-save-profile"
-              >
+              <Button type="submit" className="flex-1" disabled={isPending} data-testid="button-save-profile">
                 {isPending ? "Saving..." : isEditing ? "Save Changes" : "Create Profile"}
               </Button>
             </div>
@@ -516,138 +676,7 @@ function ProfileFormDialog({
   );
 }
 
-interface AddCardDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  profileId: number;
-  existingCardCount: number;
-}
-
-function AddCardDialog({ open, onOpenChange, profileId, existingCardCount }: AddCardDialogProps) {
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
-  const createCreditCard = useCreateCreditCard();
-
-  const form = useForm<CreditCardFormValues>({
-    resolver: zodResolver(creditCardSchema),
-    defaultValues: {
-      cardNickname: "",
-      cardholderName: "",
-      cardNumber: "",
-      cvv: "",
-      expiryMonth: "",
-      expiryYear: "",
-    },
-  });
-
-  function onSubmit(values: CreditCardFormValues) {
-    if (existingCardCount >= 5) {
-      toast({ title: "Maximum 5 cards per profile", variant: "destructive" });
-      return;
-    }
-    createCreditCard.mutate(
-      { data: { ...values, profileId } },
-      {
-        onSuccess: () => {
-          queryClient.invalidateQueries({ queryKey: getListCreditCardsQueryKey() });
-          toast({ title: "Card added" });
-          onOpenChange(false);
-          form.reset();
-        },
-        onError: () => toast({ title: "Failed to add card", variant: "destructive" }),
-      }
-    );
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[420px]">
-        <DialogHeader>
-          <DialogTitle>Add Credit Card</DialogTitle>
-        </DialogHeader>
-        {existingCardCount >= 5 ? (
-          <p className="text-sm text-muted-foreground py-4 text-center">
-            Maximum of 5 cards per profile reached. Remove a card to add a new one.
-          </p>
-        ) : (
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField control={form.control} name="cardNickname" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Card Nickname <span className="text-muted-foreground text-xs">(optional)</span></FormLabel>
-                  <FormControl>
-                    <Input placeholder="Main Visa" {...field} data-testid="input-card-nickname" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
-              <FormField control={form.control} name="cardholderName" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Cardholder Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="John Doe" {...field} data-testid="input-cardholder-name" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
-              <FormField control={form.control} name="cardNumber" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Card Number</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="•••• •••• •••• ••••"
-                      maxLength={19}
-                      {...field}
-                      data-testid="input-card-number"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
-              <div className="grid grid-cols-3 gap-3">
-                <FormField control={form.control} name="expiryMonth" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Month</FormLabel>
-                    <FormControl>
-                      <Input placeholder="MM" maxLength={2} {...field} data-testid="input-expiry-month" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-                <FormField control={form.control} name="expiryYear" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Year</FormLabel>
-                    <FormControl>
-                      <Input placeholder="YY" maxLength={4} {...field} data-testid="input-expiry-year" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-                <FormField control={form.control} name="cvv" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>CVV</FormLabel>
-                    <FormControl>
-                      <Input type="password" maxLength={4} {...field} data-testid="input-cvv" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-              </div>
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={createCreditCard.isPending}
-                data-testid="button-add-card-submit"
-              >
-                {createCreditCard.isPending ? "Adding..." : "Add Card"}
-              </Button>
-            </form>
-          </Form>
-        )}
-      </DialogContent>
-    </Dialog>
-  );
-}
+// ─── Profile Card ─────────────────────────────────────────────────────────────
 
 interface ProfileCardProps {
   profile: Profile;
@@ -673,19 +702,12 @@ function ProfileCard({
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0 flex-1">
-            <CardTitle className="text-base truncate" title={profile.name}>
-              {profile.name}
-            </CardTitle>
+            <CardTitle className="text-base truncate" title={profile.name}>{profile.name}</CardTitle>
             <p className="text-xs text-muted-foreground truncate mt-0.5">{profile.email}</p>
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7 shrink-0 text-muted-foreground"
-                data-testid={`button-menu-profile-${profile.id}`}
-              >
+              <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-muted-foreground" data-testid={`button-menu-profile-${profile.id}`}>
                 <MoreVertical className="w-4 h-4" />
               </Button>
             </DropdownMenuTrigger>
@@ -697,11 +719,7 @@ function ProfileCard({
                 <Copy className="w-3.5 h-3.5 mr-2" /> Duplicate
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem
-                className="text-destructive focus:text-destructive"
-                onClick={onDelete}
-                data-testid={`menu-delete-profile-${profile.id}`}
-              >
+              <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={onDelete} data-testid={`menu-delete-profile-${profile.id}`}>
                 <Trash2 className="w-3.5 h-3.5 mr-2" /> Delete
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -715,13 +733,10 @@ function ProfileCard({
             </Badge>
           )}
           {profile.costcoMembershipId && (
-            <Badge variant="outline" className="text-blue-400 border-blue-400/20 bg-blue-400/5 text-[10px]">
-              Costco
-            </Badge>
+            <Badge variant="outline" className="text-blue-400 border-blue-400/20 bg-blue-400/5 text-[10px]">Costco</Badge>
           )}
           <Badge variant="outline" className="text-[10px]">
-            <CreditCardIcon className="w-2.5 h-2.5 mr-1" />
-            {cards.length}/5 cards
+            <CreditCardIcon className="w-2.5 h-2.5 mr-1" />{cards.length}/5 cards
           </Badge>
         </div>
       </CardHeader>
@@ -750,7 +765,7 @@ function ProfileCard({
                 data-testid={`card-credit-${card.id}`}
               >
                 <div className="flex items-center gap-2 min-w-0">
-                  <span className={`font-mono font-semibold text-[11px] ${getCardTypeColor(card.cardType)}`}>
+                  <span className={`font-mono font-semibold text-[11px] ${cardTypeColor(card.cardType)}`}>
                     {card.cardType ? card.cardType.toUpperCase() : "CARD"}
                   </span>
                   <span className="font-mono text-[11px]">••••&nbsp;{card.lastFour}</span>
@@ -793,6 +808,118 @@ function ProfileCard({
   );
 }
 
+// ─── Add Card Dialog (standalone, for card list action) ───────────────────────
+
+interface AddCardDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  profileId: number;
+  existingCardCount: number;
+}
+
+function AddCardDialog({ open, onOpenChange, profileId, existingCardCount }: AddCardDialogProps) {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const createCreditCard = useCreateCreditCard();
+
+  const form = useForm<CreditCardFormValues>({
+    resolver: zodResolver(creditCardSchema),
+    defaultValues: { cardNickname: "", cardholderName: "", cardNumber: "", cvv: "", expiryMonth: "", expiryYear: "" },
+  });
+
+  useEffect(() => {
+    if (!open) form.reset();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  function onSubmit(values: CreditCardFormValues) {
+    if (existingCardCount >= 5) {
+      toast({ title: "Maximum 5 cards per profile", variant: "destructive" });
+      return;
+    }
+    createCreditCard.mutate(
+      { data: { ...values, profileId } },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getListCreditCardsQueryKey() });
+          toast({ title: "Card added" });
+          onOpenChange(false);
+        },
+        onError: () => toast({ title: "Failed to add card", variant: "destructive" }),
+      }
+    );
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[420px]">
+        <DialogHeader>
+          <DialogTitle>Add Credit Card</DialogTitle>
+        </DialogHeader>
+        {existingCardCount >= 5 ? (
+          <p className="text-sm text-muted-foreground py-4 text-center">
+            Maximum of 5 cards per profile reached. Remove a card to add a new one.
+          </p>
+        ) : (
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <FormField control={form.control} name="cardNickname" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Card Nickname <span className="text-muted-foreground text-xs">(optional)</span></FormLabel>
+                  <FormControl><Input placeholder="Main Visa" {...field} data-testid="input-card-nickname" /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+              <FormField control={form.control} name="cardholderName" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Cardholder Name</FormLabel>
+                  <FormControl><Input placeholder="John Doe" {...field} data-testid="input-cardholder-name" /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+              <FormField control={form.control} name="cardNumber" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Card Number</FormLabel>
+                  <FormControl><Input placeholder="•••• •••• •••• ••••" maxLength={19} {...field} data-testid="input-card-number" /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+              <div className="grid grid-cols-3 gap-3">
+                <FormField control={form.control} name="expiryMonth" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Month</FormLabel>
+                    <FormControl><Input placeholder="MM" maxLength={2} {...field} data-testid="input-expiry-month" /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                <FormField control={form.control} name="expiryYear" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Year</FormLabel>
+                    <FormControl><Input placeholder="YY" maxLength={4} {...field} data-testid="input-expiry-year" /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                <FormField control={form.control} name="cvv" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>CVV</FormLabel>
+                    <FormControl><Input type="password" maxLength={4} {...field} data-testid="input-cvv" /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+              </div>
+              <Button type="submit" className="w-full" disabled={createCreditCard.isPending} data-testid="button-add-card-submit">
+                {createCreditCard.isPending ? "Adding..." : "Add Card"}
+              </Button>
+            </form>
+          </Form>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─── Main Page ────────────────────────────────────────────────────────────────
+
 export default function ProfilesPage() {
   const { data: profiles = [], isLoading } = useListProfiles();
   const { data: allCards = [] } = useListCreditCards();
@@ -806,17 +933,12 @@ export default function ProfilesPage() {
   const [editingProfile, setEditingProfile] = useState<Profile | null>(null);
   const [addCardProfileId, setAddCardProfileId] = useState<number | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
+  const [exporting, setExporting] = useState(false);
+  const [importing, setImporting] = useState(false);
   const importRef = useRef<HTMLInputElement>(null);
 
-  function openCreate() {
-    setEditingProfile(null);
-    setFormOpen(true);
-  }
-
-  function openEdit(profile: Profile) {
-    setEditingProfile(profile);
-    setFormOpen(true);
-  }
+  function openCreate() { setEditingProfile(null); setFormOpen(true); }
+  function openEdit(profile: Profile) { setEditingProfile(profile); setFormOpen(true); }
 
   function handleDuplicate(profile: Profile) {
     createProfile.mutate(
@@ -883,75 +1005,63 @@ export default function ProfilesPage() {
     );
   }
 
-  function handleExport() {
-    const data = JSON.stringify(profiles, null, 2);
-    const blob = new Blob([data], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `sniper-profiles-${new Date().toISOString().slice(0, 10)}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast({ title: `Exported ${profiles.length} profiles` });
+  async function handleExport() {
+    setExporting(true);
+    try {
+      // Use the export endpoint which includes encrypted card blobs for full backup
+      const res = await fetch("/api/profiles/export");
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = (await res.json()) as { profiles: Profile[]; cards: unknown[] };
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `sniper-profiles-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast({ title: `Exported ${data.profiles.length} profile(s) with card data` });
+    } catch {
+      toast({ title: "Export failed", variant: "destructive" });
+    } finally {
+      setExporting(false);
+    }
   }
 
   function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+    setImporting(true);
     const reader = new FileReader();
     reader.onload = async (ev) => {
       try {
-        const parsed = JSON.parse(ev.target?.result as string);
-        const items: Profile[] = Array.isArray(parsed) ? parsed : [parsed];
-        const existingEmails = new Set(profiles.map((p) => p.email));
-        let skipped = 0;
-        let imported = 0;
-        for (const p of items) {
-          if (existingEmails.has(p.email)) {
-            skipped++;
-            continue;
-          }
-          await new Promise<void>((resolve) => {
-            createProfile.mutate(
-              {
-                data: {
-                  name: p.name,
-                  email: p.email,
-                  phone: p.phone ?? "",
-                  shipFirstName: p.shipFirstName ?? "",
-                  shipLastName: p.shipLastName ?? "",
-                  shipAddress1: p.shipAddress1 ?? "",
-                  shipAddress2: p.shipAddress2 ?? "",
-                  shipCity: p.shipCity ?? "",
-                  shipState: p.shipState ?? "",
-                  shipZip: p.shipZip ?? "",
-                  shipCountry: p.shipCountry ?? "US",
-                  billSameAsShip: p.billSameAsShip ?? true,
-                  billFirstName: p.billFirstName ?? "",
-                  billLastName: p.billLastName ?? "",
-                  billAddress1: p.billAddress1 ?? "",
-                  billAddress2: p.billAddress2 ?? "",
-                  billCity: p.billCity ?? "",
-                  billState: p.billState ?? "",
-                  billZip: p.billZip ?? "",
-                  billCountry: p.billCountry ?? "US",
-                  addressJigEnabled: p.addressJigEnabled ?? false,
-                  costcoMembershipId: p.costcoMembershipId ?? "",
-                },
-              },
-              { onSuccess: () => { imported++; resolve(); }, onError: () => resolve() }
-            );
-          });
-        }
+        const raw = JSON.parse(ev.target?.result as string) as unknown;
+        // Support both { profiles, cards } format (from export) and plain Profile[] arrays
+        const profilesArr: unknown[] = Array.isArray(raw)
+          ? raw
+          : ((raw as Record<string, unknown>).profiles as unknown[] ?? []);
+        const cardsArr: unknown[] = Array.isArray(raw)
+          ? []
+          : ((raw as Record<string, unknown>).cards as unknown[] ?? []);
+
+        const res = await fetch("/api/profiles/import", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ profiles: profilesArr, cards: cardsArr }),
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const result = (await res.json()) as { upserted: number; cardsImported: number; errors: string[] };
         queryClient.invalidateQueries({ queryKey: getListProfilesQueryKey() });
+        queryClient.invalidateQueries({ queryKey: getListCreditCardsQueryKey() });
         toast({
-          title: `Import complete`,
-          description: `${imported} imported, ${skipped} skipped (duplicate email)`,
+          title: "Import complete",
+          description: `${result.upserted} profile(s) upserted, ${result.cardsImported} card(s) restored`,
         });
       } catch {
-        toast({ title: "Invalid JSON file", variant: "destructive" });
+        toast({ title: "Import failed — invalid JSON or server error", variant: "destructive" });
+      } finally {
+        setImporting(false);
+        if (importRef.current) importRef.current.value = "";
       }
-      if (importRef.current) importRef.current.value = "";
     };
     reader.readAsText(file);
   }
@@ -970,39 +1080,14 @@ export default function ProfilesPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <input
-            ref={importRef}
-            type="file"
-            accept=".json"
-            className="hidden"
-            onChange={handleImport}
-            data-testid="input-import-file"
-          />
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-2 text-xs"
-            onClick={() => importRef.current?.click()}
-            data-testid="button-import-profiles"
-          >
-            <Upload className="w-3.5 h-3.5" /> Import
+          <input ref={importRef} type="file" accept=".json" className="hidden" onChange={handleImport} data-testid="input-import-file" />
+          <Button variant="outline" size="sm" className="gap-2 text-xs" onClick={() => importRef.current?.click()} disabled={importing} data-testid="button-import-profiles">
+            {importing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />} Import
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-2 text-xs"
-            onClick={handleExport}
-            disabled={profiles.length === 0}
-            data-testid="button-export-profiles"
-          >
-            <Download className="w-3.5 h-3.5" /> Export
+          <Button variant="outline" size="sm" className="gap-2 text-xs" onClick={handleExport} disabled={profiles.length === 0 || exporting} data-testid="button-export-profiles">
+            {exporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />} Export
           </Button>
-          <Button
-            size="sm"
-            className="gap-2"
-            onClick={openCreate}
-            data-testid="button-create-profile"
-          >
+          <Button size="sm" className="gap-2" onClick={openCreate} data-testid="button-create-profile">
             <Plus className="w-4 h-4" /> New Profile
           </Button>
         </div>
@@ -1014,7 +1099,7 @@ export default function ProfilesPage() {
           <User className="w-12 h-12 mx-auto opacity-15 mb-4" />
           <p className="text-muted-foreground font-medium">No profiles yet</p>
           <p className="text-xs text-muted-foreground/60 mt-1 mb-4">
-            Create a profile to store your identity, address, and payment cards.
+            Create a profile to store identity, address, and payment cards.
           </p>
           <Button size="sm" onClick={openCreate} data-testid="button-create-first-profile">
             <Plus className="w-4 h-4 mr-2" /> Create First Profile
@@ -1043,15 +1128,16 @@ export default function ProfilesPage() {
         </div>
       )}
 
-      {/* Profile form dialog */}
+      {/* Profile form dialog (create / edit with card slots) */}
       <ProfileFormDialog
         open={formOpen}
         onOpenChange={setFormOpen}
         editingProfile={editingProfile}
+        profileCards={editingProfile ? allCards.filter((c) => c.profileId === editingProfile.id) : []}
         onDone={() => setEditingProfile(null)}
       />
 
-      {/* Add card dialog */}
+      {/* Standalone add-card dialog (from card list button) */}
       {addCardProfileId !== null && addCardProfile && (
         <AddCardDialog
           open={addCardProfileId !== null}
@@ -1061,13 +1147,13 @@ export default function ProfilesPage() {
         />
       )}
 
-      {/* Delete confirm */}
+      {/* Delete profile confirm */}
       <AlertDialog open={deleteConfirmId !== null} onOpenChange={(open) => { if (!open) setDeleteConfirmId(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Profile?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete this profile and all its associated credit cards. This action cannot be undone.
+              This will permanently delete this profile and all its associated credit cards. This cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
