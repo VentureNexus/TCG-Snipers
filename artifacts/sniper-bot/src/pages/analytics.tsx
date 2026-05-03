@@ -54,13 +54,13 @@ export default function AnalyticsPage() {
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle>Checkouts Over Time</CardTitle>
           <div className="flex gap-1 bg-muted/30 p-1 rounded-md border border-border/50">
-            {['day', 'week', 'month', 'year'].map(p => (
-              <Button 
-                key={p} 
-                variant={period === p ? "secondary" : "ghost"} 
-                size="sm" 
+            {(["day", "week", "month", "year"] as const).map((p) => (
+              <Button
+                key={p}
+                variant={period === p ? "secondary" : "ghost"}
+                size="sm"
                 className="h-7 text-xs px-3 capitalize"
-                onClick={() => setPeriod(p as any)}
+                onClick={() => setPeriod(p)}
               >
                 {p}
               </Button>
