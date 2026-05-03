@@ -20,6 +20,8 @@
     "electron:build": "pnpm run build && pnpm run electron:compile && electron-builder --config electron-builder.yml",
     "dist:win": "pnpm run electron:build -- --win",
     "dist:mac": "pnpm run electron:build -- --mac",
+    "dist:mac-arm64": "pnpm run electron:build -- --mac --arm64",
+    "dist:mac-x64": "pnpm run electron:build -- --mac --x64",
     "dist:linux": "pnpm run electron:build -- --linux"
   },
   "devDependencies": {
