@@ -143,7 +143,7 @@ const EMPTY_PROFILE: ProfileFormValues = {
 };
 
 const CARD_TYPE_COLORS: Record<string, string> = {
-  visa: "text-blue-400",
+  visa: "text-yellow-300",
   mastercard: "text-orange-400",
   amex: "text-green-400",
   discover: "text-yellow-400",
@@ -733,7 +733,7 @@ function ProfileCard({
             </Badge>
           )}
           {profile.costcoMembershipId && (
-            <Badge variant="outline" className="text-blue-400 border-blue-400/20 bg-blue-400/5 text-[10px]">Costco</Badge>
+            <Badge variant="outline" className="text-yellow-300 border-yellow-400/20 bg-yellow-400/5 text-[10px]">Costco</Badge>
           )}
           <Badge variant="outline" className="text-[10px]">
             <CreditCardIcon className="w-2.5 h-2.5 mr-1" />{cards.length}/5 cards

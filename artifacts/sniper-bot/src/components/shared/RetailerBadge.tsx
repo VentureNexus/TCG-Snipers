@@ -10,7 +10,7 @@ export function RetailerBadge({ retailer }: { retailer: string }) {
         return { bg: "bg-orange-500/10", text: "text-orange-400", border: "border-orange-500/20", icon: <ShoppingCart className="w-3 h-3" /> };
       case "best buy":
       case "bestbuy":
-        return { bg: "bg-blue-500/10", text: "text-blue-400", border: "border-blue-500/20", icon: <ShoppingBag className="w-3 h-3" /> };
+        return { bg: "bg-yellow-400/10", text: "text-yellow-300", border: "border-yellow-400/20", icon: <ShoppingBag className="w-3 h-3" /> };
       case "costco":
         return { bg: "bg-sky-500/10", text: "text-sky-400", border: "border-sky-500/20", icon: <Package className="w-3 h-3" /> };
       case "pokemon center":

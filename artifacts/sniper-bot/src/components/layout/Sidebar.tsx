@@ -1,11 +1,13 @@
 import React, { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Home, ListChecks, Layers, User, Globe, BarChart2, Settings, Target, Menu, HelpCircle } from "lucide-react";
+import { Home, ListChecks, Layers, User, Globe, BarChart2, Settings, Menu, HelpCircle, Palette } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useTheme } from "@/lib/theme";
 
 export function Sidebar() {
   const [location] = useLocation();
   const [collapsed, setCollapsed] = useState(false);
+  const { theme } = useTheme();
 
   const navItems = [
     { href: "/", label: "Dashboard", icon: Home },
@@ -14,21 +16,19 @@ export function Sidebar() {
     { href: "/profiles", label: "Profiles", icon: User },
     { href: "/proxies", label: "Proxies", icon: Globe },
     { href: "/analytics", label: "Analytics", icon: BarChart2 },
+    { href: "/customization", label: "Customization", icon: Palette },
     { href: "/settings", label: "Settings", icon: Settings },
   ];
 
   return (
     <div className={`flex flex-col h-full bg-sidebar border-r border-sidebar-border transition-all duration-300 ${collapsed ? 'w-16' : 'w-64'}`}>
-      <div className="flex items-center justify-between p-4 border-b border-sidebar-border h-14">
-        {!collapsed && (
-          <div className="flex items-center gap-2 text-primary font-bold tracking-wider font-mono">
-            <Target className="w-5 h-5" />
-            <span>SNIPER</span>
-          </div>
-        )}
-        {collapsed && (
-           <Target className="w-6 h-6 text-primary mx-auto" />
-        )}
+      <div className="flex items-center justify-center p-2 border-b border-sidebar-border h-14">
+        <img
+          src={theme.logo}
+          alt="TCG Snipers"
+          className={collapsed ? "h-9 w-9 object-contain" : "h-11 object-contain"}
+          data-testid="img-sidebar-logo"
+        />
       </div>
       
       <div className="p-2 border-b border-sidebar-border flex justify-center">

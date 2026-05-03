@@ -4,6 +4,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { ThemeProvider } from "@/lib/theme";
 
 import DashboardPage from "@/pages/dashboard";
 import TasksPage from "@/pages/tasks";
@@ -12,6 +13,7 @@ import ProfilesPage from "@/pages/profiles";
 import ProxiesPage from "@/pages/proxies";
 import AnalyticsPage from "@/pages/analytics";
 import SettingsPage from "@/pages/settings";
+import CustomizationPage from "@/pages/customization";
 
 const queryClient = new QueryClient();
 
@@ -25,6 +27,7 @@ function Router() {
         <Route path="/profiles" component={ProfilesPage} />
         <Route path="/proxies" component={ProxiesPage} />
         <Route path="/analytics" component={AnalyticsPage} />
+        <Route path="/customization" component={CustomizationPage} />
         <Route path="/settings" component={SettingsPage} />
         <Route component={NotFound} />
       </Switch>
@@ -35,12 +38,14 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-          <Router />
-        </WouterRouter>
-        <Toaster />
-      </TooltipProvider>
+      <ThemeProvider>
+        <TooltipProvider>
+          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+            <Router />
+          </WouterRouter>
+          <Toaster />
+        </TooltipProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }

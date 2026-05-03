@@ -74,55 +74,55 @@
   --elevate-1: rgba(255,255,255, .04);
   --elevate-2: rgba(255,255,255, .09);
 
-  /* Deep dark navy base — matches competitor dashboards */
-  --background:      222 28% 8%;
-  --foreground:      210 20% 92%;
-  --border:          220 18% 16%;
-  --input:           220 18% 20%;
-  --ring:            225 85% 62%;
+  /* Near-black base — matches TCG Snipers logo */
+  --background:      0 0% 5%;
+  --foreground:      45 15% 92%;
+  --border:          0 0% 14%;
+  --input:           0 0% 16%;
+  --ring:            48 100% 50%;
 
   /* Cards — slightly lighter than bg */
-  --card:            222 26% 11%;
-  --card-foreground: 210 20% 92%;
-  --card-border:     220 18% 17%;
+  --card:            0 0% 8%;
+  --card-foreground: 45 15% 92%;
+  --card-border:     0 0% 14%;
 
   /* Sidebar — darkest panel */
-  --sidebar:         222 30% 7%;
-  --sidebar-foreground: 210 18% 75%;
-  --sidebar-border:  220 18% 13%;
-  --sidebar-primary: 225 85% 62%;
-  --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent:  222 26% 13%;
-  --sidebar-accent-foreground: 210 20% 88%;
-  --sidebar-ring:    225 85% 62%;
+  --sidebar:         0 0% 4%;
+  --sidebar-foreground: 45 10% 75%;
+  --sidebar-border:  0 0% 11%;
+  --sidebar-primary: 48 100% 50%;
+  --sidebar-primary-foreground: 0 0% 8%;
+  --sidebar-accent:  0 0% 11%;
+  --sidebar-accent-foreground: 45 15% 88%;
+  --sidebar-ring:    48 100% 50%;
 
   /* Popover */
-  --popover:         222 26% 11%;
-  --popover-foreground: 210 20% 92%;
-  --popover-border:  220 18% 18%;
+  --popover:         0 0% 9%;
+  --popover-foreground: 45 15% 92%;
+  --popover-border:  0 0% 15%;
 
-  /* Primary — electric blue accent */
-  --primary:         225 85% 62%;
-  --primary-foreground: 0 0% 100%;
+  /* Primary — Pikachu yellow accent */
+  --primary:         48 100% 50%;
+  --primary-foreground: 0 0% 8%;
 
   /* Secondary */
-  --secondary:       222 24% 16%;
-  --secondary-foreground: 210 18% 80%;
+  --secondary:       0 0% 14%;
+  --secondary-foreground: 45 15% 80%;
 
   /* Muted */
-  --muted:           222 22% 14%;
-  --muted-foreground: 215 16% 52%;
+  --muted:           0 0% 12%;
+  --muted-foreground: 45 6% 55%;
 
   /* Accent */
-  --accent:          222 24% 16%;
-  --accent-foreground: 210 20% 88%;
+  --accent:          0 0% 14%;
+  --accent-foreground: 45 15% 88%;
 
   /* Destructive — vivid red */
   --destructive:     0 72% 56%;
   --destructive-foreground: 0 0% 100%;
 
   /* Charts */
-  --chart-1:         225 85% 62%;
+  --chart-1:         48 100% 50%;
   --chart-2:         160 60% 50%;
   --chart-3:         38 90% 56%;
   --chart-4:         270 65% 60%;
@@ -168,7 +168,7 @@ html { color-scheme: dark; }
 
 /* ── STATUS BADGES ───────────────────────────────────────────── */
 .status-idle        { @apply bg-muted/60 text-muted-foreground border border-border; }
-.status-monitoring  { @apply bg-blue-500/10 text-blue-400 border border-blue-500/20; }
+.status-monitoring  { @apply bg-yellow-400/10 text-yellow-300 border border-yellow-400/20; }
 .status-cart        { @apply bg-yellow-500/10 text-yellow-400 border border-yellow-500/20; }
 .status-checkout    { @apply bg-purple-500/10 text-purple-400 border border-purple-500/20; }
 .status-success     { @apply bg-emerald-500/10 text-emerald-400 border border-emerald-500/20; }
@@ -189,7 +189,7 @@ html { color-scheme: dark; }
 }
 
 /* ── GLOW EFFECTS ────────────────────────────────────────────── */
-.glow-blue  { box-shadow: 0 0 20px rgba(99,130,255,0.15); }
+.glow-blue  { box-shadow: 0 0 20px rgba(255,204,0,0.18); }
 .glow-green { box-shadow: 0 0 20px rgba(52,211,153,0.15); }
 .glow-red   { box-shadow: 0 0 20px rgba(239,68,68,0.15); }
 
