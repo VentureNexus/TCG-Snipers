@@ -4,17 +4,25 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import type { UpdateSettingsBody } from "@workspace/api-client-react";
+interface SettingsForm {
+  concurrency: number;
+  monitorDelay: number;
+  webhookUrl: string;
+  imapHost: string;
+  imapPort: string;
+  imapEmail: string;
+  imapPassword: string;
+}
 
 const API_BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
-async function fetchSettings(): Promise<UpdateSettingsBody & { id: number }> {
+async function fetchSettings(): Promise<SettingsForm & { id: number }> {
   const res = await fetch(`${API_BASE}/api/settings`);
   if (!res.ok) throw new Error("Failed to load settings");
   return res.json();
 }
 
-async function saveSettings(data: UpdateSettingsBody): Promise<void> {
+async function saveSettings(data: SettingsForm): Promise<void> {
   const res = await fetch(`${API_BASE}/api/settings`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
@@ -23,7 +31,7 @@ async function saveSettings(data: UpdateSettingsBody): Promise<void> {
   if (!res.ok) throw new Error("Failed to save settings");
 }
 
-const DEFAULT_SETTINGS: UpdateSettingsBody = {
+const DEFAULT_SETTINGS: SettingsForm = {
   concurrency: 5,
   monitorDelay: 3000,
   webhookUrl: "",
@@ -35,7 +43,7 @@ const DEFAULT_SETTINGS: UpdateSettingsBody = {
 
 export default function SettingsPage() {
   const { toast } = useToast();
-  const [settings, setSettings] = useState<UpdateSettingsBody>(DEFAULT_SETTINGS);
+  const [settings, setSettings] = useState<SettingsForm>(DEFAULT_SETTINGS);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 

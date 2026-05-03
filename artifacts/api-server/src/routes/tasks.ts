@@ -62,17 +62,10 @@ router.post("/tasks/start-all", async (_req, res): Promise<void> => {
     if (result.queued) queued++;
     else started++;
   }
-  res.json({
-    started,
-    queued,
-    affected: idleTasks.length,
-    message: `Started ${started}, queued ${queued} tasks`,
-  });
+  res.json({ started, queued, affected: idleTasks.length, message: `Started ${started}, queued ${queued} tasks` });
 });
 
 router.post("/tasks/stop-all", async (_req, res): Promise<void> => {
-  // Query DB for tasks in running statuses to catch any that may not yet be in
-  // the token map (race window), then union with the authoritative token map.
   const dbRunning = await db
     .select({ id: tasksTable.id })
     .from(tasksTable)

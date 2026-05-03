@@ -107,9 +107,11 @@ export function TopBar() {
             </span>
           </div>
           <div className="w-px h-3 bg-border" />
-          <div className="flex items-center gap-1.5" data-testid="stat-profiles">
-            <span className="text-muted-foreground">Profiles:</span>
-            <span className="font-mono">{profiles.length}</span>
+          <div className="flex items-center gap-1.5" data-testid="stat-saved">
+            <span className="text-muted-foreground">Saved:</span>
+            <span className="font-mono font-bold text-amber-400">
+              {formatSpent(summary?.totalSaved)}
+            </span>
           </div>
           <div className="w-px h-3 bg-border" />
           <div className="flex items-center gap-1.5" data-testid="stat-uptime">

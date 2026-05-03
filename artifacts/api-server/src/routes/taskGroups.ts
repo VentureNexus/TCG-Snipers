@@ -52,12 +52,7 @@ router.post("/task-groups/:id/start", async (req, res): Promise<void> => {
   const groupTasks = await db
     .select()
     .from(tasksTable)
-    .where(
-      and(
-        eq(tasksTable.groupId, id),
-        inArray(tasksTable.status, ["idle", "stopped", "failed"]),
-      ),
-    );
+    .where(and(eq(tasksTable.groupId, id), inArray(tasksTable.status, ["idle", "stopped", "failed"])));
   let started = 0;
   let queued = 0;
   for (const task of groupTasks) {
@@ -65,12 +60,7 @@ router.post("/task-groups/:id/start", async (req, res): Promise<void> => {
     if (result.queued) queued++;
     else started++;
   }
-  res.json({
-    started,
-    queued,
-    affected: groupTasks.length,
-    message: `Started ${started}, queued ${queued} tasks in group "${group.name}"`,
-  });
+  res.json({ started, queued, affected: groupTasks.length, message: `Started ${started}, queued ${queued} tasks in group "${group.name}"` });
 });
 
 router.post("/task-groups/:id/stop", async (req, res): Promise<void> => {
@@ -78,26 +68,14 @@ router.post("/task-groups/:id/stop", async (req, res): Promise<void> => {
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   const [group] = await db.select().from(taskGroupsTable).where(eq(taskGroupsTable.id, id));
   if (!group) { res.status(404).json({ error: "Task group not found" }); return; }
-  // Select ALL stoppable tasks for this group:
-  // - Running tasks (monitoring/adding_to_cart/checking_out) need their token cancelled
-  // - Idle/stopped/failed tasks may be sitting in the pending queue awaiting a concurrency
-  //   slot; stopTasks() will evict them from pendingQueue even if the DB still shows idle.
-  // Exclude only "success" so we don't clobber completed tasks.
+  // Include idle/stopped/failed tasks too — they may be in pendingQueue awaiting a slot.
+  // Exclude only "success" to avoid clobbering completed tasks.
   const groupStoppable = await db
     .select({ id: tasksTable.id })
     .from(tasksTable)
-    .where(
-      and(
-        eq(tasksTable.groupId, id),
-        not(eq(tasksTable.status, "success")),
-      ),
-    );
-  // stopTasks only cancels the provided IDs — does NOT sweep the global token map
+    .where(and(eq(tasksTable.groupId, id), not(eq(tasksTable.status, "success"))));
   const stoppedIds = await stopTasks(groupStoppable.map((t) => t.id));
-  res.json({
-    affected: stoppedIds.length,
-    message: `Stopped ${stoppedIds.length} tasks in group "${group.name}"`,
-  });
+  res.json({ affected: stoppedIds.length, message: `Stopped ${stoppedIds.length} tasks in group "${group.name}"` });
 });
 
 export default router;
