@@ -35,6 +35,11 @@ const RENDERER_PORT = Number(process.env.PORT ?? 5173);
 let mainWindow: BrowserWindow | null = null;
 let apiProcess: ChildProcess | null = null;
 
+/** Set to true only when the API server emits "Server listening". */
+let apiStartOk = false;
+/** Human-readable reason string when startup fails. */
+let apiStartFailReason = "";
+
 const MAX_LOG_LINES = 200;
 const apiLogBuffer: string[] = [];
 
@@ -83,7 +88,17 @@ function startApiServer(): Promise<void> {
           if (line) pushLog(`[stdout] ${line}`);
         }
         console.log("[API]", text);
-        if (text.includes("Server listening")) resolve();
+        if (text.includes("Server listening")) {
+          const wasOk = apiStartOk;
+          apiStartOk = true;
+          // If the process came up after the timeout already resolved and told
+          // the renderer startup failed, send a recovery event so the banner
+          // can clear itself.
+          if (!wasOk && mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send("api:recovered");
+          }
+          resolve();
+        }
       });
 
       apiProcess.stderr?.on("data", (data: Buffer) => {
@@ -97,6 +112,9 @@ function startApiServer(): Promise<void> {
       apiProcess.on("error", (err) => {
         pushLog(`[spawn-error] ${err.message}`);
         console.error("[API spawn error]", err);
+        if (!apiStartOk) {
+          apiStartFailReason = `Failed to launch the database process: ${err.message}`;
+        }
         // Don't reject — let the desktop app load anyway.
         resolve();
       });
@@ -104,15 +122,32 @@ function startApiServer(): Promise<void> {
       apiProcess.on("exit", (code, signal) => {
         pushLog(`[exit] code=${code} signal=${signal}`);
         console.error(`[API exited] code=${code} signal=${signal}`);
+        // If the process exits after a successful start, notify the renderer.
+        if (apiStartOk && mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send("api:crashed", {
+            reason: `The database process stopped unexpectedly (code=${code}).`,
+          });
+        }
         apiProcess = null;
       });
     } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
       console.error("[API failed to spawn]", err);
+      if (!apiStartOk) {
+        apiStartFailReason = `Failed to start the database process: ${msg}`;
+      }
       resolve();
     }
 
-    // Fallback: resolve after 4 s if the startup log never fires
-    setTimeout(resolve, 4000);
+    // Fallback: resolve after 8 s if the startup log never fires.
+    // 8 s gives slow machines and WASM-initialisation enough time to avoid
+    // false-positive "failed to start" banners while still being responsive.
+    setTimeout(() => {
+      if (!apiStartOk && !apiStartFailReason) {
+        apiStartFailReason = "The database process did not respond in time.";
+      }
+      resolve();
+    }, 8000);
   });
 }
 
@@ -150,6 +185,11 @@ function createWindow(): void {
 
   mainWindow.once("ready-to-show", () => {
     mainWindow?.show();
+    // If the API server failed to start, notify the renderer now that it is
+    // visible so it can display a non-dismissible error banner.
+    if (!apiStartOk && apiStartFailReason) {
+      mainWindow?.webContents.send("api:startFailed", { reason: apiStartFailReason });
+    }
   });
 
   mainWindow.on("closed", () => {
@@ -188,6 +228,10 @@ ipcMain.handle("app:openExternal", (_e, url: string) => shell.openExternal(url))
 // ── Diagnostics IPC ──────────────────────────────────────────────────────────
 ipcMain.handle("api:getLogs", () => [...apiLogBuffer]);
 ipcMain.handle("api:getHealth", () => ({ alive: apiProcess !== null, port: API_PORT }));
+ipcMain.handle("api:getStartStatus", () => ({
+  ok: apiStartOk,
+  reason: apiStartFailReason,
+}));
 
 // ── Update IPC ───────────────────────────────────────────────────────────────
 ipcMain.handle("update:check", async () => {

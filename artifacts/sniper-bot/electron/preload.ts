@@ -65,6 +65,23 @@ const api = {
   diagnostics: {
     getLogs: (): Promise<string[]> => ipcRenderer.invoke("api:getLogs"),
     getHealth: (): Promise<{ alive: boolean; port: number }> => ipcRenderer.invoke("api:getHealth"),
+    getStartStatus: (): Promise<{ ok: boolean; reason: string }> =>
+      ipcRenderer.invoke("api:getStartStatus"),
+    onStartFailed: (handler: (info: { reason: string }) => void): (() => void) => {
+      const listener = (_e: unknown, info: { reason: string }) => handler(info);
+      ipcRenderer.on("api:startFailed", listener);
+      return () => ipcRenderer.removeListener("api:startFailed", listener);
+    },
+    onCrashed: (handler: (info: { reason: string }) => void): (() => void) => {
+      const listener = (_e: unknown, info: { reason: string }) => handler(info);
+      ipcRenderer.on("api:crashed", listener);
+      return () => ipcRenderer.removeListener("api:crashed", listener);
+    },
+    onRecovered: (handler: () => void): (() => void) => {
+      const listener = () => handler();
+      ipcRenderer.on("api:recovered", listener);
+      return () => ipcRenderer.removeListener("api:recovered", listener);
+    },
   },
 
   /** License management — backed by Electron safeStorage and node:os fingerprinting. */

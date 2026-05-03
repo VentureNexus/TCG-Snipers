@@ -8,6 +8,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { ThemeProvider } from "@/lib/theme";
 import { LicenseGate } from "@/components/LicenseGate";
 import { UpdateBanner } from "@/components/UpdateBanner";
+import { DbErrorBanner } from "@/components/DbErrorBanner";
 
 import DashboardPage from "@/pages/dashboard";
 import TasksPage from "@/pages/tasks";
@@ -43,6 +44,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <TooltipProvider>
+          <DbErrorBanner />
           <UpdateBanner />
           <LicenseGate>
             <WouterRouter
