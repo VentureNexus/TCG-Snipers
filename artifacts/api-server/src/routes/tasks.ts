@@ -3,6 +3,7 @@ import { eq, inArray } from "drizzle-orm";
 import { db, tasksTable } from "@workspace/db";
 import { ListTasksQueryParams, CreateTaskBody, GetTaskParams, UpdateTaskParams, UpdateTaskBody, DeleteTaskParams, StartTaskParams, StopTaskParams } from "@workspace/api-zod";
 import { startTask, stopTask, stopAllRunning } from "../lib/taskWorker";
+import { broadcastStatus } from "../lib/websocket";
 
 const router: IRouter = Router();
 
@@ -94,6 +95,7 @@ router.post("/tasks/:id/stop", async (req, res): Promise<void> => {
     .where(eq(tasksTable.id, params.data.id))
     .returning();
   if (!task) { res.status(404).json({ error: "Task not found" }); return; }
+  broadcastStatus(params.data.id, "stopped");
   res.json(task);
 });
 

@@ -78,8 +78,12 @@ function getGroupStatusSummary(tasks: { status: string }[]) {
 }
 
 export default function TaskGroupsPage() {
-  const { data: groups = [] } = useListTaskGroups();
-  const { data: tasks = [] } = useListTasks();
+  const { data: groups = [] } = useListTaskGroups({
+    query: { refetchInterval: 3000, queryKey: getListTaskGroupsQueryKey() },
+  });
+  const { data: tasks = [] } = useListTasks(undefined, {
+    query: { refetchInterval: 3000, queryKey: getListTasksQueryKey() },
+  });
   const createGroup = useCreateTaskGroup();
   const deleteGroup = useDeleteTaskGroup();
   const startGroup = useStartTaskGroup();
