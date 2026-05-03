@@ -80,13 +80,25 @@ export default function Terms() {
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold mb-3">7. No Guarantee of Results</h2>
+          <h2 className="text-xl font-semibold mb-3">7. No Guarantee of Successful Purchases</h2>
+          <p className="mb-3">
+            <strong>
+              TCG Snipers does not guarantee that you will successfully purchase any product through
+              the Software.
+            </strong>{" "}
+            The Software is an automation tool that interacts with third-party retailer websites,
+            and many factors outside of our control determine whether a checkout completes,
+            including but not limited to: product availability and stock levels, retailer-side
+            anti-bot measures, captchas, queue systems, payment authorization, server load, network
+            conditions, account flags, regional restrictions, and competing buyers (human or
+            automated).
+          </p>
           <p>
-            The Software is a tool that automates browsing and checkout actions on third-party
-            retailer websites. We do not guarantee successful purchases, product availability,
-            inventory, pricing accuracy, or any specific result. Retailers may change their websites
-            or implement anti-automation measures at any time, which may temporarily or permanently
-            reduce the Software's effectiveness.
+            We make no representation or warranty regarding success rate, win counts, profitability,
+            or any specific outcome. Retailers may change their websites, APIs, or anti-automation
+            systems at any time, which may temporarily or permanently reduce or eliminate the
+            Software's effectiveness. Failed or missed purchases — for any reason — do not entitle
+            you to a refund, credit, or extension of service.
           </p>
         </section>
 
