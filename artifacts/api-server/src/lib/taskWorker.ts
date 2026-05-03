@@ -1,13 +1,18 @@
-import { db, tasksTable, checkoutResultsTable } from "@workspace/db";
+import { db, tasksTable, checkoutResultsTable, profilesTable, proxiesTable } from "@workspace/db";
 import { eq, inArray } from "drizzle-orm";
 import { broadcastLog, broadcastStatus } from "./websocket";
+import { dispatchRetailer } from "./retailers";
+import { notifySuccess, notifyFailure } from "./discord";
+import { getOrCreateSettings } from "../routes/settings";
 
 interface TaskRow {
   id: number;
   retailer: string;
   productUrl: string;
   productKeywords: string;
+  size: string;
   profileId: number | null;
+  proxyId: number | null;
   monitorDelay: number;
   retryCount: number;
   quantity: number;
@@ -30,43 +35,6 @@ const cancellationTokens = new Map<number, { cancelled: boolean }>();
 export function isTaskRunning(taskId: number): boolean {
   return cancellationTokens.has(taskId);
 }
-
-function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function randomBetween(min: number, max: number): number {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
-}
-
-function generateOrderNumber(): string {
-  return "ORD-" + Math.random().toString(36).substring(2, 10).toUpperCase();
-}
-
-const RETAILER_PRODUCTS: Record<
-  string,
-  { name: string; price: string; image: string }[]
-> = {
-  Target: [
-    { name: "PlayStation 5 Console", price: "499.99", image: "https://placehold.co/80x80/e11d48/white?text=PS5" },
-    { name: "Nintendo Switch OLED", price: "349.99", image: "https://placehold.co/80x80/e11d48/white?text=NSW" },
-  ],
-  Amazon: [
-    { name: "Xbox Series X", price: "499.99", image: "https://placehold.co/80x80/f97316/white?text=XSX" },
-    { name: "Pokémon Trading Cards Booster Box", price: "139.99", image: "https://placehold.co/80x80/f97316/white?text=PKM" },
-  ],
-  "Best Buy": [
-    { name: "NVIDIA GeForce RTX 4090", price: "1599.99", image: "https://placehold.co/80x80/3b82f6/white?text=GPU" },
-    { name: "Apple AirPods Pro", price: "249.99", image: "https://placehold.co/80x80/3b82f6/white?text=APD" },
-  ],
-  Costco: [
-    { name: "Samsung 65-inch QLED TV", price: "899.99", image: "https://placehold.co/80x80/0ea5e9/white?text=TV" },
-  ],
-  "Pokemon Center": [
-    { name: "Pokémon 151 Elite Trainer Box", price: "59.99", image: "https://placehold.co/80x80/eab308/white?text=ETB" },
-    { name: "Charizard ex Premium Collection", price: "49.99", image: "https://placehold.co/80x80/eab308/white?text=CHR" },
-  ],
-};
 
 function launchTask(task: TaskRow): void {
   const existing = cancellationTokens.get(task.id);
@@ -95,101 +63,96 @@ async function runTaskAutomation(task: TaskRow, token: { cancelled: boolean }) {
     broadcastStatus(task.id, status);
   };
 
-  const monitorDelayMs = Math.max(task.monitorDelay, 500);
-  const retailerKey = task.retailer;
-  const products = RETAILER_PRODUCTS[retailerKey] ?? RETAILER_PRODUCTS["Amazon"];
-  const product = products[Math.floor(Math.random() * products.length)];
-
   try {
-    await setStatus("monitoring");
-    log("INFO", `[${retailerKey}] Starting monitor for: ${task.productUrl || task.productKeywords || "unknown product"}`);
-    await delay(randomBetween(300, 700));
+    const profile = task.profileId
+      ? (await db.select().from(profilesTable).where(eq(profilesTable.id, task.profileId)))[0] ?? null
+      : null;
+
+    const proxyRow = task.proxyId
+      ? (await db.select().from(proxiesTable).where(eq(proxiesTable.id, task.proxyId)))[0] ?? null
+      : null;
+
+    const proxy = proxyRow
+      ? {
+          host: proxyRow.host,
+          port: proxyRow.port,
+          username: proxyRow.username || undefined,
+          password: proxyRow.password || undefined,
+        }
+      : null;
+
+    const settings = await getOrCreateSettings();
+
+    const result = await dispatchRetailer({
+      task: {
+        id: task.id,
+        retailer: task.retailer,
+        productUrl: task.productUrl,
+        productKeywords: task.productKeywords,
+        size: task.size,
+        quantity: task.quantity,
+        monitorDelay: Math.max(task.monitorDelay, 500),
+        retryCount: task.retryCount,
+      },
+      profile: profile ?? null,
+      proxy,
+      token,
+      log,
+      setStatus,
+    });
+
     if (token.cancelled) return;
 
-    log("INFO", `[${retailerKey}] Sending stock request (delay: ${monitorDelayMs}ms)...`);
-    await delay(monitorDelayMs * 0.3);
-    if (token.cancelled) return;
+    const profileNickname = profile?.name ?? "No Profile";
 
-    const failMonitor = Math.random() < 0.15;
-    if (failMonitor) {
-      log("WARN", `[${retailerKey}] Rate limited — backing off 2000ms...`);
-      await delay(2000);
-      if (token.cancelled) return;
-      log("WARN", `[${retailerKey}] Retrying request...`);
-      await delay(randomBetween(500, 1000));
-      if (token.cancelled) return;
-    }
-
-    log("INFO", `[${retailerKey}] Response received — checking availability...`);
-    await delay(randomBetween(200, 500));
-    if (token.cancelled) return;
-
-    log("SUCCESS", `[${retailerKey}] Stock detected! Product: ${product.name}`);
-    await delay(randomBetween(100, 300));
-    if (token.cancelled) return;
-
-    await setStatus("adding_to_cart");
-    log("INFO", `[${retailerKey}] Adding ${task.quantity}x to cart...`);
-    await delay(randomBetween(500, 1000));
-    if (token.cancelled) return;
-
-    log("INFO", `[${retailerKey}] Verifying cart contents...`);
-    await delay(randomBetween(300, 600));
-    if (token.cancelled) return;
-    log("SUCCESS", `[${retailerKey}] Added to cart successfully.`);
-    await delay(randomBetween(200, 400));
-    if (token.cancelled) return;
-
-    await setStatus("checking_out");
-    log("INFO", `[${retailerKey}] Navigating to checkout...`);
-    await delay(randomBetween(400, 800));
-    if (token.cancelled) return;
-
-    log("INFO", `[${retailerKey}] Applying shipping address...`);
-    await delay(randomBetween(300, 600));
-    if (token.cancelled) return;
-
-    log("INFO", `[${retailerKey}] Entering payment details (masked)...`);
-    await delay(randomBetween(400, 800));
-    if (token.cancelled) return;
-
-    log("INFO", `[${retailerKey}] Submitting order...`);
-    await delay(randomBetween(500, 1200));
-    if (token.cancelled) return;
-
-    const succeeded = Math.random() < 0.8;
-    if (succeeded) {
-      const orderNumber = generateOrderNumber();
-      log("SUCCESS", `[${retailerKey}] Order placed! ✓ Order #${orderNumber} — ${product.name} @ $${product.price}`);
+    if (result.success) {
       await setStatus("success");
       await db.insert(checkoutResultsTable).values({
         taskId: task.id,
         success: true,
-        productName: product.name,
-        productImage: product.image,
-        price: product.price,
+        productName: result.productName,
+        productImage: result.productImage,
+        price: result.price,
         retailer: task.retailer,
-        orderNumber,
+        orderNumber: result.orderNumber,
         errorMessage: "",
         profileId: task.profileId,
       });
+      if (settings.webhookUrl) {
+        await notifySuccess({
+          retailer: task.retailer,
+          productName: result.productName,
+          price: result.price ?? "N/A",
+          orderNumber: result.orderNumber,
+          profileNickname,
+          webhookUrl: settings.webhookUrl,
+        });
+      }
     } else {
-      log("ERROR", `[${retailerKey}] Checkout failed — payment declined or session expired.`);
       await setStatus("failed");
       await db.insert(checkoutResultsTable).values({
         taskId: task.id,
         success: false,
-        productName: product.name,
-        productImage: product.image,
+        productName: result.productName,
+        productImage: result.productImage,
         price: null,
         retailer: task.retailer,
         orderNumber: "",
-        errorMessage: "Payment declined or session expired",
+        errorMessage: result.errorMessage,
         profileId: task.profileId,
       });
+      if (settings.webhookUrl) {
+        await notifyFailure({
+          retailer: task.retailer,
+          productName: result.productName,
+          errorMessage: result.errorMessage,
+          profileNickname,
+          webhookUrl: settings.webhookUrl,
+        });
+      }
     }
   } catch (err) {
-    log("ERROR", `[${retailerKey}] Unexpected error: ${String(err)}`);
+    log("ERROR", `[${task.retailer}] Unexpected error: ${String(err)}`);
     await db.update(tasksTable).set({ status: "failed" }).where(eq(tasksTable.id, task.id));
     broadcastStatus(task.id, "failed");
   } finally {
