@@ -35,6 +35,14 @@ const RENDERER_PORT = Number(process.env.PORT ?? 5173);
 let mainWindow: BrowserWindow | null = null;
 let apiProcess: ChildProcess | null = null;
 
+const MAX_LOG_LINES = 200;
+const apiLogBuffer: string[] = [];
+
+function pushLog(line: string): void {
+  apiLogBuffer.push(line);
+  if (apiLogBuffer.length > MAX_LOG_LINES) apiLogBuffer.shift();
+}
+
 // ── Start Express API server ────────────────────────────────────────────────
 // We use Electron's bundled Node runtime (process.execPath + ELECTRON_RUN_AS_NODE=1)
 // so we don't depend on the user having Node installed on their machine.
@@ -70,22 +78,31 @@ function startApiServer(): Promise<void> {
       });
 
       apiProcess.stdout?.on("data", (data: Buffer) => {
-        const text = data.toString();
-        console.log("[API]", text.trim());
+        const text = data.toString().trim();
+        for (const line of text.split("\n")) {
+          if (line) pushLog(`[stdout] ${line}`);
+        }
+        console.log("[API]", text);
         if (text.includes("Server listening")) resolve();
       });
 
       apiProcess.stderr?.on("data", (data: Buffer) => {
-        console.error("[API ERR]", data.toString().trim());
+        const text = data.toString().trim();
+        for (const line of text.split("\n")) {
+          if (line) pushLog(`[stderr] ${line}`);
+        }
+        console.error("[API ERR]", text);
       });
 
       apiProcess.on("error", (err) => {
+        pushLog(`[spawn-error] ${err.message}`);
         console.error("[API spawn error]", err);
         // Don't reject — let the desktop app load anyway.
         resolve();
       });
 
       apiProcess.on("exit", (code, signal) => {
+        pushLog(`[exit] code=${code} signal=${signal}`);
         console.error(`[API exited] code=${code} signal=${signal}`);
         apiProcess = null;
       });
@@ -167,6 +184,10 @@ ipcMain.handle("license:clear", () => {
   return { ok: true };
 });
 ipcMain.handle("app:openExternal", (_e, url: string) => shell.openExternal(url));
+
+// ── Diagnostics IPC ──────────────────────────────────────────────────────────
+ipcMain.handle("api:getLogs", () => [...apiLogBuffer]);
+ipcMain.handle("api:getHealth", () => ({ alive: apiProcess !== null, port: API_PORT }));
 
 // ── Update IPC ───────────────────────────────────────────────────────────────
 ipcMain.handle("update:check", async () => {

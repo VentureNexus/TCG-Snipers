@@ -111,7 +111,7 @@ export default function TaskGroupsPage() {
           queryClient.invalidateQueries({ queryKey: getListTaskGroupsQueryKey() });
           form.reset();
         },
-        onError: () => toast({ title: "Failed to create group", variant: "destructive" }),
+        onError: (err: unknown) => toast({ title: "Failed to create group", description: err instanceof Error ? err.message : undefined, variant: "destructive" }),
       },
     );
   };

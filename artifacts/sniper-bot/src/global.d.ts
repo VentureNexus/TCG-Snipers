@@ -49,6 +49,11 @@ declare global {
         /** Fires periodically while a new version is being downloaded. */
         onProgress: (handler: (p: UpdateProgress) => void) => () => void;
       };
+      /** In-app diagnostics — API server health and log buffer. */
+      diagnostics: {
+        getLogs: () => Promise<string[]>;
+        getHealth: () => Promise<{ alive: boolean; port: number }>;
+      };
       /** License management — Electron secureStorage + machine fingerprint. */
       license: {
         fingerprint: () => Promise<{ fingerprint: string; osPlatform: string }>;
