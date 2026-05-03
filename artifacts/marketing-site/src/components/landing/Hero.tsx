@@ -3,7 +3,7 @@ import logoUrl from "@assets/3092-removebg-preview_1777778639894.png";
 
 export function Hero() {
   return (
-    <section className="relative overflow-hidden px-6 pt-40 pb-24">
+    <section className="relative overflow-hidden px-6 pt-8 pb-24">
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 -z-10"
@@ -16,7 +16,7 @@ export function Hero() {
         <img
           src={logoUrl}
           alt="TCG Snipers"
-          className="mx-auto h-56 w-56 sm:h-64 sm:w-64 md:h-72 md:w-72 object-contain mb-2 drop-shadow-[0_0_100px_rgba(250,204,21,0.5)]"
+          className="mx-auto h-80 w-80 sm:h-96 sm:w-96 md:h-[28rem] md:w-[28rem] object-contain mb-2 drop-shadow-[0_0_100px_rgba(250,204,21,0.5)]"
         />
         <span className="inline-block text-[11px] font-semibold tracking-widest uppercase text-primary border border-primary/30 bg-primary/5 rounded-full px-3 py-1 mb-3">
           Retail automation built for trading-card hunters
