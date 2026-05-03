@@ -30,6 +30,9 @@ const HEARTBEAT_MS = 5 * 60 * 1000;
 const PORTAL_URL =
   (import.meta.env.VITE_MARKETING_SITE_URL as string | undefined) ?? "https://tcgsnipers.com";
 
+const DEV_BYPASS_KEY = "tcgsnipers_dev_bypass";
+const isDevPreview = import.meta.env.DEV && !window.electronAPI?.license;
+
 async function stopAllTasks(): Promise<void> {
   try {
     const apiBase = window.electronAPI ? await window.electronAPI.getApiBaseUrl() : "";
@@ -52,6 +55,10 @@ export function LicenseGate({ children }: { children: ReactNode }) {
     let timer: ReturnType<typeof setInterval> | null = null;
 
     async function bootstrap() {
+      if (isDevPreview && localStorage.getItem(DEV_BYPASS_KEY)) {
+        if (alive) setState({ kind: "active", email: "dev@preview.local", status: "active" });
+        return;
+      }
       const fp = await getFingerprint();
       fingerprintRef.current = fp;
       const stored = await loadStoredLicense();
@@ -106,6 +113,11 @@ export function LicenseGate({ children }: { children: ReactNode }) {
   }, []);
 
   async function signOut() {
+    if (isDevPreview) {
+      localStorage.removeItem(DEV_BYPASS_KEY);
+      setState({ kind: "signed-out" });
+      return;
+    }
     try {
       const stored = await loadStoredLicense();
       if (stored) {
@@ -246,6 +258,20 @@ function SignInScreen({
             </button>
           </p>
         </div>
+        {isDevPreview && (
+          <div className="mt-4 pt-4 border-t border-border/40">
+            <button
+              type="button"
+              onClick={() => {
+                localStorage.setItem(DEV_BYPASS_KEY, "1");
+                onSignedIn("dev@preview.local", "active");
+              }}
+              className="w-full border border-border/50 rounded-md py-2 text-xs text-muted-foreground/60 hover:text-muted-foreground hover:border-border transition"
+            >
+              Dev preview — skip license check
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
