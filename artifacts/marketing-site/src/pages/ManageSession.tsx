@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
+import { Eye, EyeOff, Copy, Check } from "lucide-react";
 import { licenseApi } from "@/lib/api";
 
 interface Me {
@@ -15,6 +16,10 @@ export default function ManageSession() {
   const [me, setMe] = useState<Me | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [revealedKey, setRevealedKey] = useState<string | null>(null);
+  const [revealNote, setRevealNote] = useState<string | null>(null);
+  const [revealing, setRevealing] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -58,6 +63,78 @@ export default function ManageSession() {
       setMe(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not release device");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function fetchKeyIfNeeded(): Promise<string | null> {
+    if (revealedKey) return revealedKey;
+    const session = sessionStorage.getItem(SESSION_KEY);
+    if (!session) return null;
+    setRevealing(true);
+    try {
+      const r = await licenseApi.getLicenseKey(session);
+      if (r.key) {
+        setRevealedKey(r.key);
+        setRevealNote(null);
+        return r.key;
+      }
+      setRevealNote(
+        r.reason === "decrypt_failed"
+          ? "We couldn't decrypt this key. Please rotate it to get a new one."
+          : "Original key only available in your purchase email.",
+      );
+      return null;
+    } catch (err) {
+      setRevealNote(err instanceof Error ? err.message : "Could not fetch key");
+      return null;
+    } finally {
+      setRevealing(false);
+    }
+  }
+
+  async function toggleReveal() {
+    if (revealedKey) {
+      setRevealedKey(null);
+      setRevealNote(null);
+      return;
+    }
+    await fetchKeyIfNeeded();
+  }
+
+  async function copyKey() {
+    const key = await fetchKeyIfNeeded();
+    if (!key) return;
+    try {
+      await navigator.clipboard.writeText(key);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      setRevealNote("Could not access the clipboard. Copy the key manually.");
+    }
+  }
+
+  async function rotateKey() {
+    const session = sessionStorage.getItem(SESSION_KEY);
+    if (!session) return;
+    if (
+      !confirm(
+        "Rotate your license key? Your current key will stop working immediately and any active desktop session will be signed out. The new key will be emailed to you.",
+      )
+    )
+      return;
+    setBusy(true);
+    try {
+      await licenseApi.rotateLicenseKey(session);
+      setRevealedKey(null);
+      setRevealNote(null);
+      const r = await licenseApi.getLicenseKey(session);
+      if (r.key) setRevealedKey(r.key);
+      const data = await licenseApi.me(session);
+      setMe(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not rotate key");
     } finally {
       setBusy(false);
     }
@@ -123,7 +200,47 @@ export default function ManageSession() {
             </div>
             <div>
               <div className="text-muted-foreground">Key</div>
-              <div className="font-mono">•••• {me.license.keyLast4}</div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-mono break-all">
+                  {revealing
+                    ? "Loading…"
+                    : revealedKey ?? `•••• ${me.license.keyLast4}`}
+                </span>
+                <button
+                  type="button"
+                  onClick={toggleReveal}
+                  disabled={revealing}
+                  className="p-1 rounded hover:text-primary text-muted-foreground transition disabled:opacity-50"
+                  aria-label={revealedKey ? "Hide key" : "Show key"}
+                  title={revealedKey ? "Hide key" : "Show key"}
+                >
+                  {revealedKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+                <button
+                  type="button"
+                  onClick={copyKey}
+                  disabled={revealing}
+                  className="p-1 rounded hover:text-primary text-muted-foreground transition disabled:opacity-50"
+                  aria-label="Copy key"
+                  title="Copy key"
+                >
+                  {copied ? <Check className="w-4 h-4 text-primary" /> : <Copy className="w-4 h-4" />}
+                </button>
+                {copied && <span className="text-xs text-primary">Copied!</span>}
+              </div>
+              {revealNote && (
+                <div className="mt-1 text-xs text-muted-foreground">
+                  {revealNote}{" "}
+                  <button
+                    type="button"
+                    onClick={rotateKey}
+                    disabled={busy}
+                    className="text-primary underline disabled:opacity-50"
+                  >
+                    Rotate key
+                  </button>
+                </div>
+              )}
             </div>
             <div className="col-span-2">
               <div className="text-muted-foreground">Renews</div>

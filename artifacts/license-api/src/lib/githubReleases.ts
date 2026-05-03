@@ -19,6 +19,11 @@ export interface ReleaseInfo {
   };
 }
 
+export interface ReleaseLookup {
+  release: ReleaseInfo | null;
+  latestTagSeen: string | null;
+}
+
 interface GitHubAsset {
   name: string;
   browser_download_url: string;
@@ -32,11 +37,11 @@ interface GitHubRelease {
   assets: GitHubAsset[];
 }
 
-let cache: { value: ReleaseInfo | null; expiresAt: number } = {
-  value: null,
+let cache: { value: ReleaseLookup; expiresAt: number } = {
+  value: { release: null, latestTagSeen: null },
   expiresAt: 0,
 };
-let inflight: Promise<ReleaseInfo | null> | null = null;
+let inflight: Promise<ReleaseLookup> | null = null;
 
 const SEMVER_RE = /(\d+\.\d+\.\d+(?:\.\d+)?)/;
 
@@ -58,7 +63,7 @@ function pickAssets(assets: GitHubAsset[]): ReleaseInfo["assets"] {
   return out;
 }
 
-async function fetchLatest(): Promise<ReleaseInfo | null> {
+async function fetchLatest(): Promise<ReleaseLookup> {
   const headers: Record<string, string> = {
     Accept: "application/vnd.github+json",
     "User-Agent": "tcgsnipers-license-api",
@@ -72,14 +77,16 @@ async function fetchLatest(): Promise<ReleaseInfo | null> {
       headers,
       signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
     });
-    if (!res.ok) return null;
+    if (!res.ok) return { release: null, latestTagSeen: null };
     const list = (await res.json()) as GitHubRelease[];
-    if (!Array.isArray(list)) return null;
+    if (!Array.isArray(list)) return { release: null, latestTagSeen: null };
+    let latestTagSeen: string | null = null;
     // Pick the newest non-draft release that has at least one installer asset.
     // We deliberately tolerate non-semver tags (e.g. "main") — we extract the
     // version from the asset filenames if the tag itself doesn't parse.
     for (const rel of list) {
       if (rel.draft) continue;
+      if (!latestTagSeen) latestTagSeen = rel.tag_name;
       const assets = pickAssets(rel.assets ?? []);
       if (!assets.win && !assets.macArm64 && !assets.macX64 && !assets.linux) {
         continue;
@@ -93,30 +100,43 @@ async function fetchLatest(): Promise<ReleaseInfo | null> {
         if (exeName) version = normalizeVersion(exeName);
       }
       if (!version) continue;
-      return { version, htmlUrl: rel.html_url, assets };
+      return {
+        release: { version, htmlUrl: rel.html_url, assets },
+        latestTagSeen,
+      };
     }
-    return null;
+    return { release: null, latestTagSeen };
   } catch {
-    return null;
+    return { release: null, latestTagSeen: null };
   }
 }
 
-export async function getLatestRelease(): Promise<ReleaseInfo | null> {
+export async function getLatestReleaseLookup(): Promise<ReleaseLookup> {
   const now = Date.now();
-  if (cache.value && cache.expiresAt > now) return cache.value;
+  if (cache.expiresAt > now) return cache.value;
   if (inflight) return inflight;
 
   inflight = (async () => {
     const value = await fetchLatest();
-    if (value) {
+    if (value.release) {
       cache = { value, expiresAt: now + CACHE_TTL_MS };
-    } else if (cache.value) {
+    } else if (cache.value.release) {
       // Keep serving the previous value for a short window if GitHub is down.
-      cache = { value: cache.value, expiresAt: now + 60 * 1000 };
+      cache = {
+        value: { ...cache.value, latestTagSeen: value.latestTagSeen ?? cache.value.latestTagSeen },
+        expiresAt: now + 60 * 1000,
+      };
+    } else {
+      cache = { value, expiresAt: now + 60 * 1000 };
     }
     inflight = null;
-    return value ?? cache.value;
+    return cache.value;
   })();
 
   return inflight;
+}
+
+export async function getLatestRelease(): Promise<ReleaseInfo | null> {
+  const r = await getLatestReleaseLookup();
+  return r.release;
 }

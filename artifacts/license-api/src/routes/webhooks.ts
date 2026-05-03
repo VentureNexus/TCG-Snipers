@@ -3,7 +3,7 @@ import type Stripe from "stripe";
 import { db, customersTable, licensesTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { stripe } from "../lib/stripe";
-import { generateLicenseKey, hashToken, last4 } from "../lib/crypto";
+import { generateLicenseKey, hashToken, last4, encryptSecret } from "../lib/crypto";
 import { sendEmail, licenseIssuedEmail } from "../lib/email";
 import { logger } from "../lib/logger";
 
@@ -67,6 +67,7 @@ async function handleSubscriptionEvent(sub: Stripe.Subscription): Promise<void> 
       customerId,
       keyHash: hashToken(rawKey),
       keyLast4: last4(rawKey),
+      keyEncrypted: encryptSecret(rawKey),
       stripeSubscriptionId: sub.id,
       status,
       currentPeriodEnd,

@@ -65,6 +65,17 @@ export const licenseApi = {
       headers: { Authorization: `Bearer ${session}` },
     });
   },
+  getLicenseKey(session: string): Promise<{ key: string | null; reason?: string }> {
+    return request("/license/portal/license/key", {
+      headers: { Authorization: `Bearer ${session}` },
+    });
+  },
+  rotateLicenseKey(session: string): Promise<{ ok: true }> {
+    return request("/license/portal/license/rotate", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${session}` },
+    });
+  },
   openStripePortal(session: string): Promise<{ url: string }> {
     return request("/license/portal/stripe-portal", {
       method: "POST",

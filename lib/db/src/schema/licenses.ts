@@ -13,6 +13,7 @@ export const licensesTable = pgTable(
       .references(() => customersTable.id, { onDelete: "cascade" }),
     keyHash: text("key_hash").notNull(),
     keyLast4: text("key_last4").notNull().default(""),
+    keyEncrypted: text("key_encrypted"),
     stripeSubscriptionId: text("stripe_subscription_id").notNull().default(""),
     status: text("status").notNull().default("incomplete"),
     currentPeriodEnd: timestamp("current_period_end", { withTimezone: true }),

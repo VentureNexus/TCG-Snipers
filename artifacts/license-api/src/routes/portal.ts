@@ -2,8 +2,8 @@ import { Router } from "express";
 import { z } from "zod";
 import { db, customersTable, licensesTable, devicesTable, magicLinkTokensTable } from "@workspace/db";
 import { and, desc, eq, gt, sql } from "drizzle-orm";
-import { generateMagicToken, hashToken } from "../lib/crypto";
-import { sendEmail, magicLinkEmail } from "../lib/email";
+import { generateMagicToken, hashToken, decryptSecret, encryptSecret, generateLicenseKey, last4 } from "../lib/crypto";
+import { sendEmail, magicLinkEmail, licenseIssuedEmail } from "../lib/email";
 import { signPortalSession, verifyPortalSession } from "../lib/jwt";
 import { stripe } from "../lib/stripe";
 import { logger } from "../lib/logger";
@@ -173,6 +173,85 @@ router.post("/portal/stripe-portal", async (req, res) => {
     logger.error({ err }, "Failed to create Stripe billing portal");
     res.status(500).json({ error: "Could not open billing portal" });
   }
+});
+
+// In-memory rate limit for key reveals: max 10 per hour per customer.
+const revealBuckets = new Map<number, number[]>();
+function checkRevealRate(customerId: number): boolean {
+  const now = Date.now();
+  const windowMs = 60 * 60 * 1000;
+  const arr = (revealBuckets.get(customerId) ?? []).filter((t) => now - t < windowMs);
+  if (arr.length >= 10) {
+    revealBuckets.set(customerId, arr);
+    return false;
+  }
+  arr.push(now);
+  revealBuckets.set(customerId, arr);
+  return true;
+}
+
+router.get("/portal/license/key", async (req, res) => {
+  const session = authPortal(req, res);
+  if (!session) return;
+  const license = (await db
+    .select()
+    .from(licensesTable)
+    .where(eq(licensesTable.customerId, session.customerId))
+    .orderBy(desc(licensesTable.createdAt))
+    .limit(1))[0];
+  if (!license) {
+    res.status(403).json({ error: "No license on file" });
+    return;
+  }
+  if (!checkRevealRate(session.customerId)) {
+    res.status(429).json({ error: "Too many reveal attempts. Try again later." });
+    return;
+  }
+  if (!license.keyEncrypted) {
+    res.json({ key: null, reason: "not_recoverable" });
+    return;
+  }
+  const plaintext = decryptSecret(license.keyEncrypted);
+  if (!plaintext) {
+    logger.warn({ licenseId: license.id }, "License key failed to decrypt");
+    res.json({ key: null, reason: "decrypt_failed" });
+    return;
+  }
+  res.json({ key: plaintext });
+});
+
+router.post("/portal/license/rotate", async (req, res) => {
+  const session = authPortal(req, res);
+  if (!session) return;
+  const license = (await db
+    .select()
+    .from(licensesTable)
+    .where(eq(licensesTable.customerId, session.customerId))
+    .orderBy(desc(licensesTable.createdAt))
+    .limit(1))[0];
+  if (!license) {
+    res.status(403).json({ error: "No license on file" });
+    return;
+  }
+  const rawKey = generateLicenseKey();
+  await db
+    .update(licensesTable)
+    .set({
+      keyHash: hashToken(rawKey),
+      keyLast4: last4(rawKey),
+      keyEncrypted: encryptSecret(rawKey),
+    })
+    .where(eq(licensesTable.id, license.id));
+  // Deactivate any bound device so the desktop app is forced to re-auth.
+  await db.delete(devicesTable).where(eq(devicesTable.licenseId, license.id));
+  try {
+    const { subject, html } = licenseIssuedEmail(rawKey, MARKETING_URL);
+    await sendEmail({ to: session.email, subject, html });
+  } catch (err) {
+    logger.warn({ err, licenseId: license.id }, "Failed to email rotated license key");
+  }
+  logger.info({ customerId: session.customerId, licenseId: license.id }, "License key rotated");
+  res.json({ ok: true });
 });
 
 export default router;

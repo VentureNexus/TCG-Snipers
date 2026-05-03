@@ -3,7 +3,7 @@ import { z } from "zod";
 import { randomUUID, timingSafeEqual } from "node:crypto";
 import { db, customersTable, licensesTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
-import { generateLicenseKey, hashToken, last4 } from "../lib/crypto";
+import { generateLicenseKey, hashToken, last4, encryptSecret } from "../lib/crypto";
 import { sendEmail, licenseIssuedEmail } from "../lib/email";
 import { logger } from "../lib/logger";
 
@@ -95,6 +95,7 @@ router.post("/admin/issue-license", async (req, res) => {
         customerId,
         keyHash: hashToken(rawKey),
         keyLast4: last4(rawKey),
+        keyEncrypted: encryptSecret(rawKey),
         stripeSubscriptionId: compSubId,
         status: "active",
         currentPeriodEnd: null, // perpetual until manually revoked

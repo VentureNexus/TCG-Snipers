@@ -3,7 +3,7 @@ import { db, licensesTable } from "@workspace/db";
 import { and, desc, eq } from "drizzle-orm";
 import { signDownloadToken, verifyDownloadToken, verifyPortalSession } from "../lib/jwt";
 import { getInstallerFile, getInstallerObjectKey } from "../lib/storage";
-import { getLatestRelease } from "../lib/githubReleases";
+import { getLatestRelease, getLatestReleaseLookup } from "../lib/githubReleases";
 
 const router: Router = Router();
 
@@ -24,23 +24,29 @@ function detectOs(ua: string, hint?: string): "win" | "mac" | "linux" {
 // Resolve the override URL for an OS. Priority:
 //   1. GitHub Releases (single source of truth, auto-updates on new release)
 //   2. Explicit env var (legacy fallback if GitHub API is unreachable)
-async function resolveOverrideUrl(os: "win" | "mac" | "linux"): Promise<string | undefined> {
+async function resolveOverrideUrl(
+  os: "win" | "mac" | "linux",
+): Promise<{ url?: string; source?: "github" | "env" }> {
   const release = await getLatestRelease();
   if (release) {
-    if (os === "win" && release.assets.win) return release.assets.win;
+    if (os === "win" && release.assets.win) return { url: release.assets.win, source: "github" };
     if (os === "mac" && (release.assets.macArm64 || release.assets.macX64))
-      return release.assets.macArm64 ?? release.assets.macX64;
-    if (os === "linux" && release.assets.linux) return release.assets.linux;
+      return { url: release.assets.macArm64 ?? release.assets.macX64, source: "github" };
+    if (os === "linux" && release.assets.linux) return { url: release.assets.linux, source: "github" };
   }
-  if (os === "win") return process.env.INSTALLER_URL_WIN;
-  if (os === "mac") return process.env.INSTALLER_URL_MAC;
-  if (os === "linux") return process.env.INSTALLER_URL_LINUX;
-  return undefined;
+  const envUrl =
+    os === "win"
+      ? process.env.INSTALLER_URL_WIN
+      : os === "mac"
+        ? process.env.INSTALLER_URL_MAC
+        : process.env.INSTALLER_URL_LINUX;
+  if (envUrl) return { url: envUrl, source: "env" };
+  return {};
 }
 
 async function installerAvailable(os: "win" | "mac" | "linux"): Promise<boolean> {
   const override = await resolveOverrideUrl(os);
-  return Boolean(override || getInstallerObjectKey(os));
+  return Boolean(override.url || getInstallerObjectKey(os));
 }
 
 router.get("/download/installer", async (req, res) => {
@@ -67,21 +73,28 @@ router.get("/download/installer", async (req, res) => {
 
   const os = detectOs(req.headers["user-agent"] ?? "", String(req.query.os ?? ""));
   const override = await resolveOverrideUrl(os);
-  if (!override && !getInstallerObjectKey(os)) {
+  if (!override.url && !getInstallerObjectKey(os)) {
+    const lookup = await getLatestReleaseLookup();
+    const tagNote = lookup.latestTagSeen
+      ? ` (latest release tag seen: ${lookup.latestTagSeen} — no installer assets attached yet)`
+      : "";
+    req.log?.info({ os, source: "none", latestTagSeen: lookup.latestTagSeen }, "installer not available");
     res.status(503).json({
-      error: `The ${OS_LABELS[os] ?? os} build is coming soon. We're finishing code-signing and notarization. Email support@tcgsnipers.com if you'd like early access.`,
+      error: `The ${OS_LABELS[os] ?? os} build is coming soon. We're finishing code-signing and notarization${tagNote}. Email support@tcgsnipers.com if you'd like early access.`,
       os,
       comingSoon: true,
+      latestTagSeen: lookup.latestTagSeen,
     });
     return;
   }
 
   // External override wins (GitHub Releases or env var override).
-  if (override) {
+  if (override.url) {
+    req.log?.info({ os, source: override.source, url: override.url }, "installer resolved");
     // Per-user cache for 5 min — the override URL is stable per release and
     // we re-check GitHub at most every 5 min anyway.
     res.set("Cache-Control", "private, max-age=300");
-    res.json({ url: override, os, expiresIn: 600 });
+    res.json({ url: override.url, os, expiresIn: 600 });
     return;
   }
 
@@ -91,6 +104,7 @@ router.get("/download/installer", async (req, res) => {
   const dt = signDownloadToken({ customerId: session.customerId, os });
   const base = process.env.DOWNLOAD_BASE_URL ?? "https://tcgsnipers.replit.app";
   const url = `${base}/license/download/file/${os}?t=${encodeURIComponent(dt)}`;
+  req.log?.info({ os, source: "object-storage", url }, "installer resolved");
   res.json({ url, os, expiresIn: 300 });
 });
 
