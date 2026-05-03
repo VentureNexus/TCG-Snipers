@@ -16,7 +16,7 @@ export function Hero() {
         <img
           src={logoUrl}
           alt="TCG Snipers"
-          className="mx-auto h-80 w-80 sm:h-96 sm:w-96 md:h-[28rem] md:w-[28rem] object-contain -mt-8 md:-mt-16 -mb-8 md:-mb-16 drop-shadow-[0_0_100px_rgba(250,204,21,0.5)]"
+          className="mx-auto h-80 sm:h-96 md:h-[28rem] w-auto object-contain -mt-8 md:-mt-16 -mb-8 md:-mb-16 drop-shadow-[0_0_100px_rgba(250,204,21,0.5)]"
         />
         <span className="inline-block text-[11px] font-semibold tracking-widest uppercase text-primary border border-primary/30 bg-primary/5 rounded-full px-3 py-1 mb-3">
           Retail automation built for trading-card hunters

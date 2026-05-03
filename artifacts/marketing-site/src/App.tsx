@@ -47,7 +47,7 @@ function Header() {
       <header className="border-b border-border/60 bg-background/70 backdrop-blur sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-6 py-1 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <img src={logoUrl} alt="TCG Snipers" className="h-16 w-16 object-contain -my-2" />
+            <img src={logoUrl} alt="TCG Snipers" className="h-16 w-auto object-contain -my-2" />
             <span className="text-xl font-bold tracking-tight">
               <span className="text-primary">TCG</span> Snipers
             </span>
@@ -120,7 +120,7 @@ function Footer() {
       <div className="max-w-6xl mx-auto px-6 py-12">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 text-sm">
           <div className="flex items-center gap-2">
-            <img src={logoUrl} alt="TCG Snipers" className="h-8 w-8 object-contain" />
+            <img src={logoUrl} alt="TCG Snipers" className="h-8 w-auto object-contain" />
             <span className="font-bold text-foreground">
               <span className="text-primary">TCG</span> Snipers
             </span>
