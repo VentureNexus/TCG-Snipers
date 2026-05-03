@@ -19,7 +19,9 @@ router.get("/version", async (_req, res) => {
   const latest = release?.version ?? process.env.LATEST_APP_VERSION ?? "1.0.0";
   const minSupported = process.env.MIN_SUPPORTED_APP_VERSION ?? "1.0.0";
 
-  res.set("Cache-Control", "public, max-age=300"); // 5 min CDN/browser cache
+  // 5 min fresh + 10 min stale-while-revalidate so a brief GitHub outage
+  // never blocks update checks for the desktop app.
+  res.set("Cache-Control", "public, max-age=300, stale-while-revalidate=600");
   res.json({
     latest,
     minSupported,

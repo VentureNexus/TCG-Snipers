@@ -78,6 +78,9 @@ router.get("/download/installer", async (req, res) => {
 
   // External override wins (GitHub Releases or env var override).
   if (override) {
+    // Per-user cache for 5 min — the override URL is stable per release and
+    // we re-check GitHub at most every 5 min anyway.
+    res.set("Cache-Control", "private, max-age=300");
     res.json({ url: override, os, expiresIn: 600 });
     return;
   }
