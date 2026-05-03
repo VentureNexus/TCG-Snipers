@@ -5,6 +5,7 @@ import license from "./license";
 import portal from "./portal";
 import download from "./download";
 import support from "./support";
+import version from "./version";
 
 const router: IRouter = Router();
 router.use(health);
@@ -13,5 +14,6 @@ router.use(license);
 router.use(portal);
 router.use(download);
 router.use(support);
+router.use(version);
 
 export default router;

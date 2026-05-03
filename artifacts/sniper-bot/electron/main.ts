@@ -4,6 +4,12 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { computeFingerprint, osLabel } from "./fingerprint.js";
 import { readLicense, writeLicense, clearLicense } from "./secureStorage.js";
+import {
+  startUpdateChecker,
+  checkForUpdate,
+  getLastResult,
+  openDownloadPage,
+} from "./updateChecker.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -126,10 +132,16 @@ ipcMain.handle("license:clear", () => {
 });
 ipcMain.handle("app:openExternal", (_e, url: string) => shell.openExternal(url));
 
+// ── Update IPC ───────────────────────────────────────────────────────────────
+ipcMain.handle("update:check", () => checkForUpdate(mainWindow));
+ipcMain.handle("update:latest", () => getLastResult());
+ipcMain.handle("update:openDownload", () => openDownloadPage());
+
 // ── App lifecycle ────────────────────────────────────────────────────────────
 app.whenReady().then(async () => {
   await startApiServer();
   createWindow();
+  startUpdateChecker(() => mainWindow);
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();

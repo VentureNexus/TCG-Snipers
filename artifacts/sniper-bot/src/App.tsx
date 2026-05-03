@@ -6,6 +6,7 @@ import NotFound from "@/pages/not-found";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { ThemeProvider } from "@/lib/theme";
 import { LicenseGate } from "@/components/LicenseGate";
+import { UpdateBanner } from "@/components/UpdateBanner";
 
 import DashboardPage from "@/pages/dashboard";
 import TasksPage from "@/pages/tasks";
@@ -41,6 +42,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <TooltipProvider>
+          <UpdateBanner />
           <LicenseGate>
             <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
               <Router />
