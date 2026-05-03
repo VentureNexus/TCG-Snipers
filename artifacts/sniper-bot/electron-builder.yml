@@ -35,6 +35,10 @@ nsis:
   createDesktopShortcut: true
   createStartMenuShortcut: true
   shortcutName: TCG Snipers
+  # Kill any running TCG Snipers (+ bundled node child) before install/uninstall
+  # so users don't hit the "app is running" block on upgrade.
+  include: build/installer.nsh
+  deleteAppDataOnUninstall: false
 
 mac:
   target:
