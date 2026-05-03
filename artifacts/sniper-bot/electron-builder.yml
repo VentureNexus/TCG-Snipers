@@ -63,7 +63,6 @@ mac:
 
 dmg:
   title: TCG Snipers Installer
-  background: build/dmg-background.png
   window:
     width: 540
     height: 380
