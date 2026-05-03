@@ -51,11 +51,25 @@ This is a **pnpm monorepo** with the following packages:
 - **Zod validation on input only** — Request bodies validated with Zod schemas; DB responses returned as plain JSON (dates serialize automatically)
 - **Retailer badges** — Color-coded: Target (red), Amazon (orange), Best Buy (blue), Costco (sky), Pokémon Center (yellow)
 
+## Database Strategy
+
+`lib/db` supports two database backends detected at startup:
+
+| Condition | Backend | Used by |
+|-----------|---------|---------|
+| `DATABASE_URL` is set | PostgreSQL via `drizzle-orm/node-postgres` | Replit dev, license-api |
+| `ELECTRON_DB_PATH` is set (and no `DATABASE_URL`) | PGlite embedded PostgreSQL (WASM) via `drizzle-orm/pglite` | Packaged Electron desktop app |
+
+**PGlite** (`@electric-sql/pglite`) is an in-process PostgreSQL implemented in WebAssembly. No native addon rebuild needed. Data persists to the user's app-data directory (`app.getPath('userData')/pgdata`). Tables are auto-created on first launch via `lib/db/src/pglite-migrate.ts` (CREATE TABLE IF NOT EXISTS).
+
+`electron/main.ts` sets `ELECTRON_DB_PATH` in the spawned API-server process env only when `DATABASE_URL` is absent, so Replit/production always uses real PostgreSQL.
+
 ## Environment Variables
 
 | Variable | Used By | Notes |
 |----------|---------|-------|
-| `DATABASE_URL` | `lib/db`, `artifacts/api-server` | PostgreSQL connection string |
+| `DATABASE_URL` | `lib/db`, `artifacts/api-server` | PostgreSQL connection string (Replit / production) |
+| `ELECTRON_DB_PATH` | `lib/db`, `artifacts/api-server` | Set by Electron main.ts when DATABASE_URL absent; points to PGlite data dir |
 | `PORT` | all services | Assigned per-artifact by Replit |
 | `BASE_PATH` | `artifacts/sniper-bot` | Vite base path |
 | `ENCRYPTION_KEY` | `artifacts/api-server` | 32-byte key for AES-256-GCM (defaults to dev key) |

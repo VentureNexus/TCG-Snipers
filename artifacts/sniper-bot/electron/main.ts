@@ -49,6 +49,11 @@ function startApiServer(): Promise<void> {
       : path.join(process.resourcesPath, "api-server", "index.mjs");
 
     try {
+      // Provide the path to a local PGlite data directory so the API server
+      // can run an embedded PostgreSQL instance without any DATABASE_URL.
+      // This is only used when DATABASE_URL is absent (i.e. on end-user machines).
+      const electronDbPath = path.join(app.getPath("userData"), "pgdata");
+
       apiProcess = spawn(process.execPath, ["--enable-source-maps", apiServerPath], {
         env: {
           ...process.env,
@@ -56,6 +61,10 @@ function startApiServer(): Promise<void> {
           ELECTRON_RUN_AS_NODE: "1",
           PORT: String(API_PORT),
           NODE_ENV: isDev ? "development" : "production",
+          // Only set ELECTRON_DB_PATH when DATABASE_URL is absent so the
+          // Replit dev environment (which has DATABASE_URL) continues to use
+          // the real PostgreSQL instance.
+          ...(process.env.DATABASE_URL ? {} : { ELECTRON_DB_PATH: electronDbPath }),
         },
         stdio: ["ignore", "pipe", "pipe"],
       });
