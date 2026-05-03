@@ -1,4 +1,5 @@
 import { chromium, type Browser, type BrowserContext, type Page } from "playwright";
+import { execSync } from "child_process";
 
 const USER_AGENTS = [
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -55,15 +56,32 @@ const STEALTH_SCRIPT = `
   })();
 `;
 
-const CHROMIUM_PATH =
-  process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ||
-  "/nix/store/qa9cnw4v5xkxyip6mb9kxqfq1z4x2dx1-chromium-138.0.7204.100/bin/chromium";
+function resolveChromiumPath(): string | undefined {
+  if (process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH) {
+    return process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH;
+  }
+  // Try well-known binary names on PATH
+  for (const bin of ["chromium", "chromium-browser", "google-chrome", "google-chrome-stable"]) {
+    try {
+      const p = execSync(`which ${bin} 2>/dev/null`, { encoding: "utf8" }).trim();
+      if (p) return p;
+    } catch (_) {}
+  }
+  // Fall back to Playwright's own managed executable (works if `playwright install chromium` ran)
+  return undefined;
+}
 
 export async function createBrowser(proxy?: ProxyConfig | null): Promise<Browser> {
   const headless = process.env.SHOW_BROWSER !== "true";
+  const executablePath = resolveChromiumPath();
+  if (!executablePath) {
+    throw new Error(
+      "Chromium not found. Install it via `playwright install chromium` or set PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH.",
+    );
+  }
   return chromium.launch({
     headless,
-    executablePath: CHROMIUM_PATH,
+    executablePath,
     args: [
       "--no-sandbox",
       "--disable-setuid-sandbox",

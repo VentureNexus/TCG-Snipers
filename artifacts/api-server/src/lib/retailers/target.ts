@@ -209,7 +209,7 @@ export async function runTarget(ctx: RetailerContext): Promise<RetailerResult> {
         30000,
       );
       if (code) {
-        log("SUCCESS", `[${RETAILER}] Verification code retrieved: ${code}`);
+        log("SUCCESS", `[${RETAILER}] Verification code retrieved — entering...`);
         await humanType(page, 'input[aria-label*="verification"], input[placeholder*="code"]', code);
         await humanDelay(300, 600);
       } else {

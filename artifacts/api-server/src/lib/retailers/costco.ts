@@ -65,8 +65,8 @@ export async function runCostco(ctx: RetailerContext): Promise<RetailerResult> {
           await humanDelay(1000, 2000);
           try {
             await humanType(page, '#signInName, input[name="email"]', profile.email);
-            const pwField = await page.$('#password, input[type="password"]');
-            if (pwField) { await humanType(page, '#password', profile.imapPassword || ""); }
+            // Retailer account password is not stored — skip password field and
+            // rely on the user being already signed in or continuing as guest
             const loginBtn = await page.$('button:has-text("Sign In"), #login-btn');
             if (loginBtn) { await loginBtn.click(); await humanDelay(2000, 3000); }
           } catch (_) {}
