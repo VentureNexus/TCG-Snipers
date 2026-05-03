@@ -1,6 +1,6 @@
 kind = "web"
 previewPath = "/"
-title = "Sniper Bot"
+title = "TCG Snipers"
 version = "1.0.0"
 id = "artifacts/sniper-bot"
 router = "path"

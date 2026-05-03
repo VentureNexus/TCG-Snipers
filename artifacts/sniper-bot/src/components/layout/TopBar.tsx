@@ -8,7 +8,7 @@ import {
   getGetAnalyticsSummaryQueryKey,
 } from "@workspace/api-client-react";
 
-const APP_NAME = "SNIPER";
+const APP_NAME = "TCG SNIPERS";
 const APP_VERSION = "v1.0.0";
 
 const PAGE_TITLES: Record<string, string> = {
