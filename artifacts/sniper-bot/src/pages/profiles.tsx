@@ -217,7 +217,7 @@ function AddCardInline({ profileId, existingCount, onAdded }: AddCardInlineProps
     <div className="rounded-lg border border-border/50 p-4 bg-muted/10 space-y-3">
       <p className="text-xs font-medium text-foreground/80">New Card</p>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
+        <form onSubmit={form.handleSubmit(onSubmit, () => toast({ title: "Please fill in all required card fields", variant: "destructive" }))} className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <FormField control={form.control} name="cardNickname" render={({ field }) => (
               <FormItem>
@@ -411,7 +411,7 @@ function ProfileFormDialog({
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={form.handleSubmit(onSubmit, () => toast({ title: "Please fill in all required fields", description: "Check the fields highlighted in red.", variant: "destructive" }))} className="space-y-6">
             {/* Identity */}
             <div>
               <SectionHeader>Identity</SectionHeader>
@@ -906,7 +906,7 @@ function AddCardDialog({ open, onOpenChange, profileId, existingCardCount }: Add
           </p>
         ) : (
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={form.handleSubmit(onSubmit, () => toast({ title: "Please fill in all required card fields", variant: "destructive" }))} className="space-y-4">
               <FormField control={form.control} name="cardNickname" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Card Nickname <span className="text-muted-foreground text-xs">(optional)</span></FormLabel>

@@ -161,7 +161,7 @@ export default function TaskGroupsPage() {
               <DialogTitle>Create Task Group</DialogTitle>
             </DialogHeader>
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <form onSubmit={form.handleSubmit(onSubmit, () => toast({ title: "Please fill in all required fields", variant: "destructive" }))} className="space-y-4">
                 <FormField
                   control={form.control}
                   name="name"
