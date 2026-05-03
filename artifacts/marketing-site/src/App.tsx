@@ -132,9 +132,6 @@ function Footer() {
             <Link href="/manage" className="hover:text-foreground transition">
               Manage license
             </Link>
-            <Link href="/" className="hover:text-foreground transition">
-              Home
-            </Link>
             <a
               href="https://discord.gg/"
               target="_blank"
