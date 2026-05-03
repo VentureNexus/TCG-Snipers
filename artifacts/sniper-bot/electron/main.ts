@@ -5,9 +5,18 @@ import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+// electron/dist/main.js lives at:  artifacts/sniper-bot/electron/dist/main.js
+// so __dirname                  =  artifacts/sniper-bot/electron/dist
+// artifacts/sniper-bot root     =  __dirname/../..
+const APP_ROOT = path.resolve(__dirname, "..", "..");
+
 const isDev = process.env.NODE_ENV === "development" || !app.isPackaged;
 const API_PORT = 8080;
-const RENDERER_PORT = 5173;
+
+// In dev the Vite dev-server listens on whatever PORT the platform assigns.
+// Electron reads the same env var so it always connects to the right port.
+// Fallback to 5173 only when running Electron outside the Replit environment.
+const RENDERER_PORT = Number(process.env.PORT ?? 5173);
 
 let mainWindow: BrowserWindow | null = null;
 let apiProcess: ChildProcess | null = null;
@@ -15,8 +24,10 @@ let apiProcess: ChildProcess | null = null;
 // ── Start Express API server ────────────────────────────────────────────────
 function startApiServer(): Promise<void> {
   return new Promise((resolve, reject) => {
+    // Dev:  sibling artifact built output  (artifacts/api-server/dist/index.mjs)
+    // Prod: bundled into app resources     (resources/api-server/index.mjs)
     const apiServerPath = isDev
-      ? path.resolve(__dirname, "../../api-server/dist/index.mjs")
+      ? path.resolve(APP_ROOT, "..", "api-server", "dist", "index.mjs")
       : path.join(process.resourcesPath, "api-server", "index.mjs");
 
     apiProcess = spawn("node", ["--enable-source-maps", apiServerPath], {
@@ -39,8 +50,8 @@ function startApiServer(): Promise<void> {
     });
 
     apiProcess.on("error", reject);
-    // Fallback: resolve after 3 s if the startup log never fires
-    setTimeout(resolve, 3000);
+    // Fallback: resolve after 4 s if the startup log never fires
+    setTimeout(resolve, 4000);
   });
 }
 
@@ -56,30 +67,23 @@ function createWindow(): void {
     backgroundColor: "#0d1117",
     show: false,
     webPreferences: {
+      // preload lives at electron/dist/preload.js — same folder as main.js
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,
-      // In production the renderer is a local file — web security can stay on.
       webSecurity: true,
     },
   });
 
   if (isDev) {
-    // Development: Vite dev server handles HMR; proxy forwards /api to Express
+    // Development: load from Vite dev-server (HMR enabled)
     mainWindow.loadURL(`http://localhost:${RENDERER_PORT}`);
     mainWindow.webContents.openDevTools({ mode: "detach" });
   } else {
-    // Production: load the compiled renderer bundle directly from disk.
-    // API calls go to http://localhost:<API_PORT> — the renderer calls
-    // window.electronAPI.getApiBaseUrl() on startup and passes it to setBaseUrl().
-    const indexHtml = path.join(
-      __dirname,
-      "..",    // electron/dist  → renderer root
-      "..",    // renderer root
-      "dist",  // Vite output directory
-      "index.html",
-    );
+    // Production: Vite outputs to dist/public/index.html
+    // APP_ROOT = artifacts/sniper-bot, build outDir = dist/public
+    const indexHtml = path.join(APP_ROOT, "dist", "public", "index.html");
     mainWindow.loadFile(indexHtml);
   }
 
@@ -91,7 +95,7 @@ function createWindow(): void {
     mainWindow = null;
   });
 
-  // Intercept _blank links — open in the OS browser, not in Electron
+  // Open _blank links in the OS browser
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url);
     return { action: "deny" };
@@ -101,7 +105,7 @@ function createWindow(): void {
 // ── IPC handlers ─────────────────────────────────────────────────────────────
 ipcMain.handle("app:version", () => app.getVersion());
 ipcMain.handle("app:platform", () => process.platform);
-// Renderer calls this to discover where the local API is running
+// Renderer calls this to discover the local API origin
 ipcMain.handle("app:apiBaseUrl", () => `http://localhost:${API_PORT}`);
 
 // ── App lifecycle ────────────────────────────────────────────────────────────
