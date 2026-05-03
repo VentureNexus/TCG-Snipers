@@ -3,6 +3,7 @@ import { db, licensesTable } from "@workspace/db";
 import { and, desc, eq } from "drizzle-orm";
 import { signDownloadToken, verifyDownloadToken, verifyPortalSession } from "../lib/jwt";
 import { getInstallerFile, getInstallerObjectKey } from "../lib/storage";
+import { getLatestRelease } from "../lib/githubReleases";
 
 const router: Router = Router();
 
@@ -10,13 +11,6 @@ const OS_LABELS: Record<string, string> = {
   win: "Windows",
   mac: "macOS",
   linux: "Linux",
-};
-
-// Override URLs (e.g. external CDN) — if set, we redirect to these instead of streaming from GCS.
-const OVERRIDE_URLS: Record<string, string | undefined> = {
-  win: process.env.INSTALLER_URL_WIN,
-  mac: process.env.INSTALLER_URL_MAC,
-  linux: process.env.INSTALLER_URL_LINUX,
 };
 
 function detectOs(ua: string, hint?: string): "win" | "mac" | "linux" {
@@ -27,8 +21,26 @@ function detectOs(ua: string, hint?: string): "win" | "mac" | "linux" {
   return "win";
 }
 
-function installerAvailable(os: "win" | "mac" | "linux"): boolean {
-  return Boolean(OVERRIDE_URLS[os] || getInstallerObjectKey(os));
+// Resolve the override URL for an OS. Priority:
+//   1. GitHub Releases (single source of truth, auto-updates on new release)
+//   2. Explicit env var (legacy fallback if GitHub API is unreachable)
+async function resolveOverrideUrl(os: "win" | "mac" | "linux"): Promise<string | undefined> {
+  const release = await getLatestRelease();
+  if (release) {
+    if (os === "win" && release.assets.win) return release.assets.win;
+    if (os === "mac" && (release.assets.macArm64 || release.assets.macX64))
+      return release.assets.macArm64 ?? release.assets.macX64;
+    if (os === "linux" && release.assets.linux) return release.assets.linux;
+  }
+  if (os === "win") return process.env.INSTALLER_URL_WIN;
+  if (os === "mac") return process.env.INSTALLER_URL_MAC;
+  if (os === "linux") return process.env.INSTALLER_URL_LINUX;
+  return undefined;
+}
+
+async function installerAvailable(os: "win" | "mac" | "linux"): Promise<boolean> {
+  const override = await resolveOverrideUrl(os);
+  return Boolean(override || getInstallerObjectKey(os));
 }
 
 router.get("/download/installer", async (req, res) => {
@@ -54,7 +66,8 @@ router.get("/download/installer", async (req, res) => {
   }
 
   const os = detectOs(req.headers["user-agent"] ?? "", String(req.query.os ?? ""));
-  if (!installerAvailable(os)) {
+  const override = await resolveOverrideUrl(os);
+  if (!override && !getInstallerObjectKey(os)) {
     res.status(503).json({
       error: `The ${OS_LABELS[os] ?? os} build is coming soon. We're finishing code-signing and notarization. Email support@tcgsnipers.com if you'd like early access.`,
       os,
@@ -63,8 +76,7 @@ router.get("/download/installer", async (req, res) => {
     return;
   }
 
-  // External override wins (e.g. CDN-hosted)
-  const override = OVERRIDE_URLS[os];
+  // External override wins (GitHub Releases or env var override).
   if (override) {
     res.json({ url: override, os, expiresIn: 600 });
     return;
