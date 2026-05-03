@@ -6,6 +6,7 @@ import portal from "./portal";
 import download from "./download";
 import support from "./support";
 import version from "./version";
+import admin from "./admin";
 
 const router: IRouter = Router();
 router.use(health);
@@ -15,5 +16,6 @@ router.use(portal);
 router.use(download);
 router.use(support);
 router.use(version);
+router.use(admin);
 
 export default router;
