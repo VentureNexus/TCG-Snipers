@@ -42,10 +42,11 @@ mac:
       arch:
         - x64
         - arm64
-  icon: build/icon.icns
+  # icon auto-derived from build/icon.png (512x512+) — no .icns needed
   category: public.app-category.utilities
-  hardenedRuntime: true
+  hardenedRuntime: false
   gatekeeperAssess: false
+  identity: null
   artifactName: TCGSnipers-${version}-${arch}.${ext}
 
 dmg:
