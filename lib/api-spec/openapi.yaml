@@ -10,6 +10,21 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: profiles
+    description: Profile management
+  - name: credit-cards
+    description: Credit card management
+  - name: proxies
+    description: Proxy management
+  - name: task-groups
+    description: Task group management
+  - name: tasks
+    description: Task management
+  - name: checkout-results
+    description: Checkout result management
+  - name: analytics
+    description: Analytics and summaries
+
 paths:
   /healthz:
     get:
@@ -24,6 +39,585 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  # ── PROFILES ──────────────────────────────────────────────────────────────
+  /profiles:
+    get:
+      operationId: listProfiles
+      tags: [profiles]
+      summary: List all profiles
+      responses:
+        "200":
+          description: List of profiles
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Profile"
+    post:
+      operationId: createProfile
+      tags: [profiles]
+      summary: Create a profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateProfileBody"
+      responses:
+        "201":
+          description: Created profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Profile"
+
+  /profiles/{id}:
+    get:
+      operationId: getProfile
+      tags: [profiles]
+      summary: Get a profile by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Profile"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateProfile
+      tags: [profiles]
+      summary: Update a profile
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProfileBody"
+      responses:
+        "200":
+          description: Updated profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Profile"
+        "404":
+          description: Not found
+    delete:
+      operationId: deleteProfile
+      tags: [profiles]
+      summary: Delete a profile
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  # ── CREDIT CARDS ──────────────────────────────────────────────────────────
+  /credit-cards:
+    get:
+      operationId: listCreditCards
+      tags: [credit-cards]
+      summary: List credit cards
+      parameters:
+        - name: profileId
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of credit cards
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CreditCard"
+    post:
+      operationId: createCreditCard
+      tags: [credit-cards]
+      summary: Create a credit card
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCreditCardBody"
+      responses:
+        "201":
+          description: Created credit card
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreditCard"
+
+  /credit-cards/{id}:
+    patch:
+      operationId: updateCreditCard
+      tags: [credit-cards]
+      summary: Update a credit card
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateCreditCardBody"
+      responses:
+        "200":
+          description: Updated credit card
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreditCard"
+        "404":
+          description: Not found
+    delete:
+      operationId: deleteCreditCard
+      tags: [credit-cards]
+      summary: Delete a credit card
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  # ── PROXIES ───────────────────────────────────────────────────────────────
+  /proxies:
+    get:
+      operationId: listProxies
+      tags: [proxies]
+      summary: List all proxies
+      responses:
+        "200":
+          description: List of proxies
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Proxy"
+    post:
+      operationId: createProxy
+      tags: [proxies]
+      summary: Create a proxy
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateProxyBody"
+      responses:
+        "201":
+          description: Created proxy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Proxy"
+
+  /proxies/{id}:
+    patch:
+      operationId: updateProxy
+      tags: [proxies]
+      summary: Update a proxy
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProxyBody"
+      responses:
+        "200":
+          description: Updated proxy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Proxy"
+        "404":
+          description: Not found
+    delete:
+      operationId: deleteProxy
+      tags: [proxies]
+      summary: Delete a proxy
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /proxies/{id}/test:
+    post:
+      operationId: testProxy
+      tags: [proxies]
+      summary: Test a proxy connection
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Test result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProxyTestResult"
+
+  # ── TASK GROUPS ───────────────────────────────────────────────────────────
+  /task-groups:
+    get:
+      operationId: listTaskGroups
+      tags: [task-groups]
+      summary: List all task groups
+      responses:
+        "200":
+          description: List of task groups
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TaskGroup"
+    post:
+      operationId: createTaskGroup
+      tags: [task-groups]
+      summary: Create a task group
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTaskGroupBody"
+      responses:
+        "201":
+          description: Created task group
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaskGroup"
+
+  /task-groups/{id}:
+    patch:
+      operationId: updateTaskGroup
+      tags: [task-groups]
+      summary: Update a task group
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateTaskGroupBody"
+      responses:
+        "200":
+          description: Updated task group
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaskGroup"
+        "404":
+          description: Not found
+    delete:
+      operationId: deleteTaskGroup
+      tags: [task-groups]
+      summary: Delete a task group
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  # ── TASKS ─────────────────────────────────────────────────────────────────
+  /tasks:
+    get:
+      operationId: listTasks
+      tags: [tasks]
+      summary: List all tasks
+      parameters:
+        - name: groupId
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of tasks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Task"
+    post:
+      operationId: createTask
+      tags: [tasks]
+      summary: Create a task
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTaskBody"
+      responses:
+        "201":
+          description: Created task
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+
+  /tasks/{id}:
+    get:
+      operationId: getTask
+      tags: [tasks]
+      summary: Get a task by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Task
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateTask
+      tags: [tasks]
+      summary: Update a task
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateTaskBody"
+      responses:
+        "200":
+          description: Updated task
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+        "404":
+          description: Not found
+    delete:
+      operationId: deleteTask
+      tags: [tasks]
+      summary: Delete a task
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /tasks/{id}/start:
+    post:
+      operationId: startTask
+      tags: [tasks]
+      summary: Start a task
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Task started
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+
+  /tasks/{id}/stop:
+    post:
+      operationId: stopTask
+      tags: [tasks]
+      summary: Stop a task
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Task stopped
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+
+  /tasks/start-all:
+    post:
+      operationId: startAllTasks
+      tags: [tasks]
+      summary: Start all idle tasks
+      responses:
+        "200":
+          description: Tasks started
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BulkActionResult"
+
+  /tasks/stop-all:
+    post:
+      operationId: stopAllTasks
+      tags: [tasks]
+      summary: Stop all running tasks
+      responses:
+        "200":
+          description: Tasks stopped
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BulkActionResult"
+
+  # ── CHECKOUT RESULTS ──────────────────────────────────────────────────────
+  /checkout-results:
+    get:
+      operationId: listCheckoutResults
+      tags: [checkout-results]
+      summary: List checkout results
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: success
+          in: query
+          required: false
+          schema:
+            type: boolean
+      responses:
+        "200":
+          description: List of checkout results
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CheckoutResult"
+    post:
+      operationId: createCheckoutResult
+      tags: [checkout-results]
+      summary: Record a checkout result
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCheckoutResultBody"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheckoutResult"
+
+  # ── ANALYTICS ─────────────────────────────────────────────────────────────
+  /analytics/summary:
+    get:
+      operationId: getAnalyticsSummary
+      tags: [analytics]
+      summary: Get analytics summary
+      responses:
+        "200":
+          description: Analytics summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnalyticsSummary"
+
+  /analytics/checkouts-over-time:
+    get:
+      operationId: getCheckoutsOverTime
+      tags: [analytics]
+      summary: Get checkout counts over time
+      parameters:
+        - name: period
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [day, week, month, year]
+      responses:
+        "200":
+          description: Checkout time series
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CheckoutTimeSeriesPoint"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +628,629 @@ components:
       required:
         - status
 
+    # ── PROFILE ──────────────────────────────────────────────────────────────
+    Profile:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        shipFirstName:
+          type: string
+        shipLastName:
+          type: string
+        shipAddress1:
+          type: string
+        shipAddress2:
+          type: string
+        shipCity:
+          type: string
+        shipState:
+          type: string
+        shipZip:
+          type: string
+        shipCountry:
+          type: string
+        billSameAsShip:
+          type: boolean
+        billFirstName:
+          type: string
+        billLastName:
+          type: string
+        billAddress1:
+          type: string
+        billAddress2:
+          type: string
+        billCity:
+          type: string
+        billState:
+          type: string
+        billZip:
+          type: string
+        billCountry:
+          type: string
+        addressJigEnabled:
+          type: boolean
+        costcoMembershipId:
+          type: string
+        imapHost:
+          type: string
+        imapPort:
+          type: string
+        imapUser:
+          type: string
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - name
+        - email
+        - phone
+        - shipFirstName
+        - shipLastName
+        - shipAddress1
+        - shipAddress2
+        - shipCity
+        - shipState
+        - shipZip
+        - shipCountry
+        - billSameAsShip
+        - billFirstName
+        - billLastName
+        - billAddress1
+        - billAddress2
+        - billCity
+        - billState
+        - billZip
+        - billCountry
+        - addressJigEnabled
+        - costcoMembershipId
+        - imapHost
+        - imapPort
+        - imapUser
+        - createdAt
+        - updatedAt
+
+    CreateProfileBody:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        shipFirstName:
+          type: string
+        shipLastName:
+          type: string
+        shipAddress1:
+          type: string
+        shipAddress2:
+          type: string
+        shipCity:
+          type: string
+        shipState:
+          type: string
+        shipZip:
+          type: string
+        shipCountry:
+          type: string
+        billSameAsShip:
+          type: boolean
+        billFirstName:
+          type: string
+        billLastName:
+          type: string
+        billAddress1:
+          type: string
+        billAddress2:
+          type: string
+        billCity:
+          type: string
+        billState:
+          type: string
+        billZip:
+          type: string
+        billCountry:
+          type: string
+        addressJigEnabled:
+          type: boolean
+        costcoMembershipId:
+          type: string
+        imapHost:
+          type: string
+        imapPort:
+          type: string
+        imapUser:
+          type: string
+        imapPassword:
+          type: string
+      required:
+        - name
+        - email
+
+    UpdateProfileBody:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        shipFirstName:
+          type: string
+        shipLastName:
+          type: string
+        shipAddress1:
+          type: string
+        shipAddress2:
+          type: string
+        shipCity:
+          type: string
+        shipState:
+          type: string
+        shipZip:
+          type: string
+        shipCountry:
+          type: string
+        billSameAsShip:
+          type: boolean
+        billFirstName:
+          type: string
+        billLastName:
+          type: string
+        billAddress1:
+          type: string
+        billAddress2:
+          type: string
+        billCity:
+          type: string
+        billState:
+          type: string
+        billZip:
+          type: string
+        billCountry:
+          type: string
+        addressJigEnabled:
+          type: boolean
+        costcoMembershipId:
+          type: string
+        imapHost:
+          type: string
+        imapPort:
+          type: string
+        imapUser:
+          type: string
+        imapPassword:
+          type: string
+
+    # ── CREDIT CARD ──────────────────────────────────────────────────────────
+    CreditCard:
+      type: object
+      properties:
+        id:
+          type: integer
+        profileId:
+          type: integer
+        cardNickname:
+          type: string
+        cardholderName:
+          type: string
+        lastFour:
+          type: string
+        cardType:
+          type: string
+        expiryMonth:
+          type: string
+        expiryYear:
+          type: string
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - profileId
+        - cardNickname
+        - cardholderName
+        - lastFour
+        - cardType
+        - expiryMonth
+        - expiryYear
+        - createdAt
+        - updatedAt
+
+    CreateCreditCardBody:
+      type: object
+      properties:
+        profileId:
+          type: integer
+        cardNickname:
+          type: string
+        cardholderName:
+          type: string
+        cardNumber:
+          type: string
+        cvv:
+          type: string
+        expiryMonth:
+          type: string
+        expiryYear:
+          type: string
+      required:
+        - profileId
+        - cardholderName
+        - cardNumber
+        - cvv
+        - expiryMonth
+        - expiryYear
+
+    UpdateCreditCardBody:
+      type: object
+      properties:
+        cardNickname:
+          type: string
+        cardholderName:
+          type: string
+        cardNumber:
+          type: string
+        cvv:
+          type: string
+        expiryMonth:
+          type: string
+        expiryYear:
+          type: string
+
+    # ── PROXY ────────────────────────────────────────────────────────────────
+    Proxy:
+      type: object
+      properties:
+        id:
+          type: integer
+        label:
+          type: string
+        host:
+          type: string
+        port:
+          type: string
+        username:
+          type: string
+        isActive:
+          type: boolean
+        lastTestStatus:
+          type: string
+        lastTestLatency:
+          type: string
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - label
+        - host
+        - port
+        - username
+        - isActive
+        - lastTestStatus
+        - lastTestLatency
+        - createdAt
+        - updatedAt
+
+    CreateProxyBody:
+      type: object
+      properties:
+        label:
+          type: string
+        host:
+          type: string
+        port:
+          type: string
+        username:
+          type: string
+        password:
+          type: string
+        isActive:
+          type: boolean
+      required:
+        - host
+        - port
+
+    UpdateProxyBody:
+      type: object
+      properties:
+        label:
+          type: string
+        host:
+          type: string
+        port:
+          type: string
+        username:
+          type: string
+        password:
+          type: string
+        isActive:
+          type: boolean
+        lastTestStatus:
+          type: string
+        lastTestLatency:
+          type: string
+
+    ProxyTestResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+        latency:
+          type: string
+        ip:
+          type: string
+        message:
+          type: string
+      required:
+        - success
+        - latency
+        - ip
+        - message
+
+    # ── TASK GROUP ───────────────────────────────────────────────────────────
+    TaskGroup:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        retailer:
+          type: string
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - name
+        - retailer
+        - createdAt
+        - updatedAt
+
+    CreateTaskGroupBody:
+      type: object
+      properties:
+        name:
+          type: string
+        retailer:
+          type: string
+      required:
+        - name
+        - retailer
+
+    UpdateTaskGroupBody:
+      type: object
+      properties:
+        name:
+          type: string
+        retailer:
+          type: string
+
+    # ── TASK ─────────────────────────────────────────────────────────────────
+    Task:
+      type: object
+      properties:
+        id:
+          type: integer
+        groupId:
+          type: ["integer", "null"]
+        profileId:
+          type: ["integer", "null"]
+        proxyId:
+          type: ["integer", "null"]
+        retailer:
+          type: string
+        productUrl:
+          type: string
+        productKeywords:
+          type: string
+        size:
+          type: string
+        quantity:
+          type: integer
+        monitorDelay:
+          type: integer
+        retryCount:
+          type: integer
+        status:
+          type: string
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - retailer
+        - productUrl
+        - productKeywords
+        - size
+        - quantity
+        - monitorDelay
+        - retryCount
+        - status
+        - createdAt
+        - updatedAt
+
+    CreateTaskBody:
+      type: object
+      properties:
+        groupId:
+          type: integer
+        profileId:
+          type: integer
+        proxyId:
+          type: integer
+        retailer:
+          type: string
+        productUrl:
+          type: string
+        productKeywords:
+          type: string
+        size:
+          type: string
+        quantity:
+          type: integer
+        monitorDelay:
+          type: integer
+        retryCount:
+          type: integer
+      required:
+        - retailer
+
+    UpdateTaskBody:
+      type: object
+      properties:
+        groupId:
+          type: integer
+        profileId:
+          type: integer
+        proxyId:
+          type: integer
+        retailer:
+          type: string
+        productUrl:
+          type: string
+        productKeywords:
+          type: string
+        size:
+          type: string
+        quantity:
+          type: integer
+        monitorDelay:
+          type: integer
+        retryCount:
+          type: integer
+        status:
+          type: string
+
+    BulkActionResult:
+      type: object
+      properties:
+        affected:
+          type: integer
+        message:
+          type: string
+      required:
+        - affected
+        - message
+
+    # ── CHECKOUT RESULT ───────────────────────────────────────────────────────
+    CheckoutResult:
+      type: object
+      properties:
+        id:
+          type: integer
+        taskId:
+          type: ["integer", "null"]
+        success:
+          type: boolean
+        productName:
+          type: string
+        productImage:
+          type: string
+        price:
+          type: ["string", "null"]
+        retailer:
+          type: string
+        orderNumber:
+          type: string
+        errorMessage:
+          type: string
+        profileId:
+          type: ["integer", "null"]
+        createdAt:
+          type: string
+      required:
+        - id
+        - success
+        - productName
+        - productImage
+        - retailer
+        - orderNumber
+        - errorMessage
+        - createdAt
+
+    CreateCheckoutResultBody:
+      type: object
+      properties:
+        taskId:
+          type: integer
+        success:
+          type: boolean
+        productName:
+          type: string
+        productImage:
+          type: string
+        price:
+          type: string
+        retailer:
+          type: string
+        orderNumber:
+          type: string
+        errorMessage:
+          type: string
+        profileId:
+          type: integer
+      required:
+        - success
+        - retailer
+
+    # ── ANALYTICS ─────────────────────────────────────────────────────────────
+    AnalyticsSummary:
+      type: object
+      properties:
+        totalCheckouts:
+          type: integer
+        totalFailures:
+          type: integer
+        totalSpent:
+          type: string
+        totalSaved:
+          type: string
+        successRate:
+          type: number
+        activeTasks:
+          type: integer
+        totalProfiles:
+          type: integer
+        totalProxies:
+          type: integer
+      required:
+        - totalCheckouts
+        - totalFailures
+        - totalSpent
+        - totalSaved
+        - successRate
+        - activeTasks
+        - totalProfiles
+        - totalProxies
+
+    CheckoutTimeSeriesPoint:
+      type: object
+      properties:
+        date:
+          type: string
+        checkouts:
+          type: integer
+        failures:
+          type: integer
+      required:
+        - date
+        - checkouts
+        - failures

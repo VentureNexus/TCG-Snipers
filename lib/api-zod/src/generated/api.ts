@@ -14,3 +14,624 @@ import * as zod from "zod";
 export const HealthCheckResponse = zod.object({
   status: zod.string(),
 });
+
+/**
+ * @summary List all profiles
+ */
+export const ListProfilesResponseItem = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  email: zod.string(),
+  phone: zod.string(),
+  shipFirstName: zod.string(),
+  shipLastName: zod.string(),
+  shipAddress1: zod.string(),
+  shipAddress2: zod.string(),
+  shipCity: zod.string(),
+  shipState: zod.string(),
+  shipZip: zod.string(),
+  shipCountry: zod.string(),
+  billSameAsShip: zod.boolean(),
+  billFirstName: zod.string(),
+  billLastName: zod.string(),
+  billAddress1: zod.string(),
+  billAddress2: zod.string(),
+  billCity: zod.string(),
+  billState: zod.string(),
+  billZip: zod.string(),
+  billCountry: zod.string(),
+  addressJigEnabled: zod.boolean(),
+  costcoMembershipId: zod.string(),
+  imapHost: zod.string(),
+  imapPort: zod.string(),
+  imapUser: zod.string(),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+});
+export const ListProfilesResponse = zod.array(ListProfilesResponseItem);
+
+/**
+ * @summary Create a profile
+ */
+export const CreateProfileBody = zod.object({
+  name: zod.string(),
+  email: zod.string(),
+  phone: zod.string().optional(),
+  shipFirstName: zod.string().optional(),
+  shipLastName: zod.string().optional(),
+  shipAddress1: zod.string().optional(),
+  shipAddress2: zod.string().optional(),
+  shipCity: zod.string().optional(),
+  shipState: zod.string().optional(),
+  shipZip: zod.string().optional(),
+  shipCountry: zod.string().optional(),
+  billSameAsShip: zod.boolean().optional(),
+  billFirstName: zod.string().optional(),
+  billLastName: zod.string().optional(),
+  billAddress1: zod.string().optional(),
+  billAddress2: zod.string().optional(),
+  billCity: zod.string().optional(),
+  billState: zod.string().optional(),
+  billZip: zod.string().optional(),
+  billCountry: zod.string().optional(),
+  addressJigEnabled: zod.boolean().optional(),
+  costcoMembershipId: zod.string().optional(),
+  imapHost: zod.string().optional(),
+  imapPort: zod.string().optional(),
+  imapUser: zod.string().optional(),
+  imapPassword: zod.string().optional(),
+});
+
+/**
+ * @summary Get a profile by ID
+ */
+export const GetProfileParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetProfileResponse = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  email: zod.string(),
+  phone: zod.string(),
+  shipFirstName: zod.string(),
+  shipLastName: zod.string(),
+  shipAddress1: zod.string(),
+  shipAddress2: zod.string(),
+  shipCity: zod.string(),
+  shipState: zod.string(),
+  shipZip: zod.string(),
+  shipCountry: zod.string(),
+  billSameAsShip: zod.boolean(),
+  billFirstName: zod.string(),
+  billLastName: zod.string(),
+  billAddress1: zod.string(),
+  billAddress2: zod.string(),
+  billCity: zod.string(),
+  billState: zod.string(),
+  billZip: zod.string(),
+  billCountry: zod.string(),
+  addressJigEnabled: zod.boolean(),
+  costcoMembershipId: zod.string(),
+  imapHost: zod.string(),
+  imapPort: zod.string(),
+  imapUser: zod.string(),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+});
+
+/**
+ * @summary Update a profile
+ */
+export const UpdateProfileParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateProfileBody = zod.object({
+  name: zod.string().optional(),
+  email: zod.string().optional(),
+  phone: zod.string().optional(),
+  shipFirstName: zod.string().optional(),
+  shipLastName: zod.string().optional(),
+  shipAddress1: zod.string().optional(),
+  shipAddress2: zod.string().optional(),
+  shipCity: zod.string().optional(),
+  shipState: zod.string().optional(),
+  shipZip: zod.string().optional(),
+  shipCountry: zod.string().optional(),
+  billSameAsShip: zod.boolean().optional(),
+  billFirstName: zod.string().optional(),
+  billLastName: zod.string().optional(),
+  billAddress1: zod.string().optional(),
+  billAddress2: zod.string().optional(),
+  billCity: zod.string().optional(),
+  billState: zod.string().optional(),
+  billZip: zod.string().optional(),
+  billCountry: zod.string().optional(),
+  addressJigEnabled: zod.boolean().optional(),
+  costcoMembershipId: zod.string().optional(),
+  imapHost: zod.string().optional(),
+  imapPort: zod.string().optional(),
+  imapUser: zod.string().optional(),
+  imapPassword: zod.string().optional(),
+});
+
+export const UpdateProfileResponse = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  email: zod.string(),
+  phone: zod.string(),
+  shipFirstName: zod.string(),
+  shipLastName: zod.string(),
+  shipAddress1: zod.string(),
+  shipAddress2: zod.string(),
+  shipCity: zod.string(),
+  shipState: zod.string(),
+  shipZip: zod.string(),
+  shipCountry: zod.string(),
+  billSameAsShip: zod.boolean(),
+  billFirstName: zod.string(),
+  billLastName: zod.string(),
+  billAddress1: zod.string(),
+  billAddress2: zod.string(),
+  billCity: zod.string(),
+  billState: zod.string(),
+  billZip: zod.string(),
+  billCountry: zod.string(),
+  addressJigEnabled: zod.boolean(),
+  costcoMembershipId: zod.string(),
+  imapHost: zod.string(),
+  imapPort: zod.string(),
+  imapUser: zod.string(),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+});
+
+/**
+ * @summary Delete a profile
+ */
+export const DeleteProfileParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+/**
+ * @summary List credit cards
+ */
+export const ListCreditCardsQueryParams = zod.object({
+  profileId: zod.coerce.number().optional(),
+});
+
+export const ListCreditCardsResponseItem = zod.object({
+  id: zod.number(),
+  profileId: zod.number(),
+  cardNickname: zod.string(),
+  cardholderName: zod.string(),
+  lastFour: zod.string(),
+  cardType: zod.string(),
+  expiryMonth: zod.string(),
+  expiryYear: zod.string(),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+});
+export const ListCreditCardsResponse = zod.array(ListCreditCardsResponseItem);
+
+/**
+ * @summary Create a credit card
+ */
+export const CreateCreditCardBody = zod.object({
+  profileId: zod.number(),
+  cardNickname: zod.string().optional(),
+  cardholderName: zod.string(),
+  cardNumber: zod.string(),
+  cvv: zod.string(),
+  expiryMonth: zod.string(),
+  expiryYear: zod.string(),
+});
+
+/**
+ * @summary Update a credit card
+ */
+export const UpdateCreditCardParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateCreditCardBody = zod.object({
+  cardNickname: zod.string().optional(),
+  cardholderName: zod.string().optional(),
+  cardNumber: zod.string().optional(),
+  cvv: zod.string().optional(),
+  expiryMonth: zod.string().optional(),
+  expiryYear: zod.string().optional(),
+});
+
+export const UpdateCreditCardResponse = zod.object({
+  id: zod.number(),
+  profileId: zod.number(),
+  cardNickname: zod.string(),
+  cardholderName: zod.string(),
+  lastFour: zod.string(),
+  cardType: zod.string(),
+  expiryMonth: zod.string(),
+  expiryYear: zod.string(),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+});
+
+/**
+ * @summary Delete a credit card
+ */
+export const DeleteCreditCardParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+/**
+ * @summary List all proxies
+ */
+export const ListProxiesResponseItem = zod.object({
+  id: zod.number(),
+  label: zod.string(),
+  host: zod.string(),
+  port: zod.string(),
+  username: zod.string(),
+  isActive: zod.boolean(),
+  lastTestStatus: zod.string(),
+  lastTestLatency: zod.string(),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+});
+export const ListProxiesResponse = zod.array(ListProxiesResponseItem);
+
+/**
+ * @summary Create a proxy
+ */
+export const CreateProxyBody = zod.object({
+  label: zod.string().optional(),
+  host: zod.string(),
+  port: zod.string(),
+  username: zod.string().optional(),
+  password: zod.string().optional(),
+  isActive: zod.boolean().optional(),
+});
+
+/**
+ * @summary Update a proxy
+ */
+export const UpdateProxyParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateProxyBody = zod.object({
+  label: zod.string().optional(),
+  host: zod.string().optional(),
+  port: zod.string().optional(),
+  username: zod.string().optional(),
+  password: zod.string().optional(),
+  isActive: zod.boolean().optional(),
+  lastTestStatus: zod.string().optional(),
+  lastTestLatency: zod.string().optional(),
+});
+
+export const UpdateProxyResponse = zod.object({
+  id: zod.number(),
+  label: zod.string(),
+  host: zod.string(),
+  port: zod.string(),
+  username: zod.string(),
+  isActive: zod.boolean(),
+  lastTestStatus: zod.string(),
+  lastTestLatency: zod.string(),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+});
+
+/**
+ * @summary Delete a proxy
+ */
+export const DeleteProxyParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+/**
+ * @summary Test a proxy connection
+ */
+export const TestProxyParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const TestProxyResponse = zod.object({
+  success: zod.boolean(),
+  latency: zod.string(),
+  ip: zod.string(),
+  message: zod.string(),
+});
+
+/**
+ * @summary List all task groups
+ */
+export const ListTaskGroupsResponseItem = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  retailer: zod.string(),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+});
+export const ListTaskGroupsResponse = zod.array(ListTaskGroupsResponseItem);
+
+/**
+ * @summary Create a task group
+ */
+export const CreateTaskGroupBody = zod.object({
+  name: zod.string(),
+  retailer: zod.string(),
+});
+
+/**
+ * @summary Update a task group
+ */
+export const UpdateTaskGroupParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateTaskGroupBody = zod.object({
+  name: zod.string().optional(),
+  retailer: zod.string().optional(),
+});
+
+export const UpdateTaskGroupResponse = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  retailer: zod.string(),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+});
+
+/**
+ * @summary Delete a task group
+ */
+export const DeleteTaskGroupParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+/**
+ * @summary List all tasks
+ */
+export const ListTasksQueryParams = zod.object({
+  groupId: zod.coerce.number().optional(),
+});
+
+export const ListTasksResponseItem = zod.object({
+  id: zod.number(),
+  groupId: zod.number().nullish(),
+  profileId: zod.number().nullish(),
+  proxyId: zod.number().nullish(),
+  retailer: zod.string(),
+  productUrl: zod.string(),
+  productKeywords: zod.string(),
+  size: zod.string(),
+  quantity: zod.number(),
+  monitorDelay: zod.number(),
+  retryCount: zod.number(),
+  status: zod.string(),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+});
+export const ListTasksResponse = zod.array(ListTasksResponseItem);
+
+/**
+ * @summary Create a task
+ */
+export const CreateTaskBody = zod.object({
+  groupId: zod.number().optional(),
+  profileId: zod.number().optional(),
+  proxyId: zod.number().optional(),
+  retailer: zod.string(),
+  productUrl: zod.string().optional(),
+  productKeywords: zod.string().optional(),
+  size: zod.string().optional(),
+  quantity: zod.number().optional(),
+  monitorDelay: zod.number().optional(),
+  retryCount: zod.number().optional(),
+});
+
+/**
+ * @summary Get a task by ID
+ */
+export const GetTaskParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetTaskResponse = zod.object({
+  id: zod.number(),
+  groupId: zod.number().nullish(),
+  profileId: zod.number().nullish(),
+  proxyId: zod.number().nullish(),
+  retailer: zod.string(),
+  productUrl: zod.string(),
+  productKeywords: zod.string(),
+  size: zod.string(),
+  quantity: zod.number(),
+  monitorDelay: zod.number(),
+  retryCount: zod.number(),
+  status: zod.string(),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+});
+
+/**
+ * @summary Update a task
+ */
+export const UpdateTaskParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateTaskBody = zod.object({
+  groupId: zod.number().optional(),
+  profileId: zod.number().optional(),
+  proxyId: zod.number().optional(),
+  retailer: zod.string().optional(),
+  productUrl: zod.string().optional(),
+  productKeywords: zod.string().optional(),
+  size: zod.string().optional(),
+  quantity: zod.number().optional(),
+  monitorDelay: zod.number().optional(),
+  retryCount: zod.number().optional(),
+  status: zod.string().optional(),
+});
+
+export const UpdateTaskResponse = zod.object({
+  id: zod.number(),
+  groupId: zod.number().nullish(),
+  profileId: zod.number().nullish(),
+  proxyId: zod.number().nullish(),
+  retailer: zod.string(),
+  productUrl: zod.string(),
+  productKeywords: zod.string(),
+  size: zod.string(),
+  quantity: zod.number(),
+  monitorDelay: zod.number(),
+  retryCount: zod.number(),
+  status: zod.string(),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+});
+
+/**
+ * @summary Delete a task
+ */
+export const DeleteTaskParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+/**
+ * @summary Start a task
+ */
+export const StartTaskParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const StartTaskResponse = zod.object({
+  id: zod.number(),
+  groupId: zod.number().nullish(),
+  profileId: zod.number().nullish(),
+  proxyId: zod.number().nullish(),
+  retailer: zod.string(),
+  productUrl: zod.string(),
+  productKeywords: zod.string(),
+  size: zod.string(),
+  quantity: zod.number(),
+  monitorDelay: zod.number(),
+  retryCount: zod.number(),
+  status: zod.string(),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+});
+
+/**
+ * @summary Stop a task
+ */
+export const StopTaskParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const StopTaskResponse = zod.object({
+  id: zod.number(),
+  groupId: zod.number().nullish(),
+  profileId: zod.number().nullish(),
+  proxyId: zod.number().nullish(),
+  retailer: zod.string(),
+  productUrl: zod.string(),
+  productKeywords: zod.string(),
+  size: zod.string(),
+  quantity: zod.number(),
+  monitorDelay: zod.number(),
+  retryCount: zod.number(),
+  status: zod.string(),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+});
+
+/**
+ * @summary Start all idle tasks
+ */
+export const StartAllTasksResponse = zod.object({
+  affected: zod.number(),
+  message: zod.string(),
+});
+
+/**
+ * @summary Stop all running tasks
+ */
+export const StopAllTasksResponse = zod.object({
+  affected: zod.number(),
+  message: zod.string(),
+});
+
+/**
+ * @summary List checkout results
+ */
+export const ListCheckoutResultsQueryParams = zod.object({
+  limit: zod.coerce.number().optional(),
+  success: zod.coerce.boolean().optional(),
+});
+
+export const ListCheckoutResultsResponseItem = zod.object({
+  id: zod.number(),
+  taskId: zod.number().nullish(),
+  success: zod.boolean(),
+  productName: zod.string(),
+  productImage: zod.string(),
+  price: zod.string().nullish(),
+  retailer: zod.string(),
+  orderNumber: zod.string(),
+  errorMessage: zod.string(),
+  profileId: zod.number().nullish(),
+  createdAt: zod.string(),
+});
+export const ListCheckoutResultsResponse = zod.array(
+  ListCheckoutResultsResponseItem,
+);
+
+/**
+ * @summary Record a checkout result
+ */
+export const CreateCheckoutResultBody = zod.object({
+  taskId: zod.number().optional(),
+  success: zod.boolean(),
+  productName: zod.string().optional(),
+  productImage: zod.string().optional(),
+  price: zod.string().optional(),
+  retailer: zod.string(),
+  orderNumber: zod.string().optional(),
+  errorMessage: zod.string().optional(),
+  profileId: zod.number().optional(),
+});
+
+/**
+ * @summary Get analytics summary
+ */
+export const GetAnalyticsSummaryResponse = zod.object({
+  totalCheckouts: zod.number(),
+  totalFailures: zod.number(),
+  totalSpent: zod.string(),
+  totalSaved: zod.string(),
+  successRate: zod.number(),
+  activeTasks: zod.number(),
+  totalProfiles: zod.number(),
+  totalProxies: zod.number(),
+});
+
+/**
+ * @summary Get checkout counts over time
+ */
+export const GetCheckoutsOverTimeQueryParams = zod.object({
+  period: zod.enum(["day", "week", "month", "year"]).optional(),
+});
+
+export const GetCheckoutsOverTimeResponseItem = zod.object({
+  date: zod.string(),
+  checkouts: zod.number(),
+  failures: zod.number(),
+});
+export const GetCheckoutsOverTimeResponse = zod.array(
+  GetCheckoutsOverTimeResponseItem,
+);
