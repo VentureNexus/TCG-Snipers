@@ -1,0 +1,2 @@
+git pull --rebase origin main          # pull the workflow file GitHub just created
+git push                                # push the rest (gitignore + electron-builder.yml)
