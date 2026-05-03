@@ -5,6 +5,7 @@
   "installCommand": "pnpm install --frozen-lockfile",
   "framework": null,
   "rewrites": [
+    { "source": "/license/:path*", "destination": "https://tcgsnipers.replit.app/license/:path*" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
