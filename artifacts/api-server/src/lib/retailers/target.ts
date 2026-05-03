@@ -8,7 +8,11 @@ import { eq } from "drizzle-orm";
 
 const RETAILER = "Target";
 
-async function waitForAddToCart(page: import("playwright").Page, timeoutMs: number): Promise<boolean> {
+async function waitForAddToCart(
+  page: import("playwright").Page,
+  timeoutMs: number,
+  token: { cancelled: boolean },
+): Promise<boolean> {
   const selectors = [
     '[data-test="shoppingCartButton"]:not([disabled])',
     'button[data-test="addToCartButton"]:not([disabled])',
@@ -17,6 +21,7 @@ async function waitForAddToCart(page: import("playwright").Page, timeoutMs: numb
   ];
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
+    if (token.cancelled) return false;
     for (const sel of selectors) {
       try {
         const el = await page.$(sel);
@@ -79,7 +84,7 @@ export async function runTarget(ctx: RetailerContext): Promise<RetailerResult> {
         if (priceEl) productPrice = (await priceEl.textContent())?.trim().replace(/[^0-9.]/g, "") ?? "";
 
         log("INFO", `[${RETAILER}] Checking availability: ${productName}`);
-        inStock = await waitForAddToCart(page, 5000);
+        inStock = await waitForAddToCart(page, 5000, token);
         if (inStock) {
           log("SUCCESS", `[${RETAILER}] In stock! ${productName}${productPrice ? " @ $" + productPrice : ""}`);
           break;

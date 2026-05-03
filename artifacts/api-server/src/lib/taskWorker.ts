@@ -129,6 +129,7 @@ async function runTaskAutomation(task: TaskRow, token: { cancelled: boolean }) {
         });
       }
     } else {
+      log("ERROR", `[${task.retailer}] Task failed: ${result.errorMessage}`);
       await setStatus("failed");
       await db.insert(checkoutResultsTable).values({
         taskId: task.id,

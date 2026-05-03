@@ -501,11 +501,14 @@ export const ListTasksResponse = zod.array(ListTasksResponseItem);
 /**
  * @summary Create a task
  */
+export const SUPPORTED_RETAILERS = ["Target", "Amazon", "Best Buy", "Costco", "Pokemon Center"] as const;
+export type SupportedRetailer = (typeof SUPPORTED_RETAILERS)[number];
+
 export const CreateTaskBody = zod.object({
   groupId: zod.number().optional(),
   profileId: zod.number().optional(),
   proxyId: zod.number().optional(),
-  retailer: zod.string(),
+  retailer: zod.enum(SUPPORTED_RETAILERS),
   productUrl: zod.string().optional(),
   productKeywords: zod.string().optional(),
   size: zod.string().optional(),

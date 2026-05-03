@@ -12,8 +12,9 @@ import {
   useListTaskGroups,
   useListProxies,
   getListTasksQueryKey,
+  SUPPORTED_RETAILERS,
 } from "@workspace/api-client-react";
-import type { Task } from "@workspace/api-client-react";
+import type { Task, SupportedRetailer } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import {
   Play,
@@ -63,7 +64,7 @@ import { useToast } from "@/hooks/use-toast";
 const NO_PROXY_SENTINEL = "__none__";
 
 const taskSchema = z.object({
-  retailer: z.string().min(1, "Required"),
+  retailer: z.enum(SUPPORTED_RETAILERS),
   productUrl: z.string().optional(),
   productKeywords: z.string().optional(),
   profileId: z.coerce.number().min(1, "Required"),
@@ -96,7 +97,7 @@ function formValuesToPayload(values: TaskFormValues) {
 
 function taskToFormValues(task: Task): TaskFormValues {
   return {
-    retailer: task.retailer,
+    retailer: task.retailer as SupportedRetailer,
     productUrl: task.productUrl ?? "",
     productKeywords: task.productKeywords ?? "",
     profileId: task.profileId ?? 0,
@@ -189,7 +190,6 @@ function LogPanel({
   );
 }
 
-const RETAILERS = ["Target", "Amazon", "Best Buy", "Costco", "Pokemon Center"];
 
 function TaskFormFields({
   form,
@@ -218,7 +218,7 @@ function TaskFormFields({
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {RETAILERS.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                  {SUPPORTED_RETAILERS.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
                 </SelectContent>
               </Select>
               <FormMessage />
@@ -380,14 +380,14 @@ export default function TasksPage() {
   const [expandedTaskId, setExpandedTaskId] = useState<number | null>(null);
   const [liveStatuses, setLiveStatuses] = useState<Record<number, string>>({});
 
-  const createForm = useForm<TaskFormValues>({
+  const createForm = useForm<TaskFormValues, unknown, TaskFormValues>({
     resolver: zodResolver(taskSchema),
-    defaultValues: { retailer: "", productUrl: "", productKeywords: "", quantity: 1, monitorDelay: 3000, retryCount: 3 },
+    defaultValues: { productUrl: "", productKeywords: "", quantity: 1, monitorDelay: 3000, retryCount: 3 },
   });
 
-  const editForm = useForm<TaskFormValues>({
+  const editForm = useForm<TaskFormValues, unknown, TaskFormValues>({
     resolver: zodResolver(taskSchema),
-    defaultValues: { retailer: "", productUrl: "", productKeywords: "", quantity: 1, monitorDelay: 3000, retryCount: 3 },
+    defaultValues: { productUrl: "", productKeywords: "", quantity: 1, monitorDelay: 3000, retryCount: 3 },
   });
 
   const openEdit = (task: Task) => {

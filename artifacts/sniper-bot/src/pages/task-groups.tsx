@@ -8,6 +8,7 @@ import {
   getListTaskGroupsQueryKey,
   getListTasksQueryKey,
   useListTasks,
+  SUPPORTED_RETAILERS,
 } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -50,7 +51,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 
 const groupSchema = z.object({
   name: z.string().min(1, "Required"),
-  retailer: z.string().min(1, "Required"),
+  retailer: z.enum(SUPPORTED_RETAILERS),
 });
 
 const RUNNING_STATUSES = ["monitoring", "adding_to_cart", "checking_out"];
@@ -92,11 +93,10 @@ export default function TaskGroupsPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [pendingGroupId, setPendingGroupId] = useState<number | null>(null);
 
-  const form = useForm<z.infer<typeof groupSchema>>({
+  const form = useForm<z.infer<typeof groupSchema>, unknown, z.infer<typeof groupSchema>>({
     resolver: zodResolver(groupSchema),
     defaultValues: {
       name: "",
-      retailer: "",
     },
   });
 
@@ -189,11 +189,9 @@ export default function TaskGroupsPage() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="Target">Target</SelectItem>
-                          <SelectItem value="Amazon">Amazon</SelectItem>
-                          <SelectItem value="Best Buy">Best Buy</SelectItem>
-                          <SelectItem value="Costco">Costco</SelectItem>
-                          <SelectItem value="Pokemon Center">Pokemon Center</SelectItem>
+                          {SUPPORTED_RETAILERS.map((r) => (
+                            <SelectItem key={r} value={r}>{r}</SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                       <FormMessage />

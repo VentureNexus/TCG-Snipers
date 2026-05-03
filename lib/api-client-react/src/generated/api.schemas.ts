@@ -208,11 +208,14 @@ export interface Task {
   updatedAt: string;
 }
 
+export const SUPPORTED_RETAILERS = ["Target", "Amazon", "Best Buy", "Costco", "Pokemon Center"] as const;
+export type SupportedRetailer = (typeof SUPPORTED_RETAILERS)[number];
+
 export interface CreateTaskBody {
   groupId?: number;
   profileId?: number;
   proxyId?: number;
-  retailer: string;
+  retailer: SupportedRetailer;
   productUrl?: string;
   productKeywords?: string;
   size?: string;
