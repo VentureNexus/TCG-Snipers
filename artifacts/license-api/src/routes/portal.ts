@@ -196,11 +196,11 @@ router.get("/portal/license/key", async (req, res) => {
   const license = (await db
     .select()
     .from(licensesTable)
-    .where(eq(licensesTable.customerId, session.customerId))
+    .where(and(eq(licensesTable.customerId, session.customerId), eq(licensesTable.status, "active")))
     .orderBy(desc(licensesTable.createdAt))
     .limit(1))[0];
   if (!license) {
-    res.status(403).json({ error: "No license on file" });
+    res.status(403).json({ error: "No active license on file" });
     return;
   }
   if (!checkRevealRate(session.customerId)) {
@@ -226,11 +226,11 @@ router.post("/portal/license/rotate", async (req, res) => {
   const license = (await db
     .select()
     .from(licensesTable)
-    .where(eq(licensesTable.customerId, session.customerId))
+    .where(and(eq(licensesTable.customerId, session.customerId), eq(licensesTable.status, "active")))
     .orderBy(desc(licensesTable.createdAt))
     .limit(1))[0];
   if (!license) {
-    res.status(403).json({ error: "No license on file" });
+    res.status(403).json({ error: "No active license on file" });
     return;
   }
   const rawKey = generateLicenseKey();

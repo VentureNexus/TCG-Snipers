@@ -18,6 +18,7 @@ export default function ManageSession() {
   const [busy, setBusy] = useState(false);
   const [revealedKey, setRevealedKey] = useState<string | null>(null);
   const [revealNote, setRevealNote] = useState<string | null>(null);
+  const [revealReason, setRevealReason] = useState<string | null>(null);
   const [revealing, setRevealing] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -78,8 +79,10 @@ export default function ManageSession() {
       if (r.key) {
         setRevealedKey(r.key);
         setRevealNote(null);
+        setRevealReason(null);
         return r.key;
       }
+      setRevealReason(r.reason ?? "not_recoverable");
       setRevealNote(
         r.reason === "decrypt_failed"
           ? "We couldn't decrypt this key. Please rotate it to get a new one."
@@ -87,6 +90,7 @@ export default function ManageSession() {
       );
       return null;
     } catch (err) {
+      setRevealReason(null);
       setRevealNote(err instanceof Error ? err.message : "Could not fetch key");
       return null;
     } finally {
@@ -129,6 +133,7 @@ export default function ManageSession() {
       await licenseApi.rotateLicenseKey(session);
       setRevealedKey(null);
       setRevealNote(null);
+      setRevealReason(null);
       const r = await licenseApi.getLicenseKey(session);
       if (r.key) setRevealedKey(r.key);
       const data = await licenseApi.me(session);
@@ -230,15 +235,20 @@ export default function ManageSession() {
               </div>
               {revealNote && (
                 <div className="mt-1 text-xs text-muted-foreground">
-                  {revealNote}{" "}
-                  <button
-                    type="button"
-                    onClick={rotateKey}
-                    disabled={busy}
-                    className="text-primary underline disabled:opacity-50"
-                  >
-                    Rotate key
-                  </button>
+                  {revealNote}
+                  {(revealReason === "not_recoverable" || revealReason === "decrypt_failed") && (
+                    <>
+                      {" "}
+                      <button
+                        type="button"
+                        onClick={rotateKey}
+                        disabled={busy}
+                        className="text-primary underline disabled:opacity-50"
+                      >
+                        Rotate key
+                      </button>
+                    </>
+                  )}
                 </div>
               )}
             </div>
