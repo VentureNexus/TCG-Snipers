@@ -11,6 +11,7 @@ export interface CheckoutFailurePayload {
   retailer: string;
   productName: string;
   errorMessage: string;
+  retryCount: number;
   profileNickname: string;
   webhookUrl: string;
 }
@@ -25,7 +26,7 @@ export async function notifySuccess(payload: CheckoutSuccessPayload): Promise<vo
         fields: [
           { name: "Retailer", value: payload.retailer, inline: true },
           { name: "Product", value: payload.productName, inline: false },
-          { name: "Price", value: `$${payload.price}`, inline: true },
+          { name: "Price", value: payload.price === "N/A" ? "N/A" : `$${payload.price}`, inline: true },
           { name: "Order #", value: payload.orderNumber, inline: true },
           { name: "Profile", value: payload.profileNickname, inline: true },
         ],
@@ -33,14 +34,13 @@ export async function notifySuccess(payload: CheckoutSuccessPayload): Promise<vo
       },
     ],
   };
-  try {
-    await fetch(payload.webhookUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-  } catch (_) {
-    // non-fatal
+  const res = await fetch(payload.webhookUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    throw new Error(`Discord webhook responded with ${res.status} ${res.statusText}`);
   }
 }
 
@@ -55,19 +55,19 @@ export async function notifyFailure(payload: CheckoutFailurePayload): Promise<vo
           { name: "Retailer", value: payload.retailer, inline: true },
           { name: "Product", value: payload.productName, inline: false },
           { name: "Error", value: payload.errorMessage, inline: false },
+          { name: "Retries", value: String(payload.retryCount), inline: true },
           { name: "Profile", value: payload.profileNickname, inline: true },
         ],
         timestamp: new Date().toISOString(),
       },
     ],
   };
-  try {
-    await fetch(payload.webhookUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-  } catch (_) {
-    // non-fatal
+  const res = await fetch(payload.webhookUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    throw new Error(`Discord webhook responded with ${res.status} ${res.statusText}`);
   }
 }

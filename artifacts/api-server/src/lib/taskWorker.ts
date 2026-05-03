@@ -119,14 +119,18 @@ async function runTaskAutomation(task: TaskRow, token: { cancelled: boolean }) {
         profileId: task.profileId,
       });
       if (settings.webhookUrl) {
-        await notifySuccess({
-          retailer: task.retailer,
-          productName: result.productName,
-          price: result.price ?? "N/A",
-          orderNumber: result.orderNumber,
-          profileNickname,
-          webhookUrl: settings.webhookUrl,
-        });
+        try {
+          await notifySuccess({
+            retailer: task.retailer,
+            productName: result.productName,
+            price: result.price != null ? result.price : "N/A",
+            orderNumber: result.orderNumber,
+            profileNickname,
+            webhookUrl: settings.webhookUrl,
+          });
+        } catch (webhookErr) {
+          log("WARN", `[Discord] Webhook notification failed: ${String(webhookErr)}`);
+        }
       }
     } else {
       log("ERROR", `[${task.retailer}] Task failed: ${result.errorMessage}`);
@@ -143,13 +147,18 @@ async function runTaskAutomation(task: TaskRow, token: { cancelled: boolean }) {
         profileId: task.profileId,
       });
       if (settings.webhookUrl) {
-        await notifyFailure({
-          retailer: task.retailer,
-          productName: result.productName,
-          errorMessage: result.errorMessage,
-          profileNickname,
-          webhookUrl: settings.webhookUrl,
-        });
+        try {
+          await notifyFailure({
+            retailer: task.retailer,
+            productName: result.productName,
+            errorMessage: result.errorMessage,
+            retryCount: task.retryCount,
+            profileNickname,
+            webhookUrl: settings.webhookUrl,
+          });
+        } catch (webhookErr) {
+          log("WARN", `[Discord] Webhook notification failed: ${String(webhookErr)}`);
+        }
       }
     }
   } catch (err) {
