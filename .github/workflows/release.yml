@@ -29,11 +29,20 @@ jobs:
             target: dist:win
             artifacts: |
               artifacts/sniper-bot/release/TCGSnipers-Setup-*.exe
+              artifacts/sniper-bot/release/TCGSnipers-Setup-*.exe.blockmap
+              artifacts/sniper-bot/release/latest.yml
           - os: macos-latest
             target: dist:mac
             artifacts: |
               artifacts/sniper-bot/release/TCGSnipers-*-x64.dmg
               artifacts/sniper-bot/release/TCGSnipers-*-arm64.dmg
+              artifacts/sniper-bot/release/TCGSnipers-*-x64.dmg.blockmap
+              artifacts/sniper-bot/release/TCGSnipers-*-arm64.dmg.blockmap
+              artifacts/sniper-bot/release/TCGSnipers-*-x64.zip
+              artifacts/sniper-bot/release/TCGSnipers-*-arm64.zip
+              artifacts/sniper-bot/release/TCGSnipers-*-x64.zip.blockmap
+              artifacts/sniper-bot/release/TCGSnipers-*-arm64.zip.blockmap
+              artifacts/sniper-bot/release/latest-mac.yml
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
