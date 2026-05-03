@@ -447,6 +447,7 @@ export default function TasksPage() {
           queryClient.invalidateQueries({ queryKey: getListTasksQueryKey() });
           createForm.reset();
         },
+        onError: () => toast({ title: "Failed to create task", variant: "destructive" }),
       },
     );
   };
@@ -460,6 +461,7 @@ export default function TasksPage() {
           setEditingTask(null);
           queryClient.invalidateQueries({ queryKey: getListTasksQueryKey() });
         },
+        onError: () => toast({ title: "Failed to save task", variant: "destructive" }),
       },
     );
   };

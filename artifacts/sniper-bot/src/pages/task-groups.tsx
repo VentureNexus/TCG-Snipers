@@ -10,6 +10,7 @@ import {
   useListTasks,
   SUPPORTED_RETAILERS,
 } from "@workspace/api-client-react";
+import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import {
   Plus,
@@ -90,6 +91,7 @@ export default function TaskGroupsPage() {
   const startGroup = useStartTaskGroup();
   const stopGroup = useStopTaskGroup();
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [createOpen, setCreateOpen] = useState(false);
   const [pendingGroupId, setPendingGroupId] = useState<number | null>(null);
 
@@ -109,6 +111,7 @@ export default function TaskGroupsPage() {
           queryClient.invalidateQueries({ queryKey: getListTaskGroupsQueryKey() });
           form.reset();
         },
+        onError: () => toast({ title: "Failed to create group", variant: "destructive" }),
       },
     );
   };
