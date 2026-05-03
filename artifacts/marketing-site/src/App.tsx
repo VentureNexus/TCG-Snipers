@@ -9,6 +9,7 @@ import Manage from "@/pages/Manage";
 import ManageSession from "@/pages/ManageSession";
 import Success from "@/pages/Success";
 import Terms from "@/pages/Terms";
+import Support from "@/pages/Support";
 import Cancel from "@/pages/Cancel";
 import Download from "@/pages/Download";
 import NotFound from "@/pages/not-found";
@@ -142,9 +143,9 @@ function Footer() {
             >
               Discord
             </a>
-            <a href="mailto:support@tcgsnipers.com" className="hover:text-foreground transition">
+            <Link href="/support" className="hover:text-foreground transition">
               Support
-            </a>
+            </Link>
             <Link href="/terms" className="hover:text-foreground transition">
               Terms
             </Link>
@@ -174,6 +175,7 @@ function Router() {
           <Route path="/cancel" component={Cancel} />
           <Route path="/download" component={Download} />
           <Route path="/terms" component={Terms} />
+          <Route path="/support" component={Support} />
           <Route component={NotFound} />
         </Switch>
       </main>
