@@ -55,7 +55,7 @@ export function Sidebar() {
           <HelpCircle className="w-5 h-5" />
           {!collapsed && <span className="text-sm">Support</span>}
         </Link>
-        {!collapsed && <div className="text-xs text-muted-foreground/50 font-mono mt-2">v1.0.2</div>}
+        {!collapsed && <div className="text-xs text-muted-foreground/50 font-mono mt-2">v1.0.3</div>}
       </div>
     </div>
   );

@@ -44,7 +44,7 @@ function App() {
         <TooltipProvider>
           <UpdateBanner />
           <LicenseGate>
-            <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+            <WouterRouter base={import.meta.env.BASE_URL.replace(/\.?\/$/, "")}>
               <Router />
             </WouterRouter>
           </LicenseGate>
