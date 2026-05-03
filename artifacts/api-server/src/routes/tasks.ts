@@ -2,7 +2,7 @@ import { Router, type IRouter } from "express";
 import { eq, inArray } from "drizzle-orm";
 import { db, tasksTable } from "@workspace/db";
 import { ListTasksQueryParams, CreateTaskBody, GetTaskParams, UpdateTaskParams, UpdateTaskBody, DeleteTaskParams, StartTaskParams, StopTaskParams } from "@workspace/api-zod";
-import { startTask, stopTask } from "../lib/taskWorker";
+import { startTask, stopTask, stopAllRunning } from "../lib/taskWorker";
 
 const router: IRouter = Router();
 
@@ -62,20 +62,14 @@ router.post("/tasks/start-all", async (_req, res): Promise<void> => {
 });
 
 router.post("/tasks/stop-all", async (_req, res): Promise<void> => {
-  const running = await db
-    .select()
+  // Query DB for tasks in running statuses to catch any that may not yet be in
+  // the token map (race window), then union with the authoritative token map.
+  const dbRunning = await db
+    .select({ id: tasksTable.id })
     .from(tasksTable)
     .where(inArray(tasksTable.status, ["monitoring", "adding_to_cart", "checking_out"]));
-  for (const task of running) {
-    stopTask(task.id);
-  }
-  if (running.length > 0) {
-    await db
-      .update(tasksTable)
-      .set({ status: "stopped" })
-      .where(inArray(tasksTable.id, running.map((t) => t.id)));
-  }
-  res.json({ affected: running.length, message: `Stopped ${running.length} tasks` });
+  const stoppedIds = await stopAllRunning(dbRunning.map((t) => t.id));
+  res.json({ affected: stoppedIds.length, message: `Stopped ${stoppedIds.length} tasks` });
 });
 
 router.post("/tasks/:id/start", async (req, res): Promise<void> => {

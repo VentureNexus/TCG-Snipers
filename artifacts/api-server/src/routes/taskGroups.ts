@@ -2,7 +2,7 @@ import { Router, type IRouter } from "express";
 import { eq, inArray } from "drizzle-orm";
 import { db, taskGroupsTable, tasksTable } from "@workspace/db";
 import { CreateTaskGroupBody, UpdateTaskGroupParams, UpdateTaskGroupBody, DeleteTaskGroupParams } from "@workspace/api-zod";
-import { startTask, stopTask } from "../lib/taskWorker";
+import { startTask, stopTask, stopAllRunning } from "../lib/taskWorker";
 
 const router: IRouter = Router();
 
@@ -65,21 +65,15 @@ router.post("/task-groups/:id/stop", async (req, res): Promise<void> => {
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   const [group] = await db.select().from(taskGroupsTable).where(eq(taskGroupsTable.id, id));
   if (!group) { res.status(404).json({ error: "Task group not found" }); return; }
-  const running = await db
-    .select()
+  // Query DB tasks in running statuses for this group to catch any that may
+  // not yet be in the token map (race window), then union with token map.
+  const dbRunning = await db
+    .select({ id: tasksTable.id })
     .from(tasksTable)
     .where(inArray(tasksTable.status, ["monitoring", "adding_to_cart", "checking_out"]))
     .then((rows) => rows.filter((t) => t.groupId === id));
-  for (const task of running) {
-    stopTask(task.id);
-  }
-  if (running.length > 0) {
-    await db
-      .update(tasksTable)
-      .set({ status: "stopped" })
-      .where(inArray(tasksTable.id, running.map((t) => t.id)));
-  }
-  res.json({ affected: running.length, message: `Stopped ${running.length} tasks in group ${group.name}` });
+  const stoppedIds = await stopAllRunning(dbRunning.map((t) => t.id));
+  res.json({ affected: stoppedIds.length, message: `Stopped ${stoppedIds.length} tasks in group ${group.name}` });
 });
 
 export default router;

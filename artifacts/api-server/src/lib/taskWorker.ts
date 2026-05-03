@@ -1,5 +1,5 @@
 import { db, tasksTable, checkoutResultsTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { broadcastLog, broadcastStatus } from "./websocket";
 
 interface TaskRow {
@@ -13,8 +13,27 @@ interface TaskRow {
   quantity: number;
 }
 
+// ── Cancellation tokens (authoritative source of truth for running tasks) ────
 const cancellationTokens = new Map<number, { cancelled: boolean }>();
 
+// ── Concurrency control ───────────────────────────────────────────────────────
+let maxConcurrency = 5;
+let activeConcurrency = 0;
+
+export function setMaxConcurrency(n: number): void {
+  maxConcurrency = Math.max(1, n);
+}
+
+export function getActiveConcurrency(): number {
+  return activeConcurrency;
+}
+
+/** Returns all task IDs currently executing (token map is authoritative). */
+export function getRunningTaskIds(): number[] {
+  return Array.from(cancellationTokens.keys());
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -88,11 +107,13 @@ const RETAILER_PRODUCTS: Record<
   ],
 };
 
+// ── Core automation loop ──────────────────────────────────────────────────────
 async function runTaskAutomation(task: TaskRow, token: { cancelled: boolean }) {
   const log = (
     level: "INFO" | "SUCCESS" | "WARN" | "ERROR",
     message: string,
   ) => broadcastLog(task.id, level, message);
+
   const setStatus = async (status: string) => {
     await db
       .update(tasksTable)
@@ -106,6 +127,7 @@ async function runTaskAutomation(task: TaskRow, token: { cancelled: boolean }) {
   const products = RETAILER_PRODUCTS[retailerKey] ?? RETAILER_PRODUCTS["Amazon"];
   const product = products[Math.floor(Math.random() * products.length)];
 
+  activeConcurrency++;
   try {
     // ── MONITORING ──────────────────────────────────────────────────────────
     await setStatus("monitoring");
@@ -177,7 +199,7 @@ async function runTaskAutomation(task: TaskRow, token: { cancelled: boolean }) {
         success: true,
         productName: product.name,
         productImage: product.image,
-        price: product.price as unknown as null,
+        price: product.price,
         retailer: task.retailer,
         orderNumber,
         errorMessage: "",
@@ -206,21 +228,35 @@ async function runTaskAutomation(task: TaskRow, token: { cancelled: boolean }) {
       .where(eq(tasksTable.id, task.id));
     broadcastStatus(task.id, "failed");
   } finally {
+    activeConcurrency--;
     cancellationTokens.delete(task.id);
   }
 }
 
-export async function startTask(task: TaskRow): Promise<void> {
+// ── Public API ────────────────────────────────────────────────────────────────
+
+/**
+ * Start a task, respecting the configured max concurrency limit.
+ * If the limit is reached the task remains idle and the caller is notified.
+ * Returns `false` when the concurrency cap is hit so callers can skip.
+ */
+export async function startTask(task: TaskRow): Promise<boolean> {
+  if (activeConcurrency >= maxConcurrency) {
+    broadcastLog(task.id, "WARN", `[Scheduler] Max concurrency (${maxConcurrency}) reached — task queued as idle.`);
+    return false;
+  }
+
   const existing = cancellationTokens.get(task.id);
   if (existing) {
     existing.cancelled = true;
   }
   const token = { cancelled: false };
   cancellationTokens.set(task.id, token);
-  // Run without awaiting so the HTTP response returns immediately
   runTaskAutomation(task, token).catch(() => {
+    activeConcurrency = Math.max(0, activeConcurrency - 1);
     cancellationTokens.delete(task.id);
   });
+  return true;
 }
 
 export function stopTask(taskId: number): void {
@@ -233,4 +269,27 @@ export function stopTask(taskId: number): void {
 
 export function isTaskRunning(taskId: number): boolean {
   return cancellationTokens.has(taskId);
+}
+
+/**
+ * Stop all currently running tasks using the token map as authoritative source.
+ * Also updates any task IDs supplied by the caller (for tasks that started
+ * between the DB query and this call).
+ */
+export async function stopAllRunning(extraIds: number[] = []): Promise<number[]> {
+  const runningIds = Array.from(cancellationTokens.keys());
+  const allIds = Array.from(new Set([...runningIds, ...extraIds]));
+  for (const id of allIds) {
+    stopTask(id);
+  }
+  if (allIds.length > 0) {
+    await db
+      .update(tasksTable)
+      .set({ status: "stopped" })
+      .where(inArray(tasksTable.id, allIds));
+    for (const id of allIds) {
+      broadcastStatus(id, "stopped");
+    }
+  }
+  return allIds;
 }

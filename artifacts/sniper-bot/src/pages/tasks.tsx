@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { Fragment, useState, useEffect, useRef, useCallback } from "react";
 import {
   useListTasks,
   useStartAllTasks,
@@ -114,11 +114,15 @@ function LogPanel({
   const bottomRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
+  // Stable ref so the status-change effect never re-fires from a new function reference
+  const onStatusChangeRef = useRef(onStatusChange);
+  useEffect(() => { onStatusChangeRef.current = onStatusChange; });
+
   useEffect(() => {
-    if (liveStatus && onStatusChange) {
-      onStatusChange(liveStatus);
+    if (liveStatus) {
+      onStatusChangeRef.current?.(liveStatus);
     }
-  }, [liveStatus, onStatusChange]);
+  }, [liveStatus]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -244,10 +248,13 @@ export default function TasksPage() {
   const getStatus = (task: { id: number; status: string }) =>
     liveStatuses[task.id] ?? task.status;
 
-  const handleStatusChange = (taskId: number) => (status: string) => {
-    setLiveStatuses((prev) => ({ ...prev, [taskId]: status }));
-    queryClient.invalidateQueries({ queryKey: getListTasksQueryKey() });
-  };
+  const handleStatusChange = useCallback(
+    (taskId: number) => (status: string) => {
+      setLiveStatuses((prev) => ({ ...prev, [taskId]: status }));
+      queryClient.invalidateQueries({ queryKey: getListTasksQueryKey() });
+    },
+    [queryClient],
+  );
 
   const activeTasks = tasks.filter(
     (t) =>
@@ -579,15 +586,14 @@ export default function TasksPage() {
                 const cfg = STATUS_CONFIG[status] ?? STATUS_CONFIG["idle"];
 
                 return (
-                  <>
-                    <tr
-                      key={task.id}
-                      className={`border-b ${isExpanded ? "" : "border-border/50"} hover:bg-muted/20 transition-colors group cursor-pointer`}
-                      onClick={() =>
-                        setExpandedTaskId(isExpanded ? null : task.id)
-                      }
-                      data-testid={`row-task-${task.id}`}
-                    >
+                  <Fragment key={task.id}>
+                  <tr
+                    className={`border-b ${isExpanded ? "" : "border-border/50"} hover:bg-muted/20 transition-colors group cursor-pointer`}
+                    onClick={() =>
+                      setExpandedTaskId(isExpanded ? null : task.id)
+                    }
+                    data-testid={`row-task-${task.id}`}
+                  >
                       <td className="px-3 py-3 text-muted-foreground/50">
                         {isExpanded ? (
                           <ChevronDown className="w-4 h-4" />
@@ -698,7 +704,7 @@ export default function TasksPage() {
                       </td>
                     </tr>
                     {isExpanded && (
-                      <tr key={`log-${task.id}`} className="border-b border-border/50">
+                      <tr className="border-b border-border/50">
                         <td colSpan={7} className="p-0">
                           <LogPanel
                             taskId={task.id}
@@ -708,7 +714,7 @@ export default function TasksPage() {
                         </td>
                       </tr>
                     )}
-                  </>
+                  </Fragment>
                 );
               })
             )}

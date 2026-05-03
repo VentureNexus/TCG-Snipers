@@ -31,6 +31,12 @@ function formatUptime(seconds: number): string {
   return `${String(m).padStart(2, "0")}m ${String(s).padStart(2, "0")}s`;
 }
 
+function formatSpent(value: string | number | undefined): string {
+  const n = parseFloat(String(value ?? "0"));
+  if (isNaN(n)) return "$0.00";
+  return "$" + n.toFixed(2);
+}
+
 const SESSION_START = Date.now();
 
 export function TopBar() {
@@ -84,6 +90,20 @@ export function TopBar() {
             <span className="text-muted-foreground">Checkouts:</span>
             <span className="font-mono font-bold text-emerald-400">
               {summary?.totalCheckouts ?? 0}
+            </span>
+          </div>
+          <div className="w-px h-3 bg-border" />
+          <div className="flex items-center gap-1.5" data-testid="stat-failures">
+            <span className="text-muted-foreground">Failures:</span>
+            <span className={`font-mono font-bold ${(summary?.totalFailures ?? 0) > 0 ? "text-red-400" : "text-muted-foreground"}`}>
+              {summary?.totalFailures ?? 0}
+            </span>
+          </div>
+          <div className="w-px h-3 bg-border" />
+          <div className="flex items-center gap-1.5" data-testid="stat-spent">
+            <span className="text-muted-foreground">Spent:</span>
+            <span className="font-mono font-bold text-amber-400">
+              {formatSpent(summary?.totalSpent)}
             </span>
           </div>
           <div className="w-px h-3 bg-border" />
