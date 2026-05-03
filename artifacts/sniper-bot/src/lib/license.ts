@@ -5,8 +5,12 @@
 const LS_TOKEN_KEY = "tcgsnipers_license_token";
 const LS_EMAIL_KEY = "tcgsnipers_license_email";
 
+// In the Replit dev preview the Vite server proxies /license → localhost:8082,
+// so an empty base (relative URLs) works. In Electron the preload sets
+// VITE_LICENSE_API_URL to the deployed API. Fallback to empty string so dev
+// requests go through the Vite proxy without hitting CORS or localhost issues.
 const LICENSE_API_URL = (import.meta.env.VITE_LICENSE_API_URL as string | undefined)?.replace(/\/$/, "")
-  ?? "http://localhost:8082";
+  ?? "";
 
 function inElectron(): boolean {
   return typeof window !== "undefined" && !!window.electronAPI?.license;
