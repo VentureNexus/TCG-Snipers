@@ -1,10 +1,12 @@
+const base = import.meta.env.BASE_URL;
+
 const RETAILERS = [
-  { name: "Target", region: "US Only" },
-  { name: "Walmart", region: "US Only" },
-  { name: "Best Buy", region: "US / CA" },
-  { name: "Amazon", region: "All Regions" },
-  { name: "TCGplayer", region: "US Only" },
-  { name: "Pokémon Center", region: "US / EU / JP" },
+  { name: "Target", region: "US Only", logo: `${base}retailers/target.png` },
+  { name: "Walmart", region: "US Only", logo: `${base}retailers/walmart.png` },
+  { name: "Best Buy", region: "US / CA", logo: `${base}retailers/bestbuy.png` },
+  { name: "Amazon", region: "All Regions", logo: `${base}retailers/amazon.png` },
+  { name: "TCGplayer", region: "US Only", logo: `${base}retailers/tcgplayer.png` },
+  { name: "Pokémon Center", region: "US / EU / JP", logo: `${base}retailers/pokemoncenter.png` },
 ];
 
 export function RetailersStrip() {
@@ -22,10 +24,17 @@ export function RetailersStrip() {
         {RETAILERS.map((r) => (
           <div
             key={r.name}
-            className="bg-card/60 border border-border rounded-2xl p-5 text-center hover:border-primary/40 transition"
+            className="bg-card/60 border border-border rounded-2xl p-5 text-center hover:border-primary/40 transition flex flex-col items-center justify-between gap-3 min-h-[140px]"
           >
-            <div className="text-base md:text-lg font-bold tracking-tight">{r.name}</div>
-            <div className="text-[11px] text-muted-foreground mt-1">{r.region}</div>
+            <div className="flex-1 flex items-center justify-center w-full">
+              <img
+                src={r.logo}
+                alt={`${r.name} logo`}
+                className="max-h-12 w-auto object-contain"
+                loading="lazy"
+              />
+            </div>
+            <div className="text-[11px] text-muted-foreground">{r.region}</div>
           </div>
         ))}
       </div>
