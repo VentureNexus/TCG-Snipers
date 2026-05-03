@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { db, profilesTable, creditCardsTable } from "@workspace/db";
 import type { InsertProfile } from "@workspace/db";
 import { CreateProfileBody, GetProfileParams, UpdateProfileParams, UpdateProfileBody, DeleteProfileParams } from "@workspace/api-zod";
@@ -81,21 +81,38 @@ router.post("/profiles/import", async (req, res): Promise<void> => {
       const profileCards = cards.filter((c) => c.profileId === oldId);
       for (const card of profileCards) {
         if (!card.encryptedNumber || !card.encryptedCvv) continue;
+        const lastFour = (card.lastFour as string) || "";
+        const expiryMonth = (card.expiryMonth as string) || "";
+        const expiryYear = (card.expiryYear as string) || "";
         try {
+          // Deduplicate: skip if a card with the same lastFour + expiry already exists for this profile
+          const [existing] = await db
+            .select({ id: creditCardsTable.id })
+            .from(creditCardsTable)
+            .where(
+              and(
+                eq(creditCardsTable.profileId, newProfileId),
+                eq(creditCardsTable.lastFour, lastFour),
+                eq(creditCardsTable.expiryMonth, expiryMonth),
+                eq(creditCardsTable.expiryYear, expiryYear),
+              )
+            );
+          if (existing) continue;
+
           await db.insert(creditCardsTable).values({
             profileId: newProfileId,
             cardNickname: (card.cardNickname as string) || "",
             cardholderName: (card.cardholderName as string) || "",
             encryptedNumber: card.encryptedNumber as string,
             encryptedCvv: card.encryptedCvv as string,
-            expiryMonth: (card.expiryMonth as string) || "",
-            expiryYear: (card.expiryYear as string) || "",
-            lastFour: (card.lastFour as string) || "",
+            expiryMonth,
+            expiryYear,
+            lastFour,
             cardType: (card.cardType as string) || "",
           });
           cardsImported++;
         } catch {
-          // Card may already exist or have invalid data — skip silently
+          // Invalid data — skip silently
         }
       }
     } catch (err: unknown) {

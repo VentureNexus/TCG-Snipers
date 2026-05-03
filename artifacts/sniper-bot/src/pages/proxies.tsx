@@ -79,6 +79,11 @@ interface TestResult {
   message: string;
 }
 
+/** Strip any trailing "ms" suffix from latency strings returned by the backend. */
+function fmtLatency(latency: string): string {
+  return latency.endsWith("ms") ? latency.slice(0, -2) : latency;
+}
+
 function StatusChip({
   status,
   latency,
@@ -90,7 +95,7 @@ function StatusChip({
     return (
       <Badge className="gap-1.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/10">
         <CheckCircle2 className="w-3 h-3" />
-        Pass · {latency}ms
+        Pass · {fmtLatency(latency)}ms
       </Badge>
     );
   }
@@ -439,7 +444,7 @@ export default function ProxiesPage() {
             return next;
           });
           if (result.success) {
-            toast({ title: `Proxy passed — ${result.latency}ms · ${result.ip}` });
+            toast({ title: `Proxy passed — ${fmtLatency(result.latency)}ms · ${result.ip}` });
           } else {
             toast({ title: "Proxy test failed", description: result.message, variant: "destructive" });
           }
@@ -591,7 +596,7 @@ export default function ProxiesPage() {
                       <div className="space-y-0.5">
                         {inlineResult.success ? (
                           <>
-                            <div className="text-emerald-400 font-medium">{inlineResult.latency}ms</div>
+                            <div className="text-emerald-400 font-medium">{fmtLatency(inlineResult.latency)}ms</div>
                             {inlineResult.ip && (
                               <div className="font-mono text-[11px]">{inlineResult.ip}</div>
                             )}
