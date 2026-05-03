@@ -16,7 +16,7 @@ export function Hero() {
         <img
           src={logoUrl}
           alt="TCG Snipers"
-          className="mx-auto h-32 w-32 object-contain mb-6 drop-shadow-[0_0_60px_rgba(250,204,21,0.4)]"
+          className="mx-auto h-56 w-56 sm:h-64 sm:w-64 md:h-72 md:w-72 object-contain mb-8 drop-shadow-[0_0_80px_rgba(250,204,21,0.45)]"
         />
         <span className="inline-block text-[11px] font-semibold tracking-widest uppercase text-primary border border-primary/30 bg-primary/5 rounded-full px-3 py-1 mb-6">
           Retail automation built for trading-card hunters
