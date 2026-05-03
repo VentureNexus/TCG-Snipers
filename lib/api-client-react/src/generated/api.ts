@@ -1907,6 +1907,174 @@ export const useDeleteTaskGroup = <
 };
 
 /**
+ * @summary Start all idle tasks in a task group
+ */
+export const getStartTaskGroupUrl = (id: number) => {
+  return `/api/task-groups/${id}/start`;
+};
+
+export const startTaskGroup = async (
+  id: number,
+  options?: RequestInit,
+): Promise<BulkActionResult> => {
+  return customFetch<BulkActionResult>(getStartTaskGroupUrl(id), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getStartTaskGroupMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof startTaskGroup>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof startTaskGroup>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["startTaskGroup"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof startTaskGroup>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return startTaskGroup(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type StartTaskGroupMutationResult = NonNullable<
+  Awaited<ReturnType<typeof startTaskGroup>>
+>;
+
+export type StartTaskGroupMutationError = ErrorType<void>;
+
+/**
+ * @summary Start all idle tasks in a task group
+ */
+export const useStartTaskGroup = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof startTaskGroup>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof startTaskGroup>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getStartTaskGroupMutationOptions(options));
+};
+
+/**
+ * @summary Stop all running tasks in a task group
+ */
+export const getStopTaskGroupUrl = (id: number) => {
+  return `/api/task-groups/${id}/stop`;
+};
+
+export const stopTaskGroup = async (
+  id: number,
+  options?: RequestInit,
+): Promise<BulkActionResult> => {
+  return customFetch<BulkActionResult>(getStopTaskGroupUrl(id), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getStopTaskGroupMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof stopTaskGroup>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof stopTaskGroup>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["stopTaskGroup"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof stopTaskGroup>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return stopTaskGroup(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type StopTaskGroupMutationResult = NonNullable<
+  Awaited<ReturnType<typeof stopTaskGroup>>
+>;
+
+export type StopTaskGroupMutationError = ErrorType<void>;
+
+/**
+ * @summary Stop all running tasks in a task group
+ */
+export const useStopTaskGroup = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof stopTaskGroup>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof stopTaskGroup>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getStopTaskGroupMutationOptions(options));
+};
+
+/**
  * @summary List all tasks
  */
 export const getListTasksUrl = (params?: ListTasksParams) => {

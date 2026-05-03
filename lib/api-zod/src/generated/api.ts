@@ -448,6 +448,30 @@ export const DeleteTaskGroupParams = zod.object({
 });
 
 /**
+ * @summary Start all idle tasks in a task group
+ */
+export const StartTaskGroupParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const StartTaskGroupResponse = zod.object({
+  affected: zod.number(),
+  message: zod.string(),
+});
+
+/**
+ * @summary Stop all running tasks in a task group
+ */
+export const StopTaskGroupParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const StopTaskGroupResponse = zod.object({
+  affected: zod.number(),
+  message: zod.string(),
+});
+
+/**
  * @summary List all tasks
  */
 export const ListTasksQueryParams = zod.object({

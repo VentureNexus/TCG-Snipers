@@ -11,10 +11,11 @@ This is a **pnpm monorepo** with the following packages:
   - Preview path: `/` (port assigned by `$PORT`)
   - Dark-always theme (deep navy, `color-scheme: dark`)
   - Wouter routing, shadcn/ui components, Recharts for analytics
-- **`artifacts/api-server`** — Express REST API (`@workspace/api-server`)
+- **`artifacts/api-server`** — Express REST API + WebSocket server (`@workspace/api-server`)
   - Runs on port 8080
   - Builds via `node ./build.mjs` then starts
   - Routes: profiles, credit-cards, proxies, task-groups, tasks, checkout-results, analytics
+  - WebSocket at `/ws` — real-time log streaming per task ID
 
 ### Shared Libraries
 - **`lib/db`** — Drizzle ORM + PostgreSQL schema (`@workspace/db`)
@@ -32,8 +33,8 @@ This is a **pnpm monorepo** with the following packages:
 | Route | Page | Description |
 |-------|------|-------------|
 | `/` | Dashboard | Stats, time-series chart, recent checkouts |
-| `/tasks` | Task Manager | CRUD tasks with per-task start/stop |
-| `/task-groups` | Task Groups | Group tasks by retailer/drop |
+| `/tasks` | Task Manager | CRUD tasks + live log panel + per-task start/stop |
+| `/task-groups` | Task Groups | Group tasks by retailer, group-level Start/Stop |
 | `/profiles` | Profiles | Shipping/billing profiles with credit cards |
 | `/proxies` | Proxies | Proxy pool management with test functionality |
 | `/analytics` | Analytics | Full analytics with checkout history |
@@ -42,7 +43,10 @@ This is a **pnpm monorepo** with the following packages:
 ## Key Design Decisions
 
 - **Always dark** — No light mode toggle. `document.documentElement.classList.add('dark')` in `main.tsx`
-- **Vite proxy** — Frontend proxies `/api/*` → `http://localhost:8080` in `vite.config.ts`
+- **Vite proxy** — Frontend proxies `/api/*` → `http://localhost:8080` and `/ws` → `ws://localhost:8080` in `vite.config.ts`
+- **WebSocket architecture** — `ws` package attached to the same HTTP server as Express. Clients subscribe per task ID. Server pushes `{ type: "log", taskId, level, message, timestamp }` and `{ type: "status", taskId, status }` messages.
+- **Task worker** — Stubbed async automation engine in `artifacts/api-server/src/lib/taskWorker.ts`. Simulates: monitoring → adding_to_cart → checking_out → success (80%) / failed (20%) with realistic log sequences. Cancellable via token map.
+- **Polling** — TopBar polls tasks + analytics every 3 seconds so Active count and Checkout counter update automatically.
 - **Credit card encryption** — AES-256-GCM via `artifacts/api-server/src/lib/crypto.ts`. Only `lastFour` and `cardType` ever returned by API
 - **Zod validation on input only** — Request bodies validated with Zod schemas; DB responses returned as plain JSON (dates serialize automatically)
 - **Retailer badges** — Color-coded: Target (red), Amazon (orange), Best Buy (blue), Costco (sky), Pokémon Center (yellow)
@@ -80,7 +84,7 @@ pnpm --filter @workspace/api-server run build
 
 ## Workflows
 
-- `artifacts/api-server: API Server` — builds then starts the Express server on port 8080
+- `artifacts/api-server: API Server` — builds then starts the Express + WebSocket server on port 8080
 - `artifacts/sniper-bot: web` — Vite dev server for the React frontend
 - `artifacts/mockup-sandbox: Component Preview Server` — Canvas component previews (port 8081)
 
@@ -89,42 +93,47 @@ pnpm --filter @workspace/api-server run build
 ```
 artifacts/
   api-server/src/
+    index.ts                  # http.createServer(app) + WebSocketServer attached
     app.ts                    # Express app, mounts router at /api
     routes/
       index.ts                # Registers all route modules
       profiles.ts             # CRUD /api/profiles
       creditCards.ts          # CRUD /api/credit-cards (encrypted)
       proxies.ts              # CRUD /api/proxies + /test
-      taskGroups.ts           # CRUD /api/task-groups
-      tasks.ts                # CRUD /api/tasks + start/stop/start-all/stop-all
+      taskGroups.ts           # CRUD /api/task-groups + /:id/start + /:id/stop
+      tasks.ts                # CRUD /api/tasks + start/stop/start-all/stop-all (invokes taskWorker)
       checkoutResults.ts      # /api/checkout-results
       analytics.ts            # /api/analytics/summary + /checkouts-over-time
     lib/
       crypto.ts               # AES-256-GCM encrypt/decrypt + helpers
+      websocket.ts            # WebSocketServer factory, broadcastLog(), broadcastStatus()
+      taskWorker.ts           # Async task execution engine with stub automation + cancellation
   sniper-bot/src/
     App.tsx                   # Router + QueryClient + layout shell
     main.tsx                  # Forces dark class, renders App
     index.css                 # Deep dark navy theme (all CSS variables)
+    hooks/
+      useTaskLogs.ts          # WebSocket hook: subscribe by taskId, return logs + liveStatus
     pages/
       dashboard.tsx           # Dashboard with chart + recent checkouts
-      tasks.tsx               # Task manager
-      task-groups.tsx         # Task group cards
+      tasks.tsx               # Task manager with expandable live log panel per task
+      task-groups.tsx         # Task group cards with Start/Stop group controls + status summary
       profiles.tsx            # Profile card grid + credit card management
       proxies.tsx             # Proxy table
       analytics.tsx           # Full analytics page
-      settings.tsx            # Settings form
+      settings.tsx            # Settings form (localStorage + IMAP)
     components/
       layout/
         AppLayout.tsx         # Sidebar + TopBar wrapper
         Sidebar.tsx           # Collapsible nav sidebar
-        TopBar.tsx            # Breadcrumb + clock + stats
+        TopBar.tsx            # Active tasks, Checkouts counter, Profiles, Uptime, Clock (polls every 3s)
       shared/
         RetailerBadge.tsx     # Color-coded retailer chip
 lib/
   db/src/schema/
     profiles.ts, creditCards.ts, proxies.ts, taskGroups.ts, tasks.ts, checkoutResults.ts
-  api-spec/openapi.yaml       # Full OpenAPI 3.0 spec
+  api-spec/openapi.yaml       # Full OpenAPI 3.0 spec (incl. task-group start/stop)
   api-spec/orval.config.ts    # Codegen config (single-mode)
-  api-client-react/src/generated/api.ts    # Generated hooks
+  api-client-react/src/generated/api.ts    # Generated hooks (incl. useStartTaskGroup, useStopTaskGroup)
   api-zod/src/generated/api.ts             # Generated Zod schemas
 ```

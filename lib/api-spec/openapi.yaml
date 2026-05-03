@@ -433,6 +433,48 @@ paths:
         "204":
           description: Deleted
 
+  /task-groups/{id}/start:
+    post:
+      operationId: startTaskGroup
+      tags: [task-groups]
+      summary: Start all idle tasks in a task group
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Tasks started
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BulkActionResult"
+        "404":
+          description: Not found
+
+  /task-groups/{id}/stop:
+    post:
+      operationId: stopTaskGroup
+      tags: [task-groups]
+      summary: Stop all running tasks in a task group
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Tasks stopped
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BulkActionResult"
+        "404":
+          description: Not found
+
   # ── TASKS ─────────────────────────────────────────────────────────────────
   /tasks:
     get:

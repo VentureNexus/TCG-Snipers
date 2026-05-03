@@ -1,7 +1,8 @@
 import { Router, type IRouter } from "express";
-import { eq } from "drizzle-orm";
-import { db, taskGroupsTable } from "@workspace/db";
+import { eq, inArray } from "drizzle-orm";
+import { db, taskGroupsTable, tasksTable } from "@workspace/db";
 import { CreateTaskGroupBody, UpdateTaskGroupParams, UpdateTaskGroupBody, DeleteTaskGroupParams } from "@workspace/api-zod";
+import { startTask, stopTask } from "../lib/taskWorker";
 
 const router: IRouter = Router();
 
@@ -41,6 +42,44 @@ router.delete("/task-groups/:id", async (req, res): Promise<void> => {
   const [group] = await db.delete(taskGroupsTable).where(eq(taskGroupsTable.id, params.data.id)).returning();
   if (!group) { res.status(404).json({ error: "Task group not found" }); return; }
   res.sendStatus(204);
+});
+
+router.post("/task-groups/:id/start", async (req, res): Promise<void> => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  const [group] = await db.select().from(taskGroupsTable).where(eq(taskGroupsTable.id, id));
+  if (!group) { res.status(404).json({ error: "Task group not found" }); return; }
+  const groupTasks = await db
+    .select()
+    .from(tasksTable)
+    .where(inArray(tasksTable.status, ["idle", "stopped", "failed"]))
+    .then((rows) => rows.filter((t) => t.groupId === id));
+  for (const task of groupTasks) {
+    await startTask(task);
+  }
+  res.json({ affected: groupTasks.length, message: `Started ${groupTasks.length} tasks in group ${group.name}` });
+});
+
+router.post("/task-groups/:id/stop", async (req, res): Promise<void> => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  const [group] = await db.select().from(taskGroupsTable).where(eq(taskGroupsTable.id, id));
+  if (!group) { res.status(404).json({ error: "Task group not found" }); return; }
+  const running = await db
+    .select()
+    .from(tasksTable)
+    .where(inArray(tasksTable.status, ["monitoring", "adding_to_cart", "checking_out"]))
+    .then((rows) => rows.filter((t) => t.groupId === id));
+  for (const task of running) {
+    stopTask(task.id);
+  }
+  if (running.length > 0) {
+    await db
+      .update(tasksTable)
+      .set({ status: "stopped" })
+      .where(inArray(tasksTable.id, running.map((t) => t.id)));
+  }
+  res.json({ affected: running.length, message: `Stopped ${running.length} tasks in group ${group.name}` });
 });
 
 export default router;

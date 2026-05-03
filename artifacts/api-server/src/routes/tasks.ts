@@ -2,6 +2,7 @@ import { Router, type IRouter } from "express";
 import { eq, inArray } from "drizzle-orm";
 import { db, tasksTable } from "@workspace/db";
 import { ListTasksQueryParams, CreateTaskBody, GetTaskParams, UpdateTaskParams, UpdateTaskBody, DeleteTaskParams, StartTaskParams, StopTaskParams } from "@workspace/api-zod";
+import { startTask, stopTask } from "../lib/taskWorker";
 
 const router: IRouter = Router();
 
@@ -50,17 +51,29 @@ router.delete("/tasks/:id", async (req, res): Promise<void> => {
 });
 
 router.post("/tasks/start-all", async (_req, res): Promise<void> => {
-  const idleTasks = await db.select({ id: tasksTable.id }).from(tasksTable).where(eq(tasksTable.status, "idle"));
-  if (idleTasks.length > 0) {
-    await db.update(tasksTable).set({ status: "monitoring" }).where(inArray(tasksTable.id, idleTasks.map((t) => t.id)));
+  const idleTasks = await db
+    .select()
+    .from(tasksTable)
+    .where(inArray(tasksTable.status, ["idle", "stopped", "failed"]));
+  for (const task of idleTasks) {
+    await startTask(task);
   }
   res.json({ affected: idleTasks.length, message: `Started ${idleTasks.length} tasks` });
 });
 
 router.post("/tasks/stop-all", async (_req, res): Promise<void> => {
-  const running = await db.select({ id: tasksTable.id }).from(tasksTable).where(inArray(tasksTable.status, ["monitoring", "adding_to_cart", "checking_out"]));
+  const running = await db
+    .select()
+    .from(tasksTable)
+    .where(inArray(tasksTable.status, ["monitoring", "adding_to_cart", "checking_out"]));
+  for (const task of running) {
+    stopTask(task.id);
+  }
   if (running.length > 0) {
-    await db.update(tasksTable).set({ status: "idle" }).where(inArray(tasksTable.id, running.map((t) => t.id)));
+    await db
+      .update(tasksTable)
+      .set({ status: "stopped" })
+      .where(inArray(tasksTable.id, running.map((t) => t.id)));
   }
   res.json({ affected: running.length, message: `Stopped ${running.length} tasks` });
 });
@@ -68,15 +81,22 @@ router.post("/tasks/stop-all", async (_req, res): Promise<void> => {
 router.post("/tasks/:id/start", async (req, res): Promise<void> => {
   const params = StartTaskParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
-  const [task] = await db.update(tasksTable).set({ status: "monitoring" }).where(eq(tasksTable.id, params.data.id)).returning();
+  const [task] = await db.select().from(tasksTable).where(eq(tasksTable.id, params.data.id));
   if (!task) { res.status(404).json({ error: "Task not found" }); return; }
-  res.json(task);
+  await startTask(task);
+  const [updated] = await db.select().from(tasksTable).where(eq(tasksTable.id, task.id));
+  res.json(updated);
 });
 
 router.post("/tasks/:id/stop", async (req, res): Promise<void> => {
   const params = StopTaskParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
-  const [task] = await db.update(tasksTable).set({ status: "idle" }).where(eq(tasksTable.id, params.data.id)).returning();
+  stopTask(params.data.id);
+  const [task] = await db
+    .update(tasksTable)
+    .set({ status: "stopped" })
+    .where(eq(tasksTable.id, params.data.id))
+    .returning();
   if (!task) { res.status(404).json({ error: "Task not found" }); return; }
   res.json(task);
 });
