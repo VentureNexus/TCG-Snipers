@@ -30,34 +30,55 @@ let mainWindow: BrowserWindow | null = null;
 let apiProcess: ChildProcess | null = null;
 
 // ── Start Express API server ────────────────────────────────────────────────
+// We use Electron's bundled Node runtime (process.execPath + ELECTRON_RUN_AS_NODE=1)
+// so we don't depend on the user having Node installed on their machine.
+// Errors are caught so a failed API server start does NOT kill the desktop app —
+// the renderer can still load and surface the error to the user.
 function startApiServer(): Promise<void> {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     // Dev:  sibling artifact built output  (artifacts/api-server/dist/index.mjs)
     // Prod: bundled into app resources     (resources/api-server/index.mjs)
     const apiServerPath = isDev
       ? path.resolve(APP_ROOT, "..", "api-server", "dist", "index.mjs")
       : path.join(process.resourcesPath, "api-server", "index.mjs");
 
-    apiProcess = spawn("node", ["--enable-source-maps", apiServerPath], {
-      env: {
-        ...process.env,
-        PORT: String(API_PORT),
-        NODE_ENV: isDev ? "development" : "production",
-      },
-      stdio: ["ignore", "pipe", "pipe"],
-    });
+    try {
+      apiProcess = spawn(process.execPath, ["--enable-source-maps", apiServerPath], {
+        env: {
+          ...process.env,
+          // Tell Electron to behave as plain Node when launched this way.
+          ELECTRON_RUN_AS_NODE: "1",
+          PORT: String(API_PORT),
+          NODE_ENV: isDev ? "development" : "production",
+        },
+        stdio: ["ignore", "pipe", "pipe"],
+      });
 
-    apiProcess.stdout?.on("data", (data: Buffer) => {
-      const text = data.toString();
-      console.log("[API]", text.trim());
-      if (text.includes("Server listening")) resolve();
-    });
+      apiProcess.stdout?.on("data", (data: Buffer) => {
+        const text = data.toString();
+        console.log("[API]", text.trim());
+        if (text.includes("Server listening")) resolve();
+      });
 
-    apiProcess.stderr?.on("data", (data: Buffer) => {
-      console.error("[API ERR]", data.toString().trim());
-    });
+      apiProcess.stderr?.on("data", (data: Buffer) => {
+        console.error("[API ERR]", data.toString().trim());
+      });
 
-    apiProcess.on("error", reject);
+      apiProcess.on("error", (err) => {
+        console.error("[API spawn error]", err);
+        // Don't reject — let the desktop app load anyway.
+        resolve();
+      });
+
+      apiProcess.on("exit", (code, signal) => {
+        console.error(`[API exited] code=${code} signal=${signal}`);
+        apiProcess = null;
+      });
+    } catch (err) {
+      console.error("[API failed to spawn]", err);
+      resolve();
+    }
+
     // Fallback: resolve after 4 s if the startup log never fires
     setTimeout(resolve, 4000);
   });
@@ -139,14 +160,30 @@ ipcMain.handle("update:openDownload", () => openDownloadPage());
 
 // ── App lifecycle ────────────────────────────────────────────────────────────
 app.whenReady().then(async () => {
-  await startApiServer();
+  // Catch any unexpected error in startup so the app doesn't die silently.
+  try {
+    await startApiServer();
+  } catch (err) {
+    console.error("[startup] startApiServer threw:", err);
+  }
   createWindow();
-  startUpdateChecker(() => mainWindow);
+  try {
+    startUpdateChecker(() => mainWindow);
+  } catch (err) {
+    console.error("[startup] startUpdateChecker threw:", err);
+  }
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
+}).catch((err) => {
+  console.error("[startup] whenReady chain failed:", err);
 });
+
+// Last-resort safety net: log unhandled errors instead of letting them
+// crash the process before the window appears.
+process.on("uncaughtException", (err) => console.error("[uncaughtException]", err));
+process.on("unhandledRejection", (reason) => console.error("[unhandledRejection]", reason));
 
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();
