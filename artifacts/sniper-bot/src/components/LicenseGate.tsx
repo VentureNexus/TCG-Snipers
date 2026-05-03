@@ -192,7 +192,12 @@ function SignInScreen({
       await saveStoredLicense({ token: r.token, email });
       onSignedIn(email, r.status);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not activate license");
+      const e = err as { status?: number; message?: string };
+      if (e.status === 409) {
+        setError("This license is already active on another device. In the dev preview, use \"Dev preview — skip license check\" below instead.");
+      } else {
+        setError(e.message ?? "Could not activate license");
+      }
     } finally {
       setBusy(false);
     }

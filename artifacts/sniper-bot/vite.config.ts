@@ -66,8 +66,9 @@ export default defineConfig(async ({ command }) => ({
         changeOrigin: true,
       },
       "/license": {
-        target: "http://localhost:8082",
+        target: "https://tcgsnipers.replit.app",
         changeOrigin: true,
+        secure: true,
       },
     },
   },
