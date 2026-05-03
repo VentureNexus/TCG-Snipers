@@ -3,7 +3,7 @@ import { Switch, Route, Router as WouterRouter, Link } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Menu, X } from "lucide-react";
 
-import logoUrl from "@assets/3092-removebg-preview_1777781243556.png";
+import logoUrl from "@assets/3092-removebg-preview_(1)_1777781722336.png";
 import Landing from "@/pages/Landing";
 import Manage from "@/pages/Manage";
 import ManageSession from "@/pages/ManageSession";
