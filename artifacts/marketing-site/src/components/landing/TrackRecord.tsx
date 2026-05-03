@@ -6,7 +6,7 @@ const ITEMS = [
   { title: "2025 Topps Chrome NFL Mega Box", count: "13K+", img: "products/football-mega-box.jpg" },
   { title: "Topps Chrome Football Blaster Box", count: "9K+", img: "products/football-blaster.jpg" },
   { title: "One Piece Card Game OP-09 Booster Display", count: "7K+", img: "products/pirate-booster.jpg" },
-  { title: "Lorcana Azurite Sea Booster Box", count: "5K+", img: "products/azurite-sea-booster.webp" },
+  { title: "Lorcana Azurite Sea Booster Box", count: "5K+", img: "products/azurite-sea-booster.webp", bg: "bg-white" },
 ];
 
 const BASE = import.meta.env.BASE_URL;
@@ -28,12 +28,12 @@ export function TrackRecord() {
             key={it.title}
             className="bg-card/60 border border-border rounded-2xl p-3 hover:border-primary/40 transition"
           >
-            <div className="relative aspect-square rounded-xl overflow-hidden border border-white/5 bg-black/40">
+            <div className={`relative aspect-square rounded-xl overflow-hidden border border-white/5 ${("bg" in it && it.bg) ? it.bg : "bg-black/40"}`}>
               <img
                 src={`${BASE}${it.img}`}
                 alt={it.title}
                 loading="lazy"
-                className="absolute inset-0 h-full w-full object-cover"
+                className={`absolute inset-0 h-full w-full ${("bg" in it && it.bg) ? "object-contain p-3" : "object-cover"}`}
               />
               <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/70 to-transparent" />
               <div className="absolute bottom-3 left-3 bg-black/60 backdrop-blur text-primary text-xs font-bold rounded-md px-2 py-1">
