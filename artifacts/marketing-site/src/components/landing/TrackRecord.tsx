@@ -1,13 +1,15 @@
 const ITEMS = [
-  { title: "Mega Evolution 2.5 — Ascended Heroes Booster Bundle", count: "38K+", grad: "from-amber-500/40 to-orange-600/30" },
-  { title: "Pokémon First Partner Illustration Collection Series 1", count: "25K+", grad: "from-yellow-400/40 to-amber-600/30" },
-  { title: "Mega Evolution Perfect Order Elite Trainer Box", count: "20K+", grad: "from-rose-500/40 to-pink-600/30" },
-  { title: "Ascended Heroes Mega ex Random Collection Box", count: "13K+", grad: "from-violet-500/40 to-fuchsia-600/30" },
-  { title: "2025 Topps Chrome NFL Mega Box", count: "13K+", grad: "from-sky-500/40 to-cyan-600/30" },
-  { title: "Topps Chrome Football Blaster Box", count: "9K+", grad: "from-emerald-500/40 to-teal-600/30" },
-  { title: "One Piece Card Game OP-09 Booster Display", count: "7K+", grad: "from-red-500/40 to-orange-600/30" },
-  { title: "Lorcana Azurite Sea Booster Box", count: "5K+", grad: "from-blue-500/40 to-indigo-600/30" },
+  { title: "Mega Evolution 2.5 — Ascended Heroes Booster Bundle", count: "38K+", img: "products/mega-evolution-bundle.webp" },
+  { title: "Pokémon First Partner Illustration Collection Series 1", count: "25K+", img: "products/illustration-collection.webp" },
+  { title: "Mega Evolution Perfect Order Elite Trainer Box", count: "20K+", img: "products/elite-trainer-box.webp" },
+  { title: "Ascended Heroes Mega ex Random Collection Box", count: "13K+", img: "products/random-collection-box.webp" },
+  { title: "2025 Topps Chrome NFL Mega Box", count: "13K+", img: "products/football-mega-box.webp" },
+  { title: "Topps Chrome Football Blaster Box", count: "9K+", img: "products/football-blaster.webp" },
+  { title: "One Piece Card Game OP-09 Booster Display", count: "7K+", img: "products/pirate-booster.webp" },
+  { title: "Lorcana Azurite Sea Booster Box", count: "5K+", img: "products/azurite-sea-booster.webp" },
 ];
+
+const BASE = import.meta.env.BASE_URL;
 
 export function TrackRecord() {
   return (
@@ -26,10 +28,15 @@ export function TrackRecord() {
             key={it.title}
             className="bg-card/60 border border-border rounded-2xl p-3 hover:border-primary/40 transition"
           >
-            <div
-              className={`aspect-square rounded-xl bg-gradient-to-br ${it.grad} border border-white/5 flex items-end p-3`}
-            >
-              <div className="bg-black/50 backdrop-blur text-primary text-xs font-bold rounded-md px-2 py-1">
+            <div className="relative aspect-square rounded-xl overflow-hidden border border-white/5 bg-black/40">
+              <img
+                src={`${BASE}${it.img}`}
+                alt={it.title}
+                loading="lazy"
+                className="absolute inset-0 h-full w-full object-cover"
+              />
+              <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/70 to-transparent" />
+              <div className="absolute bottom-3 left-3 bg-black/60 backdrop-blur text-primary text-xs font-bold rounded-md px-2 py-1">
                 {it.count} checkouts
               </div>
             </div>

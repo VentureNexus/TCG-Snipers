@@ -1,0 +1,50 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "1pYDIfg6tzn-_MOyAPW8K"
+uri = "file://artifacts/marketing-site/public/products/mega-evolution-bundle.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "8fWvuMiZyXv6ML-BprY5V"
+uri = "file://artifacts/marketing-site/public/products/illustration-collection.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "TQ0EjQZix5uy_qOUc-4zO"
+uri = "file://artifacts/marketing-site/public/products/elite-trainer-box.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "8zgq_Sqnfx6XehokS6xcN"
+uri = "file://artifacts/marketing-site/public/products/random-collection-box.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "A02OcKa6LpcwtTUvRJlpK"
+uri = "file://artifacts/marketing-site/public/products/football-mega-box.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "C8shQpq7lmBbYk6_KT-b2"
+uri = "file://artifacts/marketing-site/public/products/football-blaster.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "sFXSUU-PlLwfCqxJUxhbE"
+uri = "file://artifacts/marketing-site/public/products/pirate-booster.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "1st_r9igVw6ieKG5SGfZC"
+uri = "file://artifacts/marketing-site/public/products/azurite-sea-booster.png"
+type = "image"
+title = "generated_image"
