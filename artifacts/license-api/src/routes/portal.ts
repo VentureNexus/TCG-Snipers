@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { db, customersTable, licensesTable, devicesTable, magicLinkTokensTable } from "@workspace/db";
-import { and, desc, eq, gt, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, gt, sql } from "drizzle-orm";
 import { generateMagicToken, hashToken } from "../lib/crypto";
 import { sendEmail, magicLinkEmail } from "../lib/email";
 import { signPortalSession, verifyPortalSession } from "../lib/jwt";
@@ -31,7 +31,8 @@ router.post("/portal/request-magic-link", async (req, res) => {
     return;
   }
 
-  // Rate limit: max 3 unconsumed tokens per hour
+  // Rate limit: max 3 magic-link requests per hour, regardless of whether
+  // they were consumed (otherwise an attacker can spam by consuming tokens).
   const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
   const recent = await db
     .select({ count: sql<number>`count(*)::int` })
@@ -40,7 +41,6 @@ router.post("/portal/request-magic-link", async (req, res) => {
       and(
         eq(magicLinkTokensTable.customerId, customer.id),
         gt(magicLinkTokensTable.createdAt, oneHourAgo),
-        isNull(magicLinkTokensTable.consumedAt),
       ),
     );
   if ((recent[0]?.count ?? 0) >= 3) {
