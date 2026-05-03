@@ -422,6 +422,7 @@ export default function TasksPage() {
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [expandedTaskId, setExpandedTaskId] = useState<number | null>(null);
   const [liveStatuses, setLiveStatuses] = useState<Record<number, string>>({});
+  const { toast } = useToast();
 
   const createForm = useForm<TaskFormValues, unknown, TaskFormValues>({
     resolver: zodResolver(taskSchema),
@@ -447,7 +448,7 @@ export default function TasksPage() {
           queryClient.invalidateQueries({ queryKey: getListTasksQueryKey() });
           createForm.reset();
         },
-        onError: () => toast({ title: "Failed to create task", variant: "destructive" }),
+        onError: (err: unknown) => toast({ title: "Failed to create task", description: err instanceof Error ? err.message : undefined, variant: "destructive" }),
       },
     );
   };
@@ -461,7 +462,7 @@ export default function TasksPage() {
           setEditingTask(null);
           queryClient.invalidateQueries({ queryKey: getListTasksQueryKey() });
         },
-        onError: () => toast({ title: "Failed to save task", variant: "destructive" }),
+        onError: (err: unknown) => toast({ title: "Failed to save task", description: err instanceof Error ? err.message : undefined, variant: "destructive" }),
       },
     );
   };

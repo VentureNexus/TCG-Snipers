@@ -179,7 +179,7 @@ function ProxyFormDialog({ open, onOpenChange, editingProxy }: ProxyFormDialogPr
             toast({ title: "Proxy updated" });
             onOpenChange(false);
           },
-          onError: () => toast({ title: "Failed to update proxy", variant: "destructive" }),
+          onError: (err: unknown) => toast({ title: "Failed to update proxy", description: err instanceof Error ? err.message : undefined, variant: "destructive" }),
         }
       );
     } else {
@@ -192,7 +192,7 @@ function ProxyFormDialog({ open, onOpenChange, editingProxy }: ProxyFormDialogPr
             onOpenChange(false);
             form.reset();
           },
-          onError: () => toast({ title: "Failed to add proxy", variant: "destructive" }),
+          onError: (err: unknown) => toast({ title: "Failed to add proxy", description: err instanceof Error ? err.message : undefined, variant: "destructive" }),
         }
       );
     }
@@ -423,7 +423,7 @@ export default function ProxiesPage() {
             return next;
           });
         },
-        onError: () => toast({ title: "Failed to delete proxy", variant: "destructive" }),
+        onError: (err: unknown) => toast({ title: "Failed to delete proxy", description: err instanceof Error ? err.message : undefined, variant: "destructive" }),
       }
     );
   }

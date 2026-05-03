@@ -191,7 +191,7 @@ function AddCardInline({ profileId, existingCount, onAdded }: AddCardInlineProps
           form.reset();
           onAdded();
         },
-        onError: () => toast({ title: "Failed to add card", variant: "destructive" }),
+        onError: (err: unknown) => toast({ title: "Failed to add card", description: err instanceof Error ? err.message : undefined, variant: "destructive" }),
       }
     );
   }
@@ -357,8 +357,8 @@ function ProfileFormDialog({
           queryClient.invalidateQueries({ queryKey: getListCreditCardsQueryKey() });
           setDeleteCardConfirmId(null);
         },
-        onError: () => {
-          toast({ title: "Failed to remove card", variant: "destructive" });
+        onError: (err: unknown) => {
+          toast({ title: "Failed to remove card", description: err instanceof Error ? err.message : undefined, variant: "destructive" });
           setDeleteCardConfirmId(null);
         },
       }
@@ -383,7 +383,7 @@ function ProfileFormDialog({
             onOpenChange(false);
             onDone();
           },
-          onError: () => toast({ title: "Failed to update profile", variant: "destructive" }),
+          onError: (err: unknown) => toast({ title: "Failed to update profile", description: err instanceof Error ? err.message : undefined, variant: "destructive" }),
         }
       );
     } else {
@@ -397,7 +397,7 @@ function ProfileFormDialog({
             onDone();
             form.reset(EMPTY_PROFILE);
           },
-          onError: () => toast({ title: "Failed to create profile", variant: "destructive" }),
+          onError: (err: unknown) => toast({ title: "Failed to create profile", description: err instanceof Error ? err.message : undefined, variant: "destructive" }),
         }
       );
     }
@@ -889,7 +889,7 @@ function AddCardDialog({ open, onOpenChange, profileId, existingCardCount }: Add
           toast({ title: "Card added" });
           onOpenChange(false);
         },
-        onError: () => toast({ title: "Failed to add card", variant: "destructive" }),
+        onError: (err: unknown) => toast({ title: "Failed to add card", description: err instanceof Error ? err.message : undefined, variant: "destructive" }),
       }
     );
   }
@@ -1019,7 +1019,7 @@ export default function ProfilesPage() {
           queryClient.invalidateQueries({ queryKey: getListProfilesQueryKey() });
           toast({ title: "Profile duplicated" });
         },
-        onError: () => toast({ title: "Failed to duplicate profile", variant: "destructive" }),
+        onError: (err: unknown) => toast({ title: "Failed to duplicate profile", description: err instanceof Error ? err.message : undefined, variant: "destructive" }),
       }
     );
   }
@@ -1033,7 +1033,7 @@ export default function ProfilesPage() {
           toast({ title: "Profile deleted" });
           setDeleteConfirmId(null);
         },
-        onError: () => toast({ title: "Failed to delete profile", variant: "destructive" }),
+        onError: (err: unknown) => toast({ title: "Failed to delete profile", description: err instanceof Error ? err.message : undefined, variant: "destructive" }),
       }
     );
   }
@@ -1052,8 +1052,8 @@ export default function ProfilesPage() {
           toast({ title: "Card removed" });
           setDeleteCardConfirmId(null);
         },
-        onError: () => {
-          toast({ title: "Failed to remove card", variant: "destructive" });
+        onError: (err: unknown) => {
+          toast({ title: "Failed to remove card", description: err instanceof Error ? err.message : undefined, variant: "destructive" });
           setDeleteCardConfirmId(null);
         },
       }

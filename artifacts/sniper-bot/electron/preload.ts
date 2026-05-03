@@ -61,6 +61,12 @@ const api = {
     },
   },
 
+  /** In-app diagnostics — API server health and log buffer. */
+  diagnostics: {
+    getLogs: (): Promise<string[]> => ipcRenderer.invoke("api:getLogs"),
+    getHealth: (): Promise<{ alive: boolean; port: number }> => ipcRenderer.invoke("api:getHealth"),
+  },
+
   /** License management — backed by Electron safeStorage and node:os fingerprinting. */
   license: {
     fingerprint: (): Promise<{ fingerprint: string; osPlatform: string }> =>
