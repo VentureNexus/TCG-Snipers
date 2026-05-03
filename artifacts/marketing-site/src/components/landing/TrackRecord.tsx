@@ -1,11 +1,11 @@
 const ITEMS = [
   { title: "Mega Evolution 2.5 — Ascended Heroes Booster Bundle", count: "38K+", img: "products/mega-evolution-bundle.webp" },
-  { title: "Pokémon First Partner Illustration Collection Series 1", count: "25K+", img: "products/illustration-collection.webp" },
-  { title: "Mega Evolution Perfect Order Elite Trainer Box", count: "20K+", img: "products/elite-trainer-box.webp" },
-  { title: "Ascended Heroes Mega ex Random Collection Box", count: "13K+", img: "products/random-collection-box.webp" },
-  { title: "2025 Topps Chrome NFL Mega Box", count: "13K+", img: "products/football-mega-box.webp" },
-  { title: "Topps Chrome Football Blaster Box", count: "9K+", img: "products/football-blaster.webp" },
-  { title: "One Piece Card Game OP-09 Booster Display", count: "7K+", img: "products/pirate-booster.webp" },
+  { title: "Pokémon First Partner Illustration Collection Series 1", count: "25K+", img: "products/illustration-collection.png" },
+  { title: "Mega Evolution Perfect Order Elite Trainer Box", count: "20K+", img: "products/elite-trainer-box.jpg" },
+  { title: "Ascended Heroes Mega ex Random Collection Box", count: "13K+", img: "products/random-collection-box.jpg" },
+  { title: "2025 Topps Chrome NFL Mega Box", count: "13K+", img: "products/football-mega-box.jpg" },
+  { title: "Topps Chrome Football Blaster Box", count: "9K+", img: "products/football-blaster.jpg" },
+  { title: "One Piece Card Game OP-09 Booster Display", count: "7K+", img: "products/pirate-booster.jpg" },
   { title: "Lorcana Azurite Sea Booster Box", count: "5K+", img: "products/azurite-sea-booster.webp" },
 ];
 
