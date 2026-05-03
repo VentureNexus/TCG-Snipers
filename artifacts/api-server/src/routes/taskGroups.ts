@@ -52,7 +52,7 @@ router.post("/task-groups/:id/start", async (req, res): Promise<void> => {
   const groupTasks = await db
     .select()
     .from(tasksTable)
-    .where(and(eq(tasksTable.groupId, id), inArray(tasksTable.status, ["idle", "stopped", "failed"])));
+    .where(and(eq(tasksTable.groupId, id), eq(tasksTable.status, "idle")));
   let started = 0;
   let queued = 0;
   for (const task of groupTasks) {

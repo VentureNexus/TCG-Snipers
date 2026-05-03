@@ -54,7 +54,7 @@ router.post("/tasks/start-all", async (_req, res): Promise<void> => {
   const idleTasks = await db
     .select()
     .from(tasksTable)
-    .where(inArray(tasksTable.status, ["idle", "stopped", "failed"]));
+    .where(eq(tasksTable.status, "idle"));
   let started = 0;
   let queued = 0;
   for (const task of idleTasks) {
