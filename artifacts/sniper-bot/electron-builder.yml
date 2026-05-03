@@ -27,8 +27,11 @@ win:
     - target: nsis
       arch:
         - x64
+    - target: zip
+      arch:
+        - x64
   icon: build/icon.ico
-  artifactName: TCGSnipers-Setup-${version}.${ext}
+  artifactName: TCGSnipers-${version}-${arch}-${os}.${ext}
   # Code signing: electron-builder reads WIN_CSC_LINK (base64-encoded .pfx) and
   # WIN_CSC_KEY_PASSWORD from the environment. When these are absent (local dev)
   # the build proceeds unsigned — Windows Defender may warn but the app runs.
@@ -36,7 +39,11 @@ win:
 
 nsis:
   oneClick: false
-  allowToChangeInstallationDirectory: true
+  # Per-user install: no UAC elevation required. UAC prompts trigger the
+  # harshest SmartScreen tier; running without elevation avoids that.
+  perMachine: false
+  allowElevation: false
+  allowToChangeInstallationDirectory: false
   installerHeaderIcon: build/icon.ico
   createDesktopShortcut: true
   createStartMenuShortcut: true
