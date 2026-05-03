@@ -12,7 +12,7 @@ const RENDERER_PORT = 5173;
 let mainWindow: BrowserWindow | null = null;
 let apiProcess: ChildProcess | null = null;
 
-// ── Start Express API server ────────────────────────────────────
+// ── Start Express API server ────────────────────────────────────────────────
 function startApiServer(): Promise<void> {
   return new Promise((resolve, reject) => {
     const apiServerPath = isDev
@@ -39,12 +39,12 @@ function startApiServer(): Promise<void> {
     });
 
     apiProcess.on("error", reject);
-    // Resolve after 3 seconds max in case output doesn't contain expected string
+    // Fallback: resolve after 3 s if the startup log never fires
     setTimeout(resolve, 3000);
   });
 }
 
-// ── Create main BrowserWindow ───────────────────────────────────
+// ── BrowserWindow factory ────────────────────────────────────────────────────
 function createWindow(): void {
   mainWindow = new BrowserWindow({
     width: 1400,
@@ -60,35 +60,51 @@ function createWindow(): void {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,
-      webSecurity: !isDev,
+      // In production the renderer is a local file — web security can stay on.
+      webSecurity: true,
     },
   });
 
-  const url = isDev
-    ? `http://localhost:${RENDERER_PORT}`
-    : `http://localhost:${API_PORT}`;
-
-  mainWindow.loadURL(url);
+  if (isDev) {
+    // Development: Vite dev server handles HMR; proxy forwards /api to Express
+    mainWindow.loadURL(`http://localhost:${RENDERER_PORT}`);
+    mainWindow.webContents.openDevTools({ mode: "detach" });
+  } else {
+    // Production: load the compiled renderer bundle directly from disk.
+    // API calls go to http://localhost:<API_PORT> — the renderer calls
+    // window.electronAPI.getApiBaseUrl() on startup and passes it to setBaseUrl().
+    const indexHtml = path.join(
+      __dirname,
+      "..",    // electron/dist  → renderer root
+      "..",    // renderer root
+      "dist",  // Vite output directory
+      "index.html",
+    );
+    mainWindow.loadFile(indexHtml);
+  }
 
   mainWindow.once("ready-to-show", () => {
     mainWindow?.show();
-    if (isDev) mainWindow?.webContents.openDevTools({ mode: "detach" });
   });
 
-  mainWindow.on("closed", () => { mainWindow = null; });
+  mainWindow.on("closed", () => {
+    mainWindow = null;
+  });
 
-  // Open external links in the system browser
-  mainWindow.webContents.setWindowOpenHandler(({ url: href }) => {
-    shell.openExternal(href);
+  // Intercept _blank links — open in the OS browser, not in Electron
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    shell.openExternal(url);
     return { action: "deny" };
   });
 }
 
-// ── IPC handlers ────────────────────────────────────────────────
+// ── IPC handlers ─────────────────────────────────────────────────────────────
 ipcMain.handle("app:version", () => app.getVersion());
 ipcMain.handle("app:platform", () => process.platform);
+// Renderer calls this to discover where the local API is running
+ipcMain.handle("app:apiBaseUrl", () => `http://localhost:${API_PORT}`);
 
-// ── App lifecycle ───────────────────────────────────────────────
+// ── App lifecycle ────────────────────────────────────────────────────────────
 app.whenReady().then(async () => {
   await startApiServer();
   createWindow();

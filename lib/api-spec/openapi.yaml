@@ -172,6 +172,25 @@ paths:
                 $ref: "#/components/schemas/CreditCard"
 
   /credit-cards/{id}:
+    get:
+      operationId: getCreditCard
+      tags: [credit-cards]
+      summary: Get a credit card by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Credit card
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreditCard"
+        "404":
+          description: Not found
     patch:
       operationId: updateCreditCard
       tags: [credit-cards]
@@ -245,6 +264,25 @@ paths:
                 $ref: "#/components/schemas/Proxy"
 
   /proxies/{id}:
+    get:
+      operationId: getProxy
+      tags: [proxies]
+      summary: Get a proxy by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Proxy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Proxy"
+        "404":
+          description: Not found
     patch:
       operationId: updateProxy
       tags: [proxies]
@@ -337,6 +375,25 @@ paths:
                 $ref: "#/components/schemas/TaskGroup"
 
   /task-groups/{id}:
+    get:
+      operationId: getTaskGroup
+      tags: [task-groups]
+      summary: Get a task group by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Task group
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaskGroup"
+        "404":
+          description: Not found
     patch:
       operationId: updateTaskGroup
       tags: [task-groups]
@@ -581,6 +638,65 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/CheckoutResult"
+
+  /checkout-results/{id}:
+    get:
+      operationId: getCheckoutResult
+      tags: [checkout-results]
+      summary: Get a checkout result by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Checkout result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheckoutResult"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateCheckoutResult
+      tags: [checkout-results]
+      summary: Update a checkout result
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateCheckoutResultBody"
+      responses:
+        "200":
+          description: Updated checkout result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheckoutResult"
+        "404":
+          description: Not found
+    delete:
+      operationId: deleteCheckoutResult
+      tags: [checkout-results]
+      summary: Delete a checkout result
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
 
   # ── ANALYTICS ─────────────────────────────────────────────────────────────
   /analytics/summary:
@@ -1210,6 +1326,22 @@ components:
       required:
         - success
         - retailer
+
+    UpdateCheckoutResultBody:
+      type: object
+      properties:
+        success:
+          type: boolean
+        productName:
+          type: string
+        productImage:
+          type: string
+        price:
+          type: string
+        retailer:
+          type: string
+        orderNumber:
+          type: string
 
     # ── ANALYTICS ─────────────────────────────────────────────────────────────
     AnalyticsSummary:

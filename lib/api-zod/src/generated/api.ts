@@ -229,6 +229,26 @@ export const CreateCreditCardBody = zod.object({
 });
 
 /**
+ * @summary Get a credit card by ID
+ */
+export const GetCreditCardParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetCreditCardResponse = zod.object({
+  id: zod.number(),
+  profileId: zod.number(),
+  cardNickname: zod.string(),
+  cardholderName: zod.string(),
+  lastFour: zod.string(),
+  cardType: zod.string(),
+  expiryMonth: zod.string(),
+  expiryYear: zod.string(),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+});
+
+/**
  * @summary Update a credit card
  */
 export const UpdateCreditCardParams = zod.object({
@@ -291,6 +311,26 @@ export const CreateProxyBody = zod.object({
   username: zod.string().optional(),
   password: zod.string().optional(),
   isActive: zod.boolean().optional(),
+});
+
+/**
+ * @summary Get a proxy by ID
+ */
+export const GetProxyParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetProxyResponse = zod.object({
+  id: zod.number(),
+  label: zod.string(),
+  host: zod.string(),
+  port: zod.string(),
+  username: zod.string(),
+  isActive: zod.boolean(),
+  lastTestStatus: zod.string(),
+  lastTestLatency: zod.string(),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
 });
 
 /**
@@ -363,6 +403,21 @@ export const ListTaskGroupsResponse = zod.array(ListTaskGroupsResponseItem);
 export const CreateTaskGroupBody = zod.object({
   name: zod.string(),
   retailer: zod.string(),
+});
+
+/**
+ * @summary Get a task group by ID
+ */
+export const GetTaskGroupParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetTaskGroupResponse = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  retailer: zod.string(),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
 });
 
 /**
@@ -604,6 +659,64 @@ export const CreateCheckoutResultBody = zod.object({
   orderNumber: zod.string().optional(),
   errorMessage: zod.string().optional(),
   profileId: zod.number().optional(),
+});
+
+/**
+ * @summary Get a checkout result by ID
+ */
+export const GetCheckoutResultParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetCheckoutResultResponse = zod.object({
+  id: zod.number(),
+  taskId: zod.number().nullish(),
+  success: zod.boolean(),
+  productName: zod.string(),
+  productImage: zod.string(),
+  price: zod.string().nullish(),
+  retailer: zod.string(),
+  orderNumber: zod.string(),
+  errorMessage: zod.string(),
+  profileId: zod.number().nullish(),
+  createdAt: zod.string(),
+});
+
+/**
+ * @summary Update a checkout result
+ */
+export const UpdateCheckoutResultParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateCheckoutResultBody = zod.object({
+  success: zod.boolean().optional(),
+  productName: zod.string().optional(),
+  productImage: zod.string().optional(),
+  price: zod.string().optional(),
+  retailer: zod.string().optional(),
+  orderNumber: zod.string().optional(),
+});
+
+export const UpdateCheckoutResultResponse = zod.object({
+  id: zod.number(),
+  taskId: zod.number().nullish(),
+  success: zod.boolean(),
+  productName: zod.string(),
+  productImage: zod.string(),
+  price: zod.string().nullish(),
+  retailer: zod.string(),
+  orderNumber: zod.string(),
+  errorMessage: zod.string(),
+  profileId: zod.number().nullish(),
+  createdAt: zod.string(),
+});
+
+/**
+ * @summary Delete a checkout result
+ */
+export const DeleteCheckoutResultParams = zod.object({
+  id: zod.coerce.number(),
 });
 
 /**

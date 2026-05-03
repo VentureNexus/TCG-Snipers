@@ -37,4 +37,3 @@ channel = "stable-25_05"
 [userenv]
 
 [userenv.shared]
-ENCRYPTION_KEY = "sniper-bot-aes256gcm-encryption-key"

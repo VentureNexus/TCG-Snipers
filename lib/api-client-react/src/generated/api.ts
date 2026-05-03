@@ -38,6 +38,7 @@ import type {
   ProxyTestResult,
   Task,
   TaskGroup,
+  UpdateCheckoutResultBody,
   UpdateCreditCardBody,
   UpdateProfileBody,
   UpdateProxyBody,
@@ -730,6 +731,93 @@ export const useCreateCreditCard = <
 };
 
 /**
+ * @summary Get a credit card by ID
+ */
+export const getGetCreditCardUrl = (id: number) => {
+  return `/api/credit-cards/${id}`;
+};
+
+export const getCreditCard = async (
+  id: number,
+  options?: RequestInit,
+): Promise<CreditCard> => {
+  return customFetch<CreditCard>(getGetCreditCardUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetCreditCardQueryKey = (id: number) => {
+  return [`/api/credit-cards/${id}`] as const;
+};
+
+export const getGetCreditCardQueryOptions = <
+  TData = Awaited<ReturnType<typeof getCreditCard>>,
+  TError = ErrorType<void>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getCreditCard>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetCreditCardQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getCreditCard>>> = ({
+    signal,
+  }) => getCreditCard(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getCreditCard>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetCreditCardQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getCreditCard>>
+>;
+export type GetCreditCardQueryError = ErrorType<void>;
+
+/**
+ * @summary Get a credit card by ID
+ */
+
+export function useGetCreditCard<
+  TData = Awaited<ReturnType<typeof getCreditCard>>,
+  TError = ErrorType<void>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getCreditCard>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetCreditCardQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
  * @summary Update a credit card
  */
 export const getUpdateCreditCardUrl = (id: number) => {
@@ -1058,6 +1146,91 @@ export const useCreateProxy = <
 > => {
   return useMutation(getCreateProxyMutationOptions(options));
 };
+
+/**
+ * @summary Get a proxy by ID
+ */
+export const getGetProxyUrl = (id: number) => {
+  return `/api/proxies/${id}`;
+};
+
+export const getProxy = async (
+  id: number,
+  options?: RequestInit,
+): Promise<Proxy> => {
+  return customFetch<Proxy>(getGetProxyUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetProxyQueryKey = (id: number) => {
+  return [`/api/proxies/${id}`] as const;
+};
+
+export const getGetProxyQueryOptions = <
+  TData = Awaited<ReturnType<typeof getProxy>>,
+  TError = ErrorType<void>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getProxy>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetProxyQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getProxy>>> = ({
+    signal,
+  }) => getProxy(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof getProxy>>, TError, TData> & {
+    queryKey: QueryKey;
+  };
+};
+
+export type GetProxyQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getProxy>>
+>;
+export type GetProxyQueryError = ErrorType<void>;
+
+/**
+ * @summary Get a proxy by ID
+ */
+
+export function useGetProxy<
+  TData = Awaited<ReturnType<typeof getProxy>>,
+  TError = ErrorType<void>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getProxy>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetProxyQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 /**
  * @summary Update a proxy
@@ -1474,6 +1647,93 @@ export const useCreateTaskGroup = <
 > => {
   return useMutation(getCreateTaskGroupMutationOptions(options));
 };
+
+/**
+ * @summary Get a task group by ID
+ */
+export const getGetTaskGroupUrl = (id: number) => {
+  return `/api/task-groups/${id}`;
+};
+
+export const getTaskGroup = async (
+  id: number,
+  options?: RequestInit,
+): Promise<TaskGroup> => {
+  return customFetch<TaskGroup>(getGetTaskGroupUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetTaskGroupQueryKey = (id: number) => {
+  return [`/api/task-groups/${id}`] as const;
+};
+
+export const getGetTaskGroupQueryOptions = <
+  TData = Awaited<ReturnType<typeof getTaskGroup>>,
+  TError = ErrorType<void>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getTaskGroup>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetTaskGroupQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getTaskGroup>>> = ({
+    signal,
+  }) => getTaskGroup(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getTaskGroup>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetTaskGroupQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getTaskGroup>>
+>;
+export type GetTaskGroupQueryError = ErrorType<void>;
+
+/**
+ * @summary Get a task group by ID
+ */
+
+export function useGetTaskGroup<
+  TData = Awaited<ReturnType<typeof getTaskGroup>>,
+  TError = ErrorType<void>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getTaskGroup>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetTaskGroupQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 /**
  * @summary Update a task group
@@ -2589,6 +2849,265 @@ export const useCreateCheckoutResult = <
   TContext
 > => {
   return useMutation(getCreateCheckoutResultMutationOptions(options));
+};
+
+/**
+ * @summary Get a checkout result by ID
+ */
+export const getGetCheckoutResultUrl = (id: number) => {
+  return `/api/checkout-results/${id}`;
+};
+
+export const getCheckoutResult = async (
+  id: number,
+  options?: RequestInit,
+): Promise<CheckoutResult> => {
+  return customFetch<CheckoutResult>(getGetCheckoutResultUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetCheckoutResultQueryKey = (id: number) => {
+  return [`/api/checkout-results/${id}`] as const;
+};
+
+export const getGetCheckoutResultQueryOptions = <
+  TData = Awaited<ReturnType<typeof getCheckoutResult>>,
+  TError = ErrorType<void>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getCheckoutResult>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetCheckoutResultQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getCheckoutResult>>
+  > = ({ signal }) => getCheckoutResult(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getCheckoutResult>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetCheckoutResultQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getCheckoutResult>>
+>;
+export type GetCheckoutResultQueryError = ErrorType<void>;
+
+/**
+ * @summary Get a checkout result by ID
+ */
+
+export function useGetCheckoutResult<
+  TData = Awaited<ReturnType<typeof getCheckoutResult>>,
+  TError = ErrorType<void>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getCheckoutResult>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetCheckoutResultQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Update a checkout result
+ */
+export const getUpdateCheckoutResultUrl = (id: number) => {
+  return `/api/checkout-results/${id}`;
+};
+
+export const updateCheckoutResult = async (
+  id: number,
+  updateCheckoutResultBody: UpdateCheckoutResultBody,
+  options?: RequestInit,
+): Promise<CheckoutResult> => {
+  return customFetch<CheckoutResult>(getUpdateCheckoutResultUrl(id), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateCheckoutResultBody),
+  });
+};
+
+export const getUpdateCheckoutResultMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateCheckoutResult>>,
+    TError,
+    { id: number; data: BodyType<UpdateCheckoutResultBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateCheckoutResult>>,
+  TError,
+  { id: number; data: BodyType<UpdateCheckoutResultBody> },
+  TContext
+> => {
+  const mutationKey = ["updateCheckoutResult"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateCheckoutResult>>,
+    { id: number; data: BodyType<UpdateCheckoutResultBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateCheckoutResult(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateCheckoutResultMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateCheckoutResult>>
+>;
+export type UpdateCheckoutResultMutationBody =
+  BodyType<UpdateCheckoutResultBody>;
+export type UpdateCheckoutResultMutationError = ErrorType<void>;
+
+/**
+ * @summary Update a checkout result
+ */
+export const useUpdateCheckoutResult = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateCheckoutResult>>,
+    TError,
+    { id: number; data: BodyType<UpdateCheckoutResultBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateCheckoutResult>>,
+  TError,
+  { id: number; data: BodyType<UpdateCheckoutResultBody> },
+  TContext
+> => {
+  return useMutation(getUpdateCheckoutResultMutationOptions(options));
+};
+
+/**
+ * @summary Delete a checkout result
+ */
+export const getDeleteCheckoutResultUrl = (id: number) => {
+  return `/api/checkout-results/${id}`;
+};
+
+export const deleteCheckoutResult = async (
+  id: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeleteCheckoutResultUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteCheckoutResultMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteCheckoutResult>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteCheckoutResult>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["deleteCheckoutResult"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteCheckoutResult>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deleteCheckoutResult(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteCheckoutResultMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteCheckoutResult>>
+>;
+
+export type DeleteCheckoutResultMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Delete a checkout result
+ */
+export const useDeleteCheckoutResult = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteCheckoutResult>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteCheckoutResult>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getDeleteCheckoutResultMutationOptions(options));
 };
 
 /**

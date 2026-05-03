@@ -269,6 +269,15 @@ export interface CreateCheckoutResultBody {
   profileId?: number;
 }
 
+export interface UpdateCheckoutResultBody {
+  success?: boolean;
+  productName?: string;
+  productImage?: string;
+  price?: string;
+  retailer?: string;
+  orderNumber?: string;
+}
+
 export interface AnalyticsSummary {
   totalCheckouts: number;
   totalFailures: number;
