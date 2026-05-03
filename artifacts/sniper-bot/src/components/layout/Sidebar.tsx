@@ -89,7 +89,7 @@ export function Sidebar() {
           <HelpCircle className="w-5 h-5" />
           <span className={`text-sm whitespace-nowrap overflow-hidden transition-all duration-200 ${collapsed ? 'w-0 opacity-0' : 'w-auto opacity-100'}`}>Support</span>
         </Link>
-        <div className={`text-xs text-muted-foreground/50 font-mono mt-2 whitespace-nowrap overflow-hidden transition-all duration-200 ${collapsed ? 'w-0 opacity-0 h-0' : 'w-auto opacity-100'}`}>v1.0.8</div>
+        <div className={`text-xs text-muted-foreground/50 font-mono mt-2 whitespace-nowrap overflow-hidden transition-all duration-200 ${collapsed ? 'w-0 opacity-0 h-0' : 'w-auto opacity-100'}`}>v1.0.9</div>
       </div>
     </div>
   );

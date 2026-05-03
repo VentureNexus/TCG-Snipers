@@ -9,7 +9,7 @@ import {
 } from "@workspace/api-client-react";
 
 const APP_NAME = "TCG SNIPERS";
-const APP_VERSION = "v1.0.8";
+const APP_VERSION = "v1.0.9";
 
 const PAGE_TITLES: Record<string, string> = {
   "/": "Dashboard",
