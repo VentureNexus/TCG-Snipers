@@ -59,6 +59,7 @@ import {
   XCircle,
   Clock,
   Loader2,
+  Search,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -396,6 +397,7 @@ export default function ProxiesPage() {
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
   const [testingIds, setTestingIds] = useState<Set<number>>(new Set());
   const [inlineResults, setInlineResults] = useState<Map<number, TestResult>>(new Map());
+  const [searchQuery, setSearchQuery] = useState("");
 
   function openCreate() {
     setEditingProxy(null);
@@ -461,9 +463,18 @@ export default function ProxiesPage() {
     );
   }
 
-  const passCount = proxies.filter((p) => p.lastTestStatus === "pass").length;
-  const failCount = proxies.filter((p) => p.lastTestStatus === "fail").length;
-  const untestedCount = proxies.filter((p) => !p.lastTestStatus || p.lastTestStatus === "untested").length;
+  const q = searchQuery.trim().toLowerCase();
+  const filteredProxies = q
+    ? proxies.filter(
+        (p) =>
+          p.host.toLowerCase().includes(q) ||
+          (p.label ?? "").toLowerCase().includes(q)
+      )
+    : proxies;
+
+  const passCount = filteredProxies.filter((p) => p.lastTestStatus === "pass").length;
+  const failCount = filteredProxies.filter((p) => p.lastTestStatus === "fail").length;
+  const untestedCount = filteredProxies.filter((p) => !p.lastTestStatus || p.lastTestStatus === "untested").length;
 
   return (
     <div className="space-y-6">
@@ -472,7 +483,7 @@ export default function ProxiesPage() {
         <div>
           <h1 className="text-xl font-semibold">Proxies</h1>
           <div className="flex items-center gap-3 mt-1">
-            <span className="text-xs text-muted-foreground">{proxies.length} total</span>
+            <span className="text-xs text-muted-foreground">{filteredProxies.length}{q ? ` of ${proxies.length}` : ""} total</span>
             {passCount > 0 && (
               <span className="text-xs text-emerald-400">{passCount} passing</span>
             )}
@@ -504,6 +515,20 @@ export default function ProxiesPage() {
           </Button>
         </div>
       </div>
+
+      {/* Search */}
+      {proxies.length > 0 && (
+        <div className="relative max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+          <Input
+            className="pl-9 h-9 text-sm"
+            placeholder="Search by host or label…"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            data-testid="input-search-proxies"
+          />
+        </div>
+      )}
 
       {/* Table */}
       <div className="rounded-lg border border-border/50 overflow-hidden glass-card">
@@ -549,7 +574,18 @@ export default function ProxiesPage() {
                 </td>
               </tr>
             )}
-            {proxies.map((proxy) => {
+            {proxies.length > 0 && filteredProxies.length === 0 && (
+              <tr>
+                <td colSpan={5} className="px-4 py-12 text-center text-muted-foreground">
+                  <div className="flex flex-col items-center gap-2">
+                    <Search className="w-8 h-8 opacity-15" />
+                    <p className="font-medium">No proxies match "{searchQuery}"</p>
+                    <p className="text-xs text-muted-foreground/60">Try a different host or label.</p>
+                  </div>
+                </td>
+              </tr>
+            )}
+            {filteredProxies.map((proxy) => {
               const isTesting = testingIds.has(proxy.id);
               const inlineResult = inlineResults.get(proxy.id);
 

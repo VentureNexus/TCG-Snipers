@@ -73,6 +73,7 @@ import {
   Zap,
   X,
   Loader2,
+  Search,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -299,6 +300,8 @@ function ProfileFormDialog({
   const updateProfile = useUpdateProfile();
   const deleteCreditCard = useDeleteCreditCard();
 
+  const [deleteCardConfirmId, setDeleteCardConfirmId] = useState<number | null>(null);
+
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
     defaultValues: EMPTY_PROFILE,
@@ -342,11 +345,22 @@ function ProfileFormDialog({
   }, [open, editingProfile?.id]);
 
   function handleDeleteCard(cardId: number) {
+    setDeleteCardConfirmId(cardId);
+  }
+
+  function confirmDeleteCard() {
+    if (deleteCardConfirmId === null) return;
     deleteCreditCard.mutate(
-      { id: cardId },
+      { id: deleteCardConfirmId },
       {
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: getListCreditCardsQueryKey() }),
-        onError: () => toast({ title: "Failed to remove card", variant: "destructive" }),
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getListCreditCardsQueryKey() });
+          setDeleteCardConfirmId(null);
+        },
+        onError: () => {
+          toast({ title: "Failed to remove card", variant: "destructive" });
+          setDeleteCardConfirmId(null);
+        },
       }
     );
   }
@@ -672,6 +686,36 @@ function ProfileFormDialog({
           </form>
         </Form>
       </DialogContent>
+
+      {/* Card removal confirmation */}
+      <AlertDialog
+        open={deleteCardConfirmId !== null}
+        onOpenChange={(open) => { if (!open) setDeleteCardConfirmId(null); }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove Card?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {(() => {
+                const card = profileCards.find((c) => c.id === deleteCardConfirmId);
+                return card
+                  ? `Remove ••••\u00a0${card.lastFour} from this profile? This cannot be undone.`
+                  : "Remove this card from the profile? This cannot be undone.";
+              })()}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-delete-card-dialog">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={confirmDeleteCard}
+              data-testid="button-confirm-delete-card-dialog"
+            >
+              Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }
@@ -933,6 +977,8 @@ export default function ProfilesPage() {
   const [editingProfile, setEditingProfile] = useState<Profile | null>(null);
   const [addCardProfileId, setAddCardProfileId] = useState<number | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
+  const [deleteCardConfirmId, setDeleteCardConfirmId] = useState<number | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
   const [exporting, setExporting] = useState(false);
   const [importing, setImporting] = useState(false);
   const importRef = useRef<HTMLInputElement>(null);
@@ -993,14 +1039,23 @@ export default function ProfilesPage() {
   }
 
   function handleDeleteCard(cardId: number) {
+    setDeleteCardConfirmId(cardId);
+  }
+
+  function confirmDeleteCard() {
+    if (deleteCardConfirmId === null) return;
     deleteCreditCard.mutate(
-      { id: cardId },
+      { id: deleteCardConfirmId },
       {
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: getListCreditCardsQueryKey() });
           toast({ title: "Card removed" });
+          setDeleteCardConfirmId(null);
         },
-        onError: () => toast({ title: "Failed to remove card", variant: "destructive" }),
+        onError: () => {
+          toast({ title: "Failed to remove card", variant: "destructive" });
+          setDeleteCardConfirmId(null);
+        },
       }
     );
   }
@@ -1069,6 +1124,22 @@ export default function ProfilesPage() {
   const addCardProfile = profiles.find((p) => p.id === addCardProfileId) ?? null;
   const addCardCards = allCards.filter((c) => c.profileId === addCardProfileId);
 
+  const q = searchQuery.trim().toLowerCase();
+  const filteredProfiles = q
+    ? profiles.filter((p) => {
+        if (p.name.toLowerCase().includes(q)) return true;
+        if (p.email.toLowerCase().includes(q)) return true;
+        const cards = allCards.filter((c) => c.profileId === p.id);
+        return cards.some(
+          (c) =>
+            c.cardholderName.toLowerCase().includes(q) ||
+            (c.cardNickname ?? "").toLowerCase().includes(q)
+        );
+      })
+    : profiles;
+
+  const deleteCardConfirmCard = allCards.find((c) => c.id === deleteCardConfirmId) ?? null;
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -1093,7 +1164,21 @@ export default function ProfilesPage() {
         </div>
       </div>
 
-      {/* Empty state */}
+      {/* Search */}
+      {profiles.length > 0 && (
+        <div className="relative max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+          <Input
+            className="pl-9 h-9 text-sm"
+            placeholder="Search by name, email, or cardholder…"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            data-testid="input-search-profiles"
+          />
+        </div>
+      )}
+
+      {/* Empty state — no profiles at all */}
       {!isLoading && profiles.length === 0 && (
         <div className="py-16 text-center glass-card rounded-lg border border-border/50">
           <User className="w-12 h-12 mx-auto opacity-15 mb-4" />
@@ -1107,10 +1192,19 @@ export default function ProfilesPage() {
         </div>
       )}
 
+      {/* No search results */}
+      {profiles.length > 0 && filteredProfiles.length === 0 && (
+        <div className="py-12 text-center glass-card rounded-lg border border-border/50">
+          <Search className="w-10 h-10 mx-auto opacity-15 mb-3" />
+          <p className="text-muted-foreground font-medium">No profiles match "{searchQuery}"</p>
+          <p className="text-xs text-muted-foreground/60 mt-1">Try a different name, email, or cardholder name.</p>
+        </div>
+      )}
+
       {/* Profile grid */}
-      {profiles.length > 0 && (
+      {filteredProfiles.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
-          {profiles.map((profile) => {
+          {filteredProfiles.map((profile) => {
             const profileCards = allCards.filter((c) => c.profileId === profile.id);
             return (
               <ProfileCard
@@ -1164,6 +1258,33 @@ export default function ProfilesPage() {
               data-testid="button-confirm-delete-profile"
             >
               Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete card confirm (from profile card grid) */}
+      <AlertDialog
+        open={deleteCardConfirmId !== null}
+        onOpenChange={(open) => { if (!open) setDeleteCardConfirmId(null); }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove Card?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deleteCardConfirmCard
+                ? `Remove ••••\u00a0${deleteCardConfirmCard.lastFour} from this profile? This cannot be undone.`
+                : "Remove this card from the profile? This cannot be undone."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-delete-card">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={confirmDeleteCard}
+              data-testid="button-confirm-delete-card"
+            >
+              Remove
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
