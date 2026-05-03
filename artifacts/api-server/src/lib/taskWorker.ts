@@ -190,7 +190,7 @@ export function startTask(task: TaskRow): { started: boolean; queued: boolean } 
   return { started: false, queued: true };
 }
 
-export function stopTask(taskId: number): void {
+export async function stopTask(taskId: number): Promise<void> {
   const token = cancellationTokens.get(taskId);
   if (token) {
     token.cancelled = true;
@@ -198,13 +198,13 @@ export function stopTask(taskId: number): void {
   }
   const queueIdx = pendingQueue.findIndex((t) => t.id === taskId);
   if (queueIdx !== -1) pendingQueue.splice(queueIdx, 1);
+  await db.update(tasksTable).set({ status: "stopped" }).where(eq(tasksTable.id, taskId));
+  broadcastStatus(taskId, "stopped");
 }
 
 export async function stopTasks(taskIds: number[]): Promise<number[]> {
   if (taskIds.length === 0) return [];
-  for (const id of taskIds) stopTask(id);
-  await db.update(tasksTable).set({ status: "stopped" }).where(inArray(tasksTable.id, taskIds));
-  for (const id of taskIds) broadcastStatus(id, "stopped");
+  await Promise.all(taskIds.map((id) => stopTask(id)));
   return taskIds;
 }
 
@@ -212,10 +212,6 @@ export async function stopAllRunning(extraIds: number[] = []): Promise<number[]>
   const runningIds = Array.from(cancellationTokens.keys());
   const allIds = Array.from(new Set([...runningIds, ...extraIds]));
   pendingQueue.splice(0);
-  for (const id of allIds) stopTask(id);
-  if (allIds.length > 0) {
-    await db.update(tasksTable).set({ status: "stopped" }).where(inArray(tasksTable.id, allIds));
-    for (const id of allIds) broadcastStatus(id, "stopped");
-  }
+  await Promise.all(allIds.map((id) => stopTask(id)));
   return allIds;
 }

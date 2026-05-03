@@ -97,4 +97,7 @@ export const licenseApi = {
   heartbeat(args: { token: string; fingerprint: string }): Promise<{ status: string; currentPeriodEnd: string | null }> {
     return apiCall("/license/heartbeat", { method: "POST", body: JSON.stringify(args) });
   },
+  deactivateDevice(args: { token: string }): Promise<{ ok: boolean }> {
+    return apiCall("/license/deactivate-device", { method: "POST", body: JSON.stringify(args) });
+  },
 };

@@ -30,6 +30,19 @@ const HEARTBEAT_MS = 5 * 60 * 1000;
 const PORTAL_URL =
   (import.meta.env.VITE_MARKETING_SITE_URL as string | undefined) ?? "https://tcgsnipers.com";
 
+async function stopAllTasks(): Promise<void> {
+  try {
+    const apiBase = window.electronAPI ? await window.electronAPI.getApiBaseUrl() : "";
+    const res = await fetch(`${apiBase}/api/tasks/stop-all`, { method: "POST" });
+    if (!res.ok) {
+      console.warn(`[LicenseGate] stop-all returned HTTP ${res.status} — tasks may still be running`);
+    }
+  } catch (err) {
+    // Non-fatal — UI transition must not be blocked by this
+    console.warn("[LicenseGate] stop-all request failed:", err);
+  }
+}
+
 export function LicenseGate({ children }: { children: ReactNode }) {
   const [state, setState] = useState<GateState>({ kind: "loading" });
   const fingerprintRef = useRef<{ fingerprint: string; osPlatform: string } | null>(null);
@@ -52,6 +65,8 @@ export function LicenseGate({ children }: { children: ReactNode }) {
         if (r.status === "active") {
           setState({ kind: "active", email: stored.email, status: r.status });
         } else {
+          await stopAllTasks();
+          if (!alive) return;
           setState({
             kind: "blocked",
             email: stored.email,
@@ -91,6 +106,14 @@ export function LicenseGate({ children }: { children: ReactNode }) {
   }, []);
 
   async function signOut() {
+    try {
+      const stored = await loadStoredLicense();
+      if (stored) {
+        await licenseApi.deactivateDevice({ token: stored.token });
+      }
+    } catch {
+      // Non-fatal — always clear local storage so user is not stuck
+    }
     await clearStoredLicense();
     setState({ kind: "signed-out" });
   }

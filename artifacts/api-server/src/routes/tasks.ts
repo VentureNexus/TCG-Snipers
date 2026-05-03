@@ -3,7 +3,7 @@ import { eq, inArray } from "drizzle-orm";
 import { db, tasksTable } from "@workspace/db";
 import { ListTasksQueryParams, CreateTaskBody, GetTaskParams, UpdateTaskParams, UpdateTaskBody, DeleteTaskParams, StartTaskParams, StopTaskParams } from "@workspace/api-zod";
 import { startTask, stopTask, stopAllRunning } from "../lib/taskWorker";
-import { broadcastStatus, clearLogBuffer } from "../lib/websocket";
+import { clearLogBuffer } from "../lib/websocket";
 
 const router: IRouter = Router();
 
@@ -89,14 +89,9 @@ router.post("/tasks/:id/start", async (req, res): Promise<void> => {
 router.post("/tasks/:id/stop", async (req, res): Promise<void> => {
   const params = StopTaskParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
-  stopTask(params.data.id);
-  const [task] = await db
-    .update(tasksTable)
-    .set({ status: "stopped" })
-    .where(eq(tasksTable.id, params.data.id))
-    .returning();
+  await stopTask(params.data.id);
+  const [task] = await db.select().from(tasksTable).where(eq(tasksTable.id, params.data.id));
   if (!task) { res.status(404).json({ error: "Task not found" }); return; }
-  broadcastStatus(params.data.id, "stopped");
   res.json(task);
 });
 

@@ -70,6 +70,26 @@ router.post("/activate", async (req, res) => {
   res.json({ token, status: license.status, currentPeriodEnd: license.currentPeriodEnd });
 });
 
+const deactivateSchema = z.object({
+  token: z.string(),
+});
+
+router.post("/deactivate-device", async (req, res) => {
+  const parsed = deactivateSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid request body" });
+    return;
+  }
+  const payload = verifyLicenseToken(parsed.data.token);
+  if (!payload) {
+    res.status(401).json({ error: "Token invalid or expired." });
+    return;
+  }
+  await db.delete(devicesTable).where(eq(devicesTable.id, payload.deviceId));
+  logger.info({ licenseId: payload.licenseId, deviceId: payload.deviceId }, "Device self-deactivated on sign-out");
+  res.json({ ok: true });
+});
+
 const heartbeatSchema = z.object({
   token: z.string(),
   fingerprint: z.string().min(16),
