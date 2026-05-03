@@ -60,14 +60,18 @@ function resolveChromiumPath(): string | undefined {
   if (process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH) {
     return process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH;
   }
-  // Try well-known binary names on PATH
+  // Try well-known system binary names on PATH
   for (const bin of ["chromium", "chromium-browser", "google-chrome", "google-chrome-stable"]) {
     try {
       const p = execSync(`which ${bin} 2>/dev/null`, { encoding: "utf8" }).trim();
       if (p) return p;
     } catch (_) {}
   }
-  // Fall back to Playwright's own managed executable (works if `playwright install chromium` ran)
+  // Fall back to Playwright's own managed binary (works if `playwright install chromium` was run)
+  try {
+    const p = chromium.executablePath();
+    if (p) return p;
+  } catch (_) {}
   return undefined;
 }
 
@@ -76,7 +80,7 @@ export async function createBrowser(proxy?: ProxyConfig | null): Promise<Browser
   const executablePath = resolveChromiumPath();
   if (!executablePath) {
     throw new Error(
-      "Chromium not found. Install it via `playwright install chromium` or set PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH.",
+      "Chromium not found. Run `playwright install chromium` or set PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH.",
     );
   }
   return chromium.launch({
