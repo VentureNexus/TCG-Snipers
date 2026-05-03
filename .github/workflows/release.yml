@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Release tag (e.g. v1.0.1)"
+        description: "Release tag (e.g. v1.0.5)"
         required: true
         type: string
 
@@ -27,22 +27,8 @@ jobs:
         include:
           - os: windows-latest
             target: dist:win
-            artifacts: |
-              artifacts/sniper-bot/release/TCGSnipers-Setup-*.exe
-              artifacts/sniper-bot/release/TCGSnipers-Setup-*.exe.blockmap
-              artifacts/sniper-bot/release/latest.yml
           - os: macos-latest
             target: dist:mac
-            artifacts: |
-              artifacts/sniper-bot/release/TCGSnipers-*-x64.dmg
-              artifacts/sniper-bot/release/TCGSnipers-*-arm64.dmg
-              artifacts/sniper-bot/release/TCGSnipers-*-x64.dmg.blockmap
-              artifacts/sniper-bot/release/TCGSnipers-*-arm64.dmg.blockmap
-              artifacts/sniper-bot/release/TCGSnipers-*-x64.zip
-              artifacts/sniper-bot/release/TCGSnipers-*-arm64.zip
-              artifacts/sniper-bot/release/TCGSnipers-*-x64.zip.blockmap
-              artifacts/sniper-bot/release/TCGSnipers-*-arm64.zip.blockmap
-              artifacts/sniper-bot/release/latest-mac.yml
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -59,11 +45,10 @@ jobs:
           cache: pnpm
 
       # The repo's pnpm-workspace.yaml strips every non-linux-x64 native
-      # binary (esbuild, rollup, lightningcss, @tailwindcss/oxide, …) because
-      # Replit only runs on linux-x64. On Windows/macOS CI we need those
-      # binaries back, so we drop the entire `overrides:` block before
-      # installing. We also drop the lockfile so it can be regenerated for
-      # the host platform (otherwise frozen-lockfile rejects the change).
+      # binary because Replit only runs on linux-x64. On Windows/macOS CI
+      # we need those binaries back, so we drop the entire `overrides:`
+      # block before installing. We also drop the lockfile so it can be
+      # regenerated for the host platform.
       - name: Strip Replit-only overrides for cross-platform install
         shell: bash
         run: |
@@ -71,8 +56,6 @@ jobs:
             const fs = require('fs');
             const path = 'pnpm-workspace.yaml';
             const src = fs.readFileSync(path, 'utf8');
-            // Remove the top-level 'overrides:' block (key + indented body)
-            // until the next top-level key or EOF.
             const out = src.replace(/^overrides:\n(?:[ \t].*\n?)*/gm, '');
             fs.writeFileSync(path, out);
             console.log('Removed overrides block. New file size:', out.length);
@@ -93,22 +76,16 @@ jobs:
       - name: Compile Electron main process
         run: pnpm --filter @workspace/sniper-bot run electron:compile
 
-      - name: Build installer
+      - name: Build and publish installer
         run: pnpm --filter @workspace/sniper-bot run ${{ matrix.target }}
         env:
           # Skip code signing — we ship unsigned installers for now.
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
+          # electron-builder uploads the installers + auto-update
+          # manifests (latest.yml / latest-mac.yml + .blockmap files)
+          # directly to the GitHub release matching the pushed tag.
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: List built artifacts
         shell: bash
         run: ls -la artifacts/sniper-bot/release/
-
-      - name: Upload to GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ github.ref_name || inputs.tag }}
-          files: ${{ matrix.artifacts }}
-          fail_on_unmatched_files: true
-          generate_release_notes: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
