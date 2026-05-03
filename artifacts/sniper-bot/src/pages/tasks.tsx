@@ -487,7 +487,7 @@ export default function TasksPage() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Button
-            onClick={() => startAll.mutate(undefined, { onSuccess: () => queryClient.invalidateQueries({ queryKey: getListTasksQueryKey() }) })}
+            onClick={() => startAll.mutate(undefined, { onSuccess: () => queryClient.invalidateQueries({ queryKey: getListTasksQueryKey() }), onError: (err: unknown) => toast({ title: "Failed to start all tasks", description: err instanceof Error ? err.message : undefined, variant: "destructive" }) })}
             data-testid="button-start-all-tasks"
             className="gap-2 bg-emerald-500 hover:bg-emerald-600 text-white border-none"
             disabled={startAll.isPending}
@@ -496,7 +496,7 @@ export default function TasksPage() {
             Start All
           </Button>
           <Button
-            onClick={() => stopAll.mutate(undefined, { onSuccess: () => queryClient.invalidateQueries({ queryKey: getListTasksQueryKey() }) })}
+            onClick={() => stopAll.mutate(undefined, { onSuccess: () => queryClient.invalidateQueries({ queryKey: getListTasksQueryKey() }), onError: (err: unknown) => toast({ title: "Failed to stop all tasks", description: err instanceof Error ? err.message : undefined, variant: "destructive" }) })}
             variant="secondary"
             data-testid="button-stop-all-tasks"
             className="gap-2 bg-red-500/10 text-red-500 hover:bg-red-500/20 border border-red-500/20"
@@ -610,7 +610,7 @@ export default function TasksPage() {
                             variant="ghost" size="icon"
                             className="h-8 w-8 text-emerald-500 hover:text-emerald-400 hover:bg-emerald-500/10"
                             data-testid={`button-start-task-${task.id}`}
-                            onClick={() => startTask.mutate({ id: task.id }, { onSuccess: () => { queryClient.invalidateQueries({ queryKey: getListTasksQueryKey() }); setExpandedTaskId(task.id); } })}
+                            onClick={() => startTask.mutate({ id: task.id }, { onSuccess: () => { queryClient.invalidateQueries({ queryKey: getListTasksQueryKey() }); setExpandedTaskId(task.id); }, onError: (err: unknown) => toast({ title: "Failed to start task", description: err instanceof Error ? err.message : undefined, variant: "destructive" }) })}
                           >
                             <Play className="w-4 h-4 fill-current" />
                           </Button>
@@ -619,7 +619,7 @@ export default function TasksPage() {
                             variant="ghost" size="icon"
                             className="h-8 w-8 text-red-500 hover:text-red-400 hover:bg-red-500/10"
                             data-testid={`button-stop-task-${task.id}`}
-                            onClick={() => stopTask.mutate({ id: task.id }, { onSuccess: () => { queryClient.invalidateQueries({ queryKey: getListTasksQueryKey() }); setLiveStatuses((prev) => ({ ...prev, [task.id]: "stopped" })); } })}
+                            onClick={() => stopTask.mutate({ id: task.id }, { onSuccess: () => { queryClient.invalidateQueries({ queryKey: getListTasksQueryKey() }); setLiveStatuses((prev) => ({ ...prev, [task.id]: "stopped" })); }, onError: (err: unknown) => toast({ title: "Failed to stop task", description: err instanceof Error ? err.message : undefined, variant: "destructive" }) })}
                           >
                             <StopCircle className="w-4 h-4" />
                           </Button>
@@ -638,7 +638,7 @@ export default function TasksPage() {
                           variant="ghost" size="icon"
                           className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
                           data-testid={`button-delete-task-${task.id}`}
-                          onClick={() => deleteTask.mutate({ id: task.id }, { onSuccess: () => queryClient.invalidateQueries({ queryKey: getListTasksQueryKey() }) })}
+                          onClick={() => deleteTask.mutate({ id: task.id }, { onSuccess: () => queryClient.invalidateQueries({ queryKey: getListTasksQueryKey() }), onError: (err: unknown) => toast({ title: "Failed to delete task", description: err instanceof Error ? err.message : undefined, variant: "destructive" }) })}
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
