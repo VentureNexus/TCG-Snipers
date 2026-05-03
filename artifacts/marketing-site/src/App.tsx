@@ -121,7 +121,7 @@ function Footer() {
       <div className="max-w-6xl mx-auto px-6 py-12">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 text-sm">
           <div className="flex items-center gap-2">
-            <img src={logoUrl} alt="TCG Snipers" className="h-8 w-8 object-contain" />
+            <img src={logoUrl} alt="TCG Snipers" className="h-14 w-14 object-contain" />
             <span className="font-bold text-foreground">
               <span className="text-primary">TCG</span> Snipers
             </span>
