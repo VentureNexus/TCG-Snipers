@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import logoUrl from "@assets/3092-removebg-preview_1777778639894.png";
+import logoUrl from "@assets/3092-removebg-preview_1777781243556.png";
 
 export function Hero() {
   return (
