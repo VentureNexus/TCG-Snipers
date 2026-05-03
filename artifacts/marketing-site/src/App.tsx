@@ -44,7 +44,7 @@ function Header() {
   return (
     <>
       <AnnouncementBar />
-      <header className="border-b border-border/60 bg-background/70 backdrop-blur sticky top-0 z-50">
+      <header className="border-b border-border/60 bg-background/95 sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-6 py-3 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
             <img src={logoUrl} alt="TCG Snipers" className="h-12 w-12 object-contain" />
