@@ -55,6 +55,7 @@ export function verifyPortalSession(token: string): PortalSessionPayload | null 
 export interface DownloadTokenPayload {
   customerId: number;
   os: "win" | "mac" | "linux";
+  arch?: "arm64" | "x64";
 }
 
 export function signDownloadToken(payload: DownloadTokenPayload): string {

@@ -29,6 +29,10 @@ win:
         - x64
   icon: build/icon.ico
   artifactName: TCGSnipers-Setup-${version}.${ext}
+  # Code signing: electron-builder reads WIN_CSC_LINK (base64-encoded .pfx) and
+  # WIN_CSC_KEY_PASSWORD from the environment. When these are absent (local dev)
+  # the build proceeds unsigned — Windows Defender may warn but the app runs.
+  # signingHashAlgorithms: ["sha256"]
 
 nsis:
   oneClick: false
@@ -56,10 +60,20 @@ mac:
         - arm64
   # icon auto-derived from build/icon.png (512x512+) — no .icns needed
   category: public.app-category.utilities
-  hardenedRuntime: false
+  # hardenedRuntime is required for Gatekeeper / notarization.
+  # When CSC_LINK is absent (local dev) the build proceeds unsigned with a
+  # self-signed ad-hoc identity — set gatekeeperAssess: false to skip the
+  # local Gatekeeper check so the build doesn't fail on developer machines.
+  hardenedRuntime: true
   gatekeeperAssess: false
-  identity: null
   artifactName: TCGSnipers-${version}-${arch}.${ext}
+  # Code signing: electron-builder picks up CSC_LINK (base64-encoded .p12)
+  # and CSC_KEY_PASSWORD automatically. APPLE_ID + APPLE_APP_SPECIFIC_PASSWORD
+  # + APPLE_TEAM_ID are used by the notarize afterSign hook below.
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+
+afterSign: build/notarize.cjs
 
 dmg:
   title: TCG Snipers Installer

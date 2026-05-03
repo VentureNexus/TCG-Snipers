@@ -27,11 +27,15 @@ jobs:
         include:
           - os: windows-latest
             target: dist:win
-          - os: macos-latest
+            platform: win
+          - os: macos-14
             target: dist:mac
+            platform: mac
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
@@ -76,16 +80,167 @@ jobs:
       - name: Compile Electron main process
         run: pnpm --filter @workspace/sniper-bot run electron:compile
 
-      - name: Build and publish installer
+      # ── macOS: import Developer ID cert into a temporary keychain ──────────
+      - name: Import macOS Developer ID certificate
+        if: runner.os == 'macOS' && env.CSC_LINK != ''
+        shell: bash
+        env:
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+        run: |
+          echo "$CSC_LINK" | base64 --decode > /tmp/cert.p12
+          security create-keychain -p "" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "" build.keychain
+          security import /tmp/cert.p12 -k build.keychain \
+            -P "$CSC_KEY_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s \
+            -k "" build.keychain
+          rm /tmp/cert.p12
+          echo "CSC_KEYCHAIN_PATH=build.keychain" >> "$GITHUB_ENV"
+
+      - name: Build and publish installer (GitHub Release)
+        # electron-builder uploads .exe/.dmg/.zip/.blockmap + manifest YMLs
+        # (latest.yml / latest-mac.yml) directly to the GitHub Release created
+        # by the pushed tag — required by electron-updater for auto-updates.
         run: pnpm --filter @workspace/sniper-bot run ${{ matrix.target }}
         env:
-          # Skip code signing — we ship unsigned installers for now.
-          CSC_IDENTITY_AUTO_DISCOVERY: "false"
-          # electron-builder uploads the installers + auto-update
-          # manifests (latest.yml / latest-mac.yml + .blockmap files)
-          # directly to the GitHub release matching the pushed tag.
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # macOS code signing (Developer ID Application .p12, base64-encoded).
+          # If absent the build proceeds unsigned — Gatekeeper will warn.
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          # macOS notarization (Apple ID + app-specific password + Team ID).
+          # The notarize.cjs afterSign hook skips gracefully when these are absent.
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          # Windows code signing (EV or standard .pfx, base64-encoded).
+          # If absent the NSIS installer ships unsigned (SmartScreen warns first launch).
+          WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+          WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
 
       - name: List built artifacts
         shell: bash
         run: ls -la artifacts/sniper-bot/release/
+
+      # ── Stage artifacts for GCS upload using canonical filenames ──────────
+      # The license API resolves download URLs via deterministic object keys:
+      #   installers/latest-win.exe         — current Windows installer
+      #   installers/latest-mac-arm64.dmg   — current macOS arm64 installer
+      #   installers/latest-mac-x64.dmg     — current macOS x64 installer
+      #   installers/latest.yml             — electron-updater Windows manifest
+      #   installers/latest-mac.yml         — electron-updater macOS manifest
+      #
+      # Canonical keys never change between versions so the license-api env
+      # vars never need updating after a release. The upload step also keeps
+      # versioned copies at installers/v{tag}/ for audit / rollback.
+      - name: Stage GCS upload (Windows)
+        if: matrix.platform == 'win'
+        shell: bash
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          RELEASE="artifacts/sniper-bot/release"
+          STAGE="gcs-stage"
+          mkdir -p "$STAGE/versioned" "$STAGE/latest"
+
+          # Versioned copies (all win artifacts)
+          cp "$RELEASE"/*.exe "$STAGE/versioned/" 2>/dev/null || true
+          cp "$RELEASE"/*.exe.blockmap "$STAGE/versioned/" 2>/dev/null || true
+          cp "$RELEASE/latest.yml" "$STAGE/versioned/" 2>/dev/null || true
+
+          # Canonical latest key (single exe — NSIS produces exactly one)
+          EXE=$(ls "$RELEASE"/*.exe 2>/dev/null | head -1)
+          if [ -n "$EXE" ]; then
+            cp "$EXE" "$STAGE/latest/latest-win.exe"
+          fi
+          cp "$RELEASE/latest.yml" "$STAGE/latest/latest.yml" 2>/dev/null || true
+
+          echo "Staged files:"
+          ls -la "$STAGE/latest/" "$STAGE/versioned/"
+
+      - name: Stage GCS upload (macOS)
+        if: matrix.platform == 'mac'
+        shell: bash
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          RELEASE="artifacts/sniper-bot/release"
+          STAGE="gcs-stage"
+          mkdir -p "$STAGE/versioned" "$STAGE/latest"
+
+          # Versioned copies (all mac artifacts)
+          cp "$RELEASE"/*.dmg "$STAGE/versioned/" 2>/dev/null || true
+          cp "$RELEASE"/*.zip "$STAGE/versioned/" 2>/dev/null || true
+          cp "$RELEASE"/*.dmg.blockmap "$STAGE/versioned/" 2>/dev/null || true
+          cp "$RELEASE"/*.zip.blockmap "$STAGE/versioned/" 2>/dev/null || true
+          cp "$RELEASE/latest-mac.yml" "$STAGE/versioned/" 2>/dev/null || true
+
+          # Canonical latest keys
+          ARM64=$(ls "$RELEASE"/*-arm64.dmg 2>/dev/null | head -1)
+          X64=$(ls "$RELEASE"/*-x64.dmg 2>/dev/null | head -1)
+          if [ -n "$ARM64" ]; then
+            cp "$ARM64" "$STAGE/latest/latest-mac-arm64.dmg"
+          fi
+          if [ -n "$X64" ]; then
+            cp "$X64" "$STAGE/latest/latest-mac-x64.dmg"
+          fi
+          cp "$RELEASE/latest-mac.yml" "$STAGE/latest/latest-mac.yml" 2>/dev/null || true
+
+          echo "Staged files:"
+          ls -la "$STAGE/latest/" "$STAGE/versioned/"
+
+      # ── Upload staged artifacts to GCS via the official action ─────────────
+      # google-github-actions/upload-cloud-storage does NOT require gsutil to
+      # be pre-installed — it uses the GCP SDK bundled inside the action.
+      #
+      # Required GitHub Actions secrets:
+      #   GCS_SA_KEY   — service-account JSON with roles/storage.objectAdmin
+      #   GCS_BUCKET_ID — bucket name (= DEFAULT_OBJECT_STORAGE_BUCKET_ID)
+      #
+      # The same GCS_SA_KEY must also be set as GCS_SA_KEY in the license-api
+      # environment so it can generate V4 signed download URLs.
+      - name: Authenticate to Google Cloud
+        if: ${{ secrets.GCS_SA_KEY != '' && secrets.GCS_BUCKET_ID != '' }}
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCS_SA_KEY }}
+
+      - name: Upload versioned artifacts to GCS
+        if: ${{ secrets.GCS_SA_KEY != '' && secrets.GCS_BUCKET_ID != '' }}
+        uses: google-github-actions/upload-cloud-storage@v2
+        with:
+          bucket: ${{ secrets.GCS_BUCKET_ID }}
+          path: gcs-stage/versioned
+          destination: installers/${{ github.ref_name }}
+          parent: false
+          headers: |-
+            content-type: application/octet-stream
+            cache-control: public, max-age=31536000, immutable
+
+      - name: Upload canonical latest artifacts to GCS
+        if: ${{ secrets.GCS_SA_KEY != '' && secrets.GCS_BUCKET_ID != '' }}
+        uses: google-github-actions/upload-cloud-storage@v2
+        with:
+          bucket: ${{ secrets.GCS_BUCKET_ID }}
+          path: gcs-stage/latest
+          destination: installers
+          parent: false
+          headers: |-
+            content-type: application/octet-stream
+            cache-control: no-cache
+
+      # Keep built artifacts in the workflow run for manual inspection.
+      - name: Upload artifacts to workflow run
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.os }}
+          path: |
+            artifacts/sniper-bot/release/*.exe
+            artifacts/sniper-bot/release/*.dmg
+            artifacts/sniper-bot/release/*.zip
+            artifacts/sniper-bot/release/*.blockmap
+            artifacts/sniper-bot/release/latest.yml
+            artifacts/sniper-bot/release/latest-mac.yml
+          retention-days: 14

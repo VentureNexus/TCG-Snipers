@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+  <dict>
+    <!-- Required for hardened runtime + Gatekeeper -->
+    <key>com.apple.security.cs.allow-jit</key>
+    <true/>
+    <!-- Electron uses JIT for V8 -->
+    <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+    <true/>
+    <!-- Allow loading unsigned dylibs (native Node addons) -->
+    <key>com.apple.security.cs.disable-library-validation</key>
+    <true/>
+    <!-- Network client access — needed to reach the license API -->
+    <key>com.apple.security.network.client</key>
+    <true/>
+  </dict>
+</plist>
