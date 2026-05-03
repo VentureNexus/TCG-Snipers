@@ -104,11 +104,10 @@ function emailLayout(opts: {
         <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;">
           <!-- Header -->
           <tr>
-            <td align="center" style="background:${BRAND.dark};border-radius:12px 12px 0 0;padding:28px 24px;">
+            <td align="center" style="background:${BRAND.dark};border-radius:12px 12px 0 0;padding:36px 24px;">
               <a href="${BRAND.marketingUrl}" style="text-decoration:none;display:inline-block;">
-                <img src="${BRAND.logoUrl}" alt="${BRAND.name}" width="80" height="86" style="display:block;border:0;outline:none;text-decoration:none;height:86px;width:80px;">
+                <img src="${BRAND.logoUrl}" alt="${BRAND.name}" width="200" height="215" style="display:block;border:0;outline:none;text-decoration:none;height:215px;width:200px;">
               </a>
-              <div style="margin-top:10px;color:${BRAND.primary};font-size:16px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;">${BRAND.name}</div>
             </td>
           </tr>
           <!-- Body card -->
