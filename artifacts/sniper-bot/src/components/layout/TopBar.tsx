@@ -68,10 +68,6 @@ export function TopBar() {
 
   return (
     <header className="h-14 bg-background border-b border-border flex items-center justify-between px-6 shrink-0">
-      <div className="flex items-center gap-3">
-        <h1 className="text-sm font-semibold tracking-tight">{pageTitle}</h1>
-      </div>
-
       <div className="flex items-center gap-5 text-xs">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-1.5" data-testid="stat-active-tasks">
