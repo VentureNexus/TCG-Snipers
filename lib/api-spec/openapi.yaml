@@ -615,7 +615,7 @@ paths:
     post:
       operationId: startAllTasks
       tags: [tasks]
-      summary: Start all idle tasks
+      summary: Start all idle, stopped, and failed tasks (skips tasks with incomplete profiles)
       responses:
         "200":
           description: Tasks started
@@ -1316,6 +1316,12 @@ components:
           type: integer
         message:
           type: string
+        started:
+          type: integer
+        queued:
+          type: integer
+        skipped:
+          type: integer
       required:
         - affected
         - message

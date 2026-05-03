@@ -208,14 +208,22 @@ export interface Task {
   updatedAt: string;
 }
 
-export const SUPPORTED_RETAILERS = ["Target", "Amazon", "Best Buy", "Costco", "Pokemon Center"] as const;
-export type SupportedRetailer = (typeof SUPPORTED_RETAILERS)[number];
+export type CreateTaskBodyRetailer =
+  (typeof CreateTaskBodyRetailer)[keyof typeof CreateTaskBodyRetailer];
+
+export const CreateTaskBodyRetailer = {
+  Target: "Target",
+  Amazon: "Amazon",
+  Best_Buy: "Best Buy",
+  Costco: "Costco",
+  Pokemon_Center: "Pokemon Center",
+} as const;
 
 export interface CreateTaskBody {
   groupId?: number;
   profileId?: number;
   proxyId?: number;
-  retailer: SupportedRetailer;
+  retailer: CreateTaskBodyRetailer;
   productUrl?: string;
   productKeywords?: string;
   size?: string;
@@ -224,11 +232,22 @@ export interface CreateTaskBody {
   retryCount?: number;
 }
 
+export type UpdateTaskBodyRetailer =
+  (typeof UpdateTaskBodyRetailer)[keyof typeof UpdateTaskBodyRetailer];
+
+export const UpdateTaskBodyRetailer = {
+  Target: "Target",
+  Amazon: "Amazon",
+  Best_Buy: "Best Buy",
+  Costco: "Costco",
+  Pokemon_Center: "Pokemon Center",
+} as const;
+
 export interface UpdateTaskBody {
   groupId?: number;
   profileId?: number;
   proxyId?: number;
-  retailer?: SupportedRetailer;
+  retailer?: UpdateTaskBodyRetailer;
   productUrl?: string;
   productKeywords?: string;
   size?: string;
@@ -243,27 +262,7 @@ export interface BulkActionResult {
   message: string;
   started?: number;
   queued?: number;
-}
-
-export interface AppSettings {
-  id: number;
-  concurrency: number;
-  monitorDelay: number;
-  webhookUrl: string;
-  imapHost: string;
-  imapPort: string;
-  imapEmail: string;
-  imapPassword: string;
-}
-
-export interface UpdateSettingsBody {
-  concurrency?: number;
-  monitorDelay?: number;
-  webhookUrl?: string;
-  imapHost?: string;
-  imapPort?: string;
-  imapEmail?: string;
-  imapPassword?: string;
+  skipped?: number;
 }
 
 export interface CheckoutResult {

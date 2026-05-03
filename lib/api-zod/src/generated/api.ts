@@ -459,6 +459,7 @@ export const StartTaskGroupResponse = zod.object({
   message: zod.string(),
   started: zod.number().optional(),
   queued: zod.number().optional(),
+  skipped: zod.number().optional(),
 });
 
 /**
@@ -471,6 +472,9 @@ export const StopTaskGroupParams = zod.object({
 export const StopTaskGroupResponse = zod.object({
   affected: zod.number(),
   message: zod.string(),
+  started: zod.number().optional(),
+  queued: zod.number().optional(),
+  skipped: zod.number().optional(),
 });
 
 /**
@@ -501,14 +505,17 @@ export const ListTasksResponse = zod.array(ListTasksResponseItem);
 /**
  * @summary Create a task
  */
-export const SUPPORTED_RETAILERS = ["Target", "Amazon", "Best Buy", "Costco", "Pokemon Center"] as const;
-export type SupportedRetailer = (typeof SUPPORTED_RETAILERS)[number];
-
 export const CreateTaskBody = zod.object({
   groupId: zod.number().optional(),
   profileId: zod.number().optional(),
   proxyId: zod.number().optional(),
-  retailer: zod.enum(SUPPORTED_RETAILERS),
+  retailer: zod.enum([
+    "Target",
+    "Amazon",
+    "Best Buy",
+    "Costco",
+    "Pokemon Center",
+  ]),
   productUrl: zod.string().optional(),
   productKeywords: zod.string().optional(),
   size: zod.string().optional(),
@@ -552,7 +559,9 @@ export const UpdateTaskBody = zod.object({
   groupId: zod.number().optional(),
   profileId: zod.number().optional(),
   proxyId: zod.number().optional(),
-  retailer: zod.enum(SUPPORTED_RETAILERS).optional(),
+  retailer: zod
+    .enum(["Target", "Amazon", "Best Buy", "Costco", "Pokemon Center"])
+    .optional(),
   productUrl: zod.string().optional(),
   productKeywords: zod.string().optional(),
   size: zod.string().optional(),
@@ -635,13 +644,14 @@ export const StopTaskResponse = zod.object({
 });
 
 /**
- * @summary Start all idle tasks
+ * @summary Start all idle, stopped, and failed tasks (skips tasks with incomplete profiles)
  */
 export const StartAllTasksResponse = zod.object({
   affected: zod.number(),
   message: zod.string(),
   started: zod.number().optional(),
   queued: zod.number().optional(),
+  skipped: zod.number().optional(),
 });
 
 /**
@@ -650,6 +660,9 @@ export const StartAllTasksResponse = zod.object({
 export const StopAllTasksResponse = zod.object({
   affected: zod.number(),
   message: zod.string(),
+  started: zod.number().optional(),
+  queued: zod.number().optional(),
+  skipped: zod.number().optional(),
 });
 
 /**

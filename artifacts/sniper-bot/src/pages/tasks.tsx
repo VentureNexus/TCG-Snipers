@@ -14,7 +14,7 @@ import {
   getListTasksQueryKey,
   SUPPORTED_RETAILERS,
 } from "@workspace/api-client-react";
-import type { Task, SupportedRetailer } from "@workspace/api-client-react";
+import type { Task, SupportedRetailer, BulkActionResult } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import {
   Play,
@@ -487,7 +487,15 @@ export default function TasksPage() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Button
-            onClick={() => startAll.mutate(undefined, { onSuccess: () => queryClient.invalidateQueries({ queryKey: getListTasksQueryKey() }), onError: (err: unknown) => toast({ title: "Failed to start all tasks", description: err instanceof Error ? err.message : undefined, variant: "destructive" }) })}
+            onClick={() => startAll.mutate(undefined, {
+              onSuccess: (data: BulkActionResult) => {
+                queryClient.invalidateQueries({ queryKey: getListTasksQueryKey() });
+                if (data?.skipped && data.skipped > 0) {
+                  toast({ title: `${data.skipped} task${data.skipped !== 1 ? "s" : ""} skipped`, description: "Some profiles are missing required shipping fields. Edit those profiles to complete the address before starting.", variant: "destructive" });
+                }
+              },
+              onError: (err: unknown) => toast({ title: "Failed to start all tasks", description: err instanceof Error ? err.message : undefined, variant: "destructive" })
+            })}
             data-testid="button-start-all-tasks"
             className="gap-2 bg-emerald-500 hover:bg-emerald-600 text-white border-none"
             disabled={startAll.isPending}
@@ -610,7 +618,14 @@ export default function TasksPage() {
                             variant="ghost" size="icon"
                             className="h-8 w-8 text-emerald-500 hover:text-emerald-400 hover:bg-emerald-500/10"
                             data-testid={`button-start-task-${task.id}`}
-                            onClick={() => startTask.mutate({ id: task.id }, { onSuccess: () => { queryClient.invalidateQueries({ queryKey: getListTasksQueryKey() }); setExpandedTaskId(task.id); }, onError: (err: unknown) => toast({ title: "Failed to start task", description: err instanceof Error ? err.message : undefined, variant: "destructive" }) })}
+                            onClick={() => {
+                              const profile = profiles.find((p) => p.id === task.profileId);
+                              if (!profile || !profile.shipFirstName || !profile.shipLastName || !profile.shipAddress1 || !profile.shipCity || !profile.shipState || !profile.shipZip) {
+                                toast({ title: "Profile incomplete", description: "This profile is missing required shipping fields. Edit the profile and fill in the shipping address before starting.", variant: "destructive" });
+                                return;
+                              }
+                              startTask.mutate({ id: task.id }, { onSuccess: () => { queryClient.invalidateQueries({ queryKey: getListTasksQueryKey() }); setExpandedTaskId(task.id); }, onError: (err: unknown) => toast({ title: "Failed to start task", description: err instanceof Error ? err.message : undefined, variant: "destructive" }) });
+                            }}
                           >
                             <Play className="w-4 h-4 fill-current" />
                           </Button>

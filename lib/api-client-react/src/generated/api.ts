@@ -44,8 +44,6 @@ import type {
   UpdateProxyBody,
   UpdateTaskBody,
   UpdateTaskGroupBody,
-  AppSettings,
-  UpdateSettingsBody,
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
@@ -2673,7 +2671,7 @@ export const useStopTask = <
 };
 
 /**
- * @summary Start all idle tasks
+ * @summary Start all idle, stopped, and failed tasks (skips tasks with incomplete profiles)
  */
 export const getStartAllTasksUrl = () => {
   return `/api/tasks/start-all`;
@@ -2731,7 +2729,7 @@ export type StartAllTasksMutationResult = NonNullable<
 export type StartAllTasksMutationError = ErrorType<unknown>;
 
 /**
- * @summary Start all idle tasks
+ * @summary Start all idle, stopped, and failed tasks (skips tasks with incomplete profiles)
  */
 export const useStartAllTasks = <
   TError = ErrorType<unknown>,
