@@ -8,6 +8,7 @@ import Landing from "@/pages/Landing";
 import Manage from "@/pages/Manage";
 import ManageSession from "@/pages/ManageSession";
 import Success from "@/pages/Success";
+import Terms from "@/pages/Terms";
 import Cancel from "@/pages/Cancel";
 import Download from "@/pages/Download";
 import NotFound from "@/pages/not-found";
@@ -144,9 +145,9 @@ function Footer() {
             <a href="mailto:support@tcgsnipers.com" className="hover:text-foreground transition">
               Support
             </a>
-            <a href="#" className="hover:text-foreground transition">
+            <Link href="/terms" className="hover:text-foreground transition">
               Terms
-            </a>
+            </Link>
           </div>
         </div>
         <p className="text-[11px] text-muted-foreground mt-8 leading-relaxed max-w-3xl">
@@ -172,6 +173,7 @@ function Router() {
           <Route path="/success" component={Success} />
           <Route path="/cancel" component={Cancel} />
           <Route path="/download" component={Download} />
+          <Route path="/terms" component={Terms} />
           <Route component={NotFound} />
         </Switch>
       </main>
