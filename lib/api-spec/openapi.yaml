@@ -1288,6 +1288,12 @@ components:
           type: integer
         retailer:
           type: string
+          enum:
+            - Target
+            - Amazon
+            - Best Buy
+            - Costco
+            - Pokemon Center
         productUrl:
           type: string
         productKeywords:

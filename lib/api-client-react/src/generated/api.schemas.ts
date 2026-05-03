@@ -228,7 +228,7 @@ export interface UpdateTaskBody {
   groupId?: number;
   profileId?: number;
   proxyId?: number;
-  retailer?: string;
+  retailer?: SupportedRetailer;
   productUrl?: string;
   productKeywords?: string;
   size?: string;

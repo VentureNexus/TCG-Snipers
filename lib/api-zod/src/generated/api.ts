@@ -552,7 +552,7 @@ export const UpdateTaskBody = zod.object({
   groupId: zod.number().optional(),
   profileId: zod.number().optional(),
   proxyId: zod.number().optional(),
-  retailer: zod.string().optional(),
+  retailer: zod.enum(SUPPORTED_RETAILERS).optional(),
   productUrl: zod.string().optional(),
   productKeywords: zod.string().optional(),
   size: zod.string().optional(),
