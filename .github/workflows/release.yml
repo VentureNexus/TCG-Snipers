@@ -68,6 +68,27 @@ jobs:
       - name: Build api-server (bundled into desktop app)
         run: pnpm --filter @workspace/api-server run build
 
+      - name: Verify PGlite WASM assets exist in dist/
+        shell: bash
+        run: |
+          missing=0
+          for asset in postgres.wasm postgres.data; do
+            if [ -f "artifacts/api-server/dist/$asset" ]; then
+              size=$(du -h "artifacts/api-server/dist/$asset" | cut -f1)
+              echo "✓ $asset ($size)"
+            else
+              echo "✗ MISSING: artifacts/api-server/dist/$asset" >&2
+              missing=1
+            fi
+          done
+          if [ "$missing" -eq 1 ]; then
+            echo "::error::One or more PGlite WASM assets are missing from dist/. The build will not persist data." >&2
+            exit 1
+          fi
+
+      - name: Smoke test — PGlite create/read round-trip
+        run: node artifacts/api-server/scripts/smoke-test-pglite.mjs
+
       - name: Build and publish installer (GitHub Release)
         run: pnpm --filter @workspace/sniper-bot run ${{ matrix.target }}
         env:
