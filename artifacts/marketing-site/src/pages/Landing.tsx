@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { licenseApi } from "@/lib/api";
+import logoUrl from "@assets/3092-removebg-preview_1777778639894.png";
 
 const FEATURES = [
   {
@@ -63,8 +64,13 @@ export default function Landing() {
   return (
     <div>
       {/* HERO */}
-      <section className="px-6 py-24 max-w-6xl mx-auto">
+      <section className="px-6 py-20 max-w-6xl mx-auto">
         <div className="text-center max-w-3xl mx-auto">
+          <img
+            src={logoUrl}
+            alt="TCG Snipers"
+            className="mx-auto h-44 w-44 object-contain mb-6 drop-shadow-[0_0_60px_rgba(250,204,21,0.35)]"
+          />
           <span className="inline-block text-xs font-semibold tracking-widest uppercase text-primary border border-primary/30 rounded-full px-3 py-1 mb-6">
             Retail automation for trading-card hunters
           </span>

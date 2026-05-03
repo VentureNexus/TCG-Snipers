@@ -1,6 +1,7 @@
 import { Switch, Route, Router as WouterRouter, Link } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
+import logoUrl from "@assets/3092-removebg-preview_1777778639894.png";
 import Landing from "@/pages/Landing";
 import Manage from "@/pages/Manage";
 import ManageSession from "@/pages/ManageSession";
@@ -16,6 +17,7 @@ function Header() {
     <header className="border-b border-border/60 bg-card/40 backdrop-blur sticky top-0 z-50">
       <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2">
+          <img src={logoUrl} alt="TCG Snipers" className="h-9 w-9 object-contain" />
           <span className="text-xl font-bold tracking-tight">
             <span className="text-primary">TCG</span> Snipers
           </span>
