@@ -45,9 +45,9 @@ function Header() {
     <>
       <AnnouncementBar />
       <header className="border-b border-border/60 bg-background/70 backdrop-blur sticky top-0 z-50">
-        <div className="max-w-6xl mx-auto px-6 py-3.5 flex items-center justify-between">
+        <div className="max-w-6xl mx-auto px-6 py-1 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <img src={logoUrl} alt="TCG Snipers" className="h-12 w-12 object-contain" />
+            <img src={logoUrl} alt="TCG Snipers" className="h-16 w-16 object-contain -my-2" />
             <span className="text-xl font-bold tracking-tight">
               <span className="text-primary">TCG</span> Snipers
             </span>
