@@ -1,8 +1,8 @@
 import { Router, type IRouter } from "express";
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { db, taskGroupsTable, tasksTable } from "@workspace/db";
 import { CreateTaskGroupBody, UpdateTaskGroupParams, UpdateTaskGroupBody, DeleteTaskGroupParams } from "@workspace/api-zod";
-import { startTask, stopTask, stopAllRunning } from "../lib/taskWorker";
+import { startTask, stopTasks } from "../lib/taskWorker";
 
 const router: IRouter = Router();
 
@@ -52,12 +52,25 @@ router.post("/task-groups/:id/start", async (req, res): Promise<void> => {
   const groupTasks = await db
     .select()
     .from(tasksTable)
-    .where(inArray(tasksTable.status, ["idle", "stopped", "failed"]))
-    .then((rows) => rows.filter((t) => t.groupId === id));
+    .where(
+      and(
+        eq(tasksTable.groupId, id),
+        inArray(tasksTable.status, ["idle", "stopped", "failed"]),
+      ),
+    );
+  let started = 0;
+  let queued = 0;
   for (const task of groupTasks) {
-    await startTask(task);
+    const result = startTask(task);
+    if (result.queued) queued++;
+    else started++;
   }
-  res.json({ affected: groupTasks.length, message: `Started ${groupTasks.length} tasks in group ${group.name}` });
+  res.json({
+    started,
+    queued,
+    affected: groupTasks.length,
+    message: `Started ${started}, queued ${queued} tasks in group "${group.name}"`,
+  });
 });
 
 router.post("/task-groups/:id/stop", async (req, res): Promise<void> => {
@@ -65,15 +78,22 @@ router.post("/task-groups/:id/stop", async (req, res): Promise<void> => {
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   const [group] = await db.select().from(taskGroupsTable).where(eq(taskGroupsTable.id, id));
   if (!group) { res.status(404).json({ error: "Task group not found" }); return; }
-  // Query DB tasks in running statuses for this group to catch any that may
-  // not yet be in the token map (race window), then union with token map.
-  const dbRunning = await db
+  // Select running tasks for this specific group using SQL AND filter
+  const groupRunning = await db
     .select({ id: tasksTable.id })
     .from(tasksTable)
-    .where(inArray(tasksTable.status, ["monitoring", "adding_to_cart", "checking_out"]))
-    .then((rows) => rows.filter((t) => t.groupId === id));
-  const stoppedIds = await stopAllRunning(dbRunning.map((t) => t.id));
-  res.json({ affected: stoppedIds.length, message: `Stopped ${stoppedIds.length} tasks in group ${group.name}` });
+    .where(
+      and(
+        eq(tasksTable.groupId, id),
+        inArray(tasksTable.status, ["monitoring", "adding_to_cart", "checking_out"]),
+      ),
+    );
+  // stopTasks only cancels the provided IDs — does NOT sweep the global token map
+  const stoppedIds = await stopTasks(groupRunning.map((t) => t.id));
+  res.json({
+    affected: stoppedIds.length,
+    message: `Stopped ${stoppedIds.length} tasks in group "${group.name}"`,
+  });
 });
 
 export default router;

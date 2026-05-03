@@ -13,12 +13,10 @@ interface TaskRow {
   quantity: number;
 }
 
-// ── Cancellation tokens (authoritative source of truth for running tasks) ────
-const cancellationTokens = new Map<number, { cancelled: boolean }>();
-
 // ── Concurrency control ───────────────────────────────────────────────────────
 let maxConcurrency = 5;
 let activeConcurrency = 0;
+const pendingQueue: TaskRow[] = [];
 
 export function setMaxConcurrency(n: number): void {
   maxConcurrency = Math.max(1, n);
@@ -28,9 +26,11 @@ export function getActiveConcurrency(): number {
   return activeConcurrency;
 }
 
-/** Returns all task IDs currently executing (token map is authoritative). */
-export function getRunningTaskIds(): number[] {
-  return Array.from(cancellationTokens.keys());
+// ── Cancellation tokens (authoritative for "is this task running?") ──────────
+const cancellationTokens = new Map<number, { cancelled: boolean }>();
+
+export function isTaskRunning(taskId: number): boolean {
+  return cancellationTokens.has(taskId);
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -107,6 +107,31 @@ const RETAILER_PRODUCTS: Record<
   ],
 };
 
+// ── Internal: launch task immediately (caller guarantees a slot is available) ─
+function launchTask(task: TaskRow): void {
+  const existing = cancellationTokens.get(task.id);
+  if (existing) {
+    existing.cancelled = true;
+  }
+  const token = { cancelled: false };
+  cancellationTokens.set(task.id, token);
+  activeConcurrency++;
+  runTaskAutomation(task, token).catch(() => {
+    // handled inside finally
+  });
+}
+
+// ── Drain one item from the pending queue (called when a slot frees up) ───────
+function drainQueue(): void {
+  if (pendingQueue.length === 0) return;
+  if (activeConcurrency >= maxConcurrency) return;
+  const next = pendingQueue.shift();
+  if (next) {
+    broadcastLog(next.id, "INFO", `[Scheduler] Slot available — starting queued task #${next.id}.`);
+    launchTask(next);
+  }
+}
+
 // ── Core automation loop ──────────────────────────────────────────────────────
 async function runTaskAutomation(task: TaskRow, token: { cancelled: boolean }) {
   const log = (
@@ -127,7 +152,6 @@ async function runTaskAutomation(task: TaskRow, token: { cancelled: boolean }) {
   const products = RETAILER_PRODUCTS[retailerKey] ?? RETAILER_PRODUCTS["Amazon"];
   const product = products[Math.floor(Math.random() * products.length)];
 
-  activeConcurrency++;
   try {
     // ── MONITORING ──────────────────────────────────────────────────────────
     await setStatus("monitoring");
@@ -230,55 +254,89 @@ async function runTaskAutomation(task: TaskRow, token: { cancelled: boolean }) {
   } finally {
     activeConcurrency--;
     cancellationTokens.delete(task.id);
+    // Drain the next pending task now that a slot freed up
+    drainQueue();
   }
 }
 
 // ── Public API ────────────────────────────────────────────────────────────────
 
 /**
- * Start a task, respecting the configured max concurrency limit.
- * If the limit is reached the task remains idle and the caller is notified.
- * Returns `false` when the concurrency cap is hit so callers can skip.
+ * Start a task respecting the configured max concurrency.
+ * If all slots are full, the task is added to the FIFO pending queue and will
+ * start automatically when a running task finishes.
+ * Returns `{ started: true }` if launched immediately, `{ queued: true }` if queued.
  */
-export async function startTask(task: TaskRow): Promise<boolean> {
-  if (activeConcurrency >= maxConcurrency) {
-    broadcastLog(task.id, "WARN", `[Scheduler] Max concurrency (${maxConcurrency}) reached — task queued as idle.`);
-    return false;
-  }
-
+export function startTask(task: TaskRow): { started: boolean; queued: boolean } {
+  // Cancel any existing run for this task
   const existing = cancellationTokens.get(task.id);
   if (existing) {
     existing.cancelled = true;
   }
-  const token = { cancelled: false };
-  cancellationTokens.set(task.id, token);
-  runTaskAutomation(task, token).catch(() => {
-    activeConcurrency = Math.max(0, activeConcurrency - 1);
-    cancellationTokens.delete(task.id);
-  });
-  return true;
+
+  if (activeConcurrency < maxConcurrency) {
+    launchTask(task);
+    return { started: true, queued: false };
+  }
+
+  // Remove any stale queue entry for this task before re-adding
+  const queueIdx = pendingQueue.findIndex((t) => t.id === task.id);
+  if (queueIdx !== -1) {
+    pendingQueue.splice(queueIdx, 1);
+  }
+  pendingQueue.push(task);
+  broadcastLog(task.id, "WARN", `[Scheduler] Max concurrency (${maxConcurrency}) reached — task queued (position ${pendingQueue.length}).`);
+  return { started: false, queued: true };
 }
 
+/**
+ * Stop a single task by ID.
+ * Cancels the token if the task is running; no-op if not in the token map.
+ * Also removes any pending-queue entry for this task.
+ */
 export function stopTask(taskId: number): void {
   const token = cancellationTokens.get(taskId);
   if (token) {
     token.cancelled = true;
     cancellationTokens.delete(taskId);
   }
-}
-
-export function isTaskRunning(taskId: number): boolean {
-  return cancellationTokens.has(taskId);
+  // Remove from queue if it was waiting
+  const queueIdx = pendingQueue.findIndex((t) => t.id === taskId);
+  if (queueIdx !== -1) {
+    pendingQueue.splice(queueIdx, 1);
+  }
 }
 
 /**
- * Stop all currently running tasks using the token map as authoritative source.
- * Also updates any task IDs supplied by the caller (for tasks that started
- * between the DB query and this call).
+ * Stop a specific set of task IDs.
+ * Only affects tasks in the provided list — does NOT sweep the global token map.
+ * Use this for group-scoped stops.
+ */
+export async function stopTasks(taskIds: number[]): Promise<number[]> {
+  if (taskIds.length === 0) return [];
+  for (const id of taskIds) {
+    stopTask(id);
+  }
+  await db
+    .update(tasksTable)
+    .set({ status: "stopped" })
+    .where(inArray(tasksTable.id, taskIds));
+  for (const id of taskIds) {
+    broadcastStatus(id, "stopped");
+  }
+  return taskIds;
+}
+
+/**
+ * Stop ALL currently running tasks (global stop-all).
+ * Uses the token map as the authoritative source, unioned with any extra IDs
+ * supplied by the caller (to handle the narrow race between DB read and token creation).
  */
 export async function stopAllRunning(extraIds: number[] = []): Promise<number[]> {
   const runningIds = Array.from(cancellationTokens.keys());
   const allIds = Array.from(new Set([...runningIds, ...extraIds]));
+  // Also flush the pending queue
+  pendingQueue.splice(0);
   for (const id of allIds) {
     stopTask(id);
   }

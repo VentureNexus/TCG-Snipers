@@ -55,10 +55,19 @@ router.post("/tasks/start-all", async (_req, res): Promise<void> => {
     .select()
     .from(tasksTable)
     .where(inArray(tasksTable.status, ["idle", "stopped", "failed"]));
+  let started = 0;
+  let queued = 0;
   for (const task of idleTasks) {
-    await startTask(task);
+    const result = startTask(task);
+    if (result.queued) queued++;
+    else started++;
   }
-  res.json({ affected: idleTasks.length, message: `Started ${idleTasks.length} tasks` });
+  res.json({
+    started,
+    queued,
+    affected: idleTasks.length,
+    message: `Started ${started}, queued ${queued} tasks`,
+  });
 });
 
 router.post("/tasks/stop-all", async (_req, res): Promise<void> => {
@@ -77,7 +86,7 @@ router.post("/tasks/:id/start", async (req, res): Promise<void> => {
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
   const [task] = await db.select().from(tasksTable).where(eq(tasksTable.id, params.data.id));
   if (!task) { res.status(404).json({ error: "Task not found" }); return; }
-  await startTask(task);
+  startTask(task);
   const [updated] = await db.select().from(tasksTable).where(eq(tasksTable.id, task.id));
   res.json(updated);
 });
