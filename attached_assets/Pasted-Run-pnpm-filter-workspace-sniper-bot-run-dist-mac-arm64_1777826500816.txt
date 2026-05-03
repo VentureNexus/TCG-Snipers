@@ -1,0 +1,113 @@
+Run pnpm --filter @workspace/sniper-bot run dist:mac-arm64
+
+> @workspace/sniper-bot@1.0.7 dist:mac-arm64 /Users/runner/work/TCG-Snipers/TCG-Snipers/artifacts/sniper-bot
+> pnpm run electron:build -- --mac --arm64
+
+
+> @workspace/sniper-bot@1.0.7 electron:build /Users/runner/work/TCG-Snipers/TCG-Snipers/artifacts/sniper-bot
+> pnpm run build && pnpm run electron:compile && electron-builder --config electron-builder.yml -- --mac --arm64
+
+
+> @workspace/sniper-bot@1.0.7 build /Users/runner/work/TCG-Snipers/TCG-Snipers/artifacts/sniper-bot
+> vite build --config vite.config.ts
+
+vite v7.3.2 building client environment for production...
+transforming...
+src/components/ui/tooltip.tsx (2:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+src/components/ui/select.tsx (2:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+src/components/ui/label.tsx (2:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+src/components/ui/dropdown-menu.tsx (2:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+✓ 2796 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/public/index.html                               0.74 kB │ gzip:   0.41 kB
+dist/public/assets/logo-squirtle-MRovzWWq.png      724.26 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+dist/public/assets/logo-charmander-VPW-J42p.png    728.62 kB
+dist/public/assets/logo-pikachu-LNxE26df.png       818.93 kB
+dist/public/assets/index-HqGk_h_V.css              113.12 kB │ gzip:  18.17 kB
+dist/public/assets/index-DZNVelrZ.js             1,034.57 kB │ gzip: 298.92 kB
+✓ built in 6.60s
+
+> @workspace/sniper-bot@1.0.7 electron:compile /Users/runner/work/TCG-Snipers/TCG-Snipers/artifacts/sniper-bot
+> tsc -p electron/tsconfig.json
+
+  • electron-builder  version=25.1.8 os=23.6.0
+  • artifacts will be published  reason=tag is defined tag=v1.0.7
+  • loaded configuration  file=/Users/runner/work/TCG-Snipers/TCG-Snipers/artifacts/sniper-bot/electron-builder.yml
+  • executing @electron/rebuild  electronVersion=34.5.8 arch=x64 buildFromSource=false appDir=./
+  • installing native dependencies  arch=x64
+  • completed installing native dependencies
+  • packaging       platform=darwin arch=x64 electron=34.5.8 appOutDir=release/mac
+  • downloading     url=https://github.com/electron/electron/releases/download/v34.5.8/electron-v34.5.8-darwin-x64.zip size=105 MB parts=6
+  • downloaded      url=https://github.com/electron/electron/releases/download/v34.5.8/electron-v34.5.8-darwin-x64.zip duration=961ms
+  • skipped macOS application code signing  reason=cannot find valid "Developer ID Application" identity or custom non-Apple code signing certificate, it could cause some undefined behaviour, e.g. macOS localized description not visible, see https://electron.build/code-signing allIdentities=     0 identities found
+                                                Valid identities only
+     0 valid identities found
+[notarize] Skipping notarization: APPLE_ID / APPLE_APP_SPECIFIC_PASSWORD / APPLE_TEAM_ID not set.
+  • building        target=DMG arch=x64 file=release/TCGSnipers-1.0.7-x64.dmg
+  • building        target=macOS zip arch=x64 file=release/TCGSnipers-1.0.7-x64.zip
+  • executing @electron/rebuild  electronVersion=34.5.8 arch=arm64 buildFromSource=false appDir=./
+  • Detected arm64 process, HFS+ is unavailable. Creating dmg with APFS - supports Mac OSX 10.12+
+  • installing native dependencies  arch=arm64
+  • completed installing native dependencies
+  • packaging       platform=darwin arch=arm64 electron=34.5.8 appOutDir=release/mac-arm64
+  • downloading     url=https://github.com/electron/electron/releases/download/v34.5.8/electron-v34.5.8-darwin-arm64.zip size=100 MB parts=6
+  • downloaded      url=https://github.com/electron/electron/releases/download/v34.5.8/electron-v34.5.8-darwin-arm64.zip duration=1.081s
+  • skipped macOS application code signing  reason=cannot find valid "Developer ID Application" identity or custom non-Apple code signing certificate, it could cause some undefined behaviour, e.g. macOS localized description not visible, see https://electron.build/code-signing allIdentities=     0 identities found
+                                                Valid identities only
+     0 valid identities found
+[notarize] Skipping notarization: APPLE_ID / APPLE_APP_SPECIFIC_PASSWORD / APPLE_TEAM_ID not set.
+  • building        target=DMG arch=arm64 file=release/TCGSnipers-1.0.7-arm64.dmg
+  • building        target=macOS zip arch=arm64 file=release/TCGSnipers-1.0.7-arm64.zip
+  • Detected arm64 process, HFS+ is unavailable. Creating dmg with APFS - supports Mac OSX 10.12+
+  • Above command failed, retrying 5 more times
+  ⨯ unable to execute hdiutil  args=["detach","-quiet","/Volumes/TCG Snipers Installer"] code=undefined error=Exit code: 16. Command failed: hdiutil detach -quiet /Volumes/TCG Snipers Installer
+
+  • Above command failed, retrying 5 more times
+  ⨯ unable to execute hdiutil  args=["detach","-quiet","/Volumes/TCG Snipers Installer"] code=undefined error=Exit code: 1. Command failed: hdiutil detach -quiet /Volumes/TCG Snipers Installer
+
+  • Above command failed, retrying 5 more times
+  ⨯ unable to execute hdiutil  args=["detach","-quiet","/Volumes/TCG Snipers Installer"] code=undefined error=Exit code: 1. Command failed: hdiutil detach -quiet /Volumes/TCG Snipers Installer
+
+  • Above command failed, retrying 5 more times
+  ⨯ unable to execute hdiutil  args=["detach","-quiet","/Volumes/TCG Snipers Installer"] code=undefined error=Exit code: 1. Command failed: hdiutil detach -quiet /Volumes/TCG Snipers Installer
+
+  • building block map  blockMapFile=release/TCGSnipers-1.0.7-arm64.dmg.blockmap
+  • publishing      publisher=Github (owner: VentureNexus, project: TCG-Snipers, version: 1.0.7)
+  • uploading       file=TCGSnipers-1.0.7-arm64.dmg.blockmap provider=github
+  • uploading       file=TCGSnipers-1.0.7-arm64.dmg provider=github
+  • overwrite published file  file=TCGSnipers-1.0.7-arm64.dmg.blockmap reason=already exists on GitHub
+  • overwrite published file  file=TCGSnipers-1.0.7-arm64.dmg reason=already exists on GitHub
+  • Above command failed, retrying 5 more times
+  ⨯ unable to execute hdiutil  args=["detach","-quiet","/Volumes/TCG Snipers Installer"] code=undefined error=Exit code: 1. Command failed: hdiutil detach -quiet /Volumes/TCG Snipers Installer
+
+  • building block map  blockMapFile=release/TCGSnipers-1.0.7-arm64.zip.blockmap
+  • uploading       file=TCGSnipers-1.0.7-arm64.zip.blockmap provider=github
+  • uploading       file=TCGSnipers-1.0.7-arm64.zip provider=github
+  • overwrite published file  file=TCGSnipers-1.0.7-arm64.zip reason=already exists on GitHub
+  • overwrite published file  file=TCGSnipers-1.0.7-arm64.zip.blockmap reason=already exists on GitHub
+  • building block map  blockMapFile=release/TCGSnipers-1.0.7-x64.zip.blockmap
+  • uploading       file=TCGSnipers-1.0.7-x64.zip provider=github
+  • uploading       file=TCGSnipers-1.0.7-x64.zip.blockmap provider=github
+  • overwrite published file  file=TCGSnipers-1.0.7-x64.zip reason=already exists on GitHub
+  • overwrite published file  file=TCGSnipers-1.0.7-x64.zip.blockmap reason=already exists on GitHub
+  • Above command failed, retrying 5 more times
+  ⨯ unable to execute hdiutil  args=["detach","-quiet","/Volumes/TCG Snipers Installer"] code=undefined error=Exit code: 1. Command failed: hdiutil detach -quiet /Volumes/TCG Snipers Installer
+
+  ⨯ Exit code: 1. Command failed: hdiutil detach -quiet /Volumes/TCG Snipers Installer
+  failedTask=build stackTrace=Error: Exit code: 1. Command failed: hdiutil detach -quiet /Volumes/TCG Snipers Installer
+                                                                                               at /Users/runner/work/TCG-Snipers/TCG-Snipers/node_modules/.pnpm/builder-util@25.1.7/node_modules/builder-util/src/util.ts:138:18
+    at ChildProcess.exithandler (node:child_process:424:5)
+    at ChildProcess.emit (node:events:519:28)
+    at maybeClose (node:internal/child_process:1101:16)
+    at Process.ChildProcess._handle.onexit (node:internal/child_process:304:5)
+ ELIFECYCLE  Command failed with exit code 1.
+/Users/runner/work/TCG-Snipers/TCG-Snipers/artifacts/sniper-bot:
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @workspace/sniper-bot@1.0.7 dist:mac-arm64: `pnpm run electron:build -- --mac --arm64`
+Exit status 1
+Error: Process completed with exit code 1.

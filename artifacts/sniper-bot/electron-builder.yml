@@ -50,14 +50,12 @@ mac:
   target:
     # dmg is the user-facing installer; zip is required by electron-updater
     # to perform staged in-app updates on macOS.
+    # arch is intentionally omitted — each CI job runs on a dedicated runner
+    # (macos-14 = arm64, macos-13 = x64) and builds only its native arch,
+    # avoiding hdiutil volume-name conflicts that occur when both arches are
+    # built in a single process.
     - target: dmg
-      arch:
-        - x64
-        - arm64
     - target: zip
-      arch:
-        - x64
-        - arm64
   # icon auto-derived from build/icon.png (512x512+) — no .icns needed
   category: public.app-category.utilities
   # hardenedRuntime is required for Gatekeeper / notarization.

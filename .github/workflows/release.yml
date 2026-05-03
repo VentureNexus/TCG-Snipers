@@ -30,10 +30,10 @@ jobs:
             target: dist:win
           - name: macOS arm64
             os: macos-14
-            target: dist:mac-arm64
+            target: dist:mac
           - name: macOS x64
             os: macos-13
-            target: dist:mac-x64
+            target: dist:mac
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
