@@ -44,7 +44,7 @@ export default function DashboardPage() {
             <CardTitle className="text-sm font-medium text-muted-foreground">Success Rate</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold font-mono text-primary">{summary?.successRate || 0}%</div>
+            <div className="text-2xl font-bold font-mono text-primary">{summary?.successRate ?? 0}%</div>
           </CardContent>
         </Card>
       </div>
