@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { db, customersTable, licensesTable, devicesTable, magicLinkTokensTable } from "@workspace/db";
-import { and, desc, eq, gt, sql } from "drizzle-orm";
+import { and, desc, eq, gt, isNull, sql } from "drizzle-orm";
 import { generateMagicToken, hashToken } from "../lib/crypto";
 import { sendEmail, magicLinkEmail } from "../lib/email";
 import { signPortalSession, verifyPortalSession } from "../lib/jwt";
@@ -36,7 +36,13 @@ router.post("/portal/request-magic-link", async (req, res) => {
   const recent = await db
     .select({ count: sql<number>`count(*)::int` })
     .from(magicLinkTokensTable)
-    .where(and(eq(magicLinkTokensTable.customerId, customer.id), gt(magicLinkTokensTable.createdAt, oneHourAgo)));
+    .where(
+      and(
+        eq(magicLinkTokensTable.customerId, customer.id),
+        gt(magicLinkTokensTable.createdAt, oneHourAgo),
+        isNull(magicLinkTokensTable.consumedAt),
+      ),
+    );
   if ((recent[0]?.count ?? 0) >= 3) {
     res.json({ ok: true });
     return;
