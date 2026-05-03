@@ -126,7 +126,10 @@ export default function TaskGroupsPage() {
           queryClient.invalidateQueries({ queryKey: getListTasksQueryKey() });
           setPendingGroupId(null);
         },
-        onError: () => setPendingGroupId(null),
+        onError: (err: unknown) => {
+          setPendingGroupId(null);
+          toast({ title: "Failed to start group", description: err instanceof Error ? err.message : undefined, variant: "destructive" });
+        },
       },
     );
   };
@@ -141,7 +144,10 @@ export default function TaskGroupsPage() {
           queryClient.invalidateQueries({ queryKey: getListTasksQueryKey() });
           setPendingGroupId(null);
         },
-        onError: () => setPendingGroupId(null),
+        onError: (err: unknown) => {
+          setPendingGroupId(null);
+          toast({ title: "Failed to stop group", description: err instanceof Error ? err.message : undefined, variant: "destructive" });
+        },
       },
     );
   };

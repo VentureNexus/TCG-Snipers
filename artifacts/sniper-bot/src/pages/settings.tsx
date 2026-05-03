@@ -54,9 +54,10 @@ export default function SettingsPage() {
 
   const hasElectron = typeof window !== "undefined" && !!window.electronAPI?.diagnostics;
   const [health, setHealth] = useState<{ alive: boolean; port: number } | null>(null);
+  const [lastChecked, setLastChecked] = useState<Date | null>(null);
   const [logs, setLogs] = useState<string[]>([]);
-  const [loadingLogs, setLoadingLogs] = useState(false);
   const logsRef = useRef<HTMLPreElement>(null);
+  const logAutoScrollRef = useRef(true);
 
   useEffect(() => {
     fetchSettings()
@@ -86,9 +87,28 @@ export default function SettingsPage() {
       } catch {
         setHealth(null);
       }
+      setLastChecked(new Date());
     };
     void fetchHealth();
     const id = setInterval(fetchHealth, 5000);
+    return () => clearInterval(id);
+  }, [hasElectron]);
+
+  useEffect(() => {
+    if (!hasElectron) return;
+    const pollLogs = async () => {
+      try {
+        const lines = await window.electronAPI!.diagnostics!.getLogs();
+        setLogs(lines);
+        if (logAutoScrollRef.current && logsRef.current) {
+          logsRef.current.scrollTop = logsRef.current.scrollHeight;
+        }
+      } catch {
+        // silently ignore — diagnostics are best-effort
+      }
+    };
+    void pollLogs();
+    const id = setInterval(pollLogs, 8000);
     return () => clearInterval(id);
   }, [hasElectron]);
 
@@ -113,17 +133,16 @@ export default function SettingsPage() {
     }
   };
 
-  const handleFetchLogs = async () => {
+  const handleRefreshLogs = async () => {
     if (!hasElectron) return;
-    setLoadingLogs(true);
     try {
       const lines = await window.electronAPI!.diagnostics!.getLogs();
       setLogs(lines);
       setTimeout(() => {
         if (logsRef.current) logsRef.current.scrollTop = logsRef.current.scrollHeight;
       }, 50);
-    } finally {
-      setLoadingLogs(false);
+    } catch {
+      // best-effort
     }
   };
 
@@ -218,18 +237,25 @@ export default function SettingsPage() {
                     : "bg-red-500"
                 }`}
               />
-              <span className="text-sm text-muted-foreground">
-                {health === null
-                  ? "Checking API server…"
-                  : health.alive
-                  ? `API server running on port ${health.port}`
-                  : "API server is not running"}
-              </span>
+              <div className="flex flex-col gap-0.5">
+                <span className="text-sm text-muted-foreground">
+                  {health === null
+                    ? "Checking API server…"
+                    : health.alive
+                    ? `API server running on port ${health.port}`
+                    : "API server is not running"}
+                </span>
+                {lastChecked && (
+                  <span className="text-[11px] text-muted-foreground/50">
+                    Last checked {lastChecked.toLocaleTimeString()}
+                  </span>
+                )}
+              </div>
             </div>
 
             <div className="flex gap-2 flex-wrap">
-              <Button variant="outline" size="sm" onClick={handleFetchLogs} disabled={loadingLogs}>
-                {loadingLogs ? "Loading…" : "Fetch Logs"}
+              <Button variant="outline" size="sm" onClick={handleRefreshLogs}>
+                Refresh Logs
               </Button>
               {logs.length > 0 && (
                 <>
@@ -246,16 +272,18 @@ export default function SettingsPage() {
             {logs.length > 0 ? (
               <pre
                 ref={logsRef}
+                onScroll={(e) => {
+                  const el = e.currentTarget;
+                  logAutoScrollRef.current = el.scrollTop + el.clientHeight >= el.scrollHeight - 20;
+                }}
                 className="h-64 overflow-y-auto bg-black/40 border border-border/50 rounded-md p-3 text-[11px] font-mono text-muted-foreground whitespace-pre-wrap break-all"
               >
                 {logs.join("\n")}
               </pre>
             ) : (
-              !loadingLogs && (
-                <p className="text-xs text-muted-foreground">
-                  Click "Fetch Logs" to load recent API server output (last 200 lines).
-                </p>
-              )
+              <p className="text-xs text-muted-foreground">
+                Logs refresh automatically every 8 s. Click "Refresh Logs" to update now.
+              </p>
             )}
           </CardContent>
         </Card>
