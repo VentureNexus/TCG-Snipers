@@ -98,12 +98,6 @@ export function Pricing() {
             </button>
           </p>
         </form>
-        <div className="mt-6 pt-6 border-t border-border text-center text-xs text-muted-foreground">
-          Runs on your device — no cloud fees, full control.
-          <br />
-          Need to run on multiple devices? <span className="text-foreground">+$50/mo</span> per
-          additional active device.
-        </div>
       </div>
     </section>
   );
