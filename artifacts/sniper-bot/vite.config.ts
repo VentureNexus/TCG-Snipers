@@ -65,6 +65,10 @@ export default defineConfig(async ({ command }) => ({
         ws: true,
         changeOrigin: true,
       },
+      "/license": {
+        target: "http://localhost:8082",
+        changeOrigin: true,
+      },
     },
   },
   preview: {
