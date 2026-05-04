@@ -61,12 +61,24 @@ const api = {
     },
   },
 
-  /** In-app diagnostics — API server health and log buffer. */
+  /** In-app diagnostics — API server health, log buffer, and request metrics. */
   diagnostics: {
     getLogs: (): Promise<string[]> => ipcRenderer.invoke("api:getLogs"),
     getHealth: (): Promise<{ alive: boolean; port: number }> => ipcRenderer.invoke("api:getHealth"),
     getStartStatus: (): Promise<{ ok: boolean; reason: string }> =>
       ipcRenderer.invoke("api:getStartStatus"),
+    /** Returns a snapshot of server-side HTTP request metrics. */
+    getMetrics: (): Promise<{
+      requests: Array<{
+        id: number; ts: number; method: string; path: string;
+        status: number | null; durationMs: number | null; error: string | null;
+      }>;
+      uptimeMs: number;
+      alive: boolean;
+      port: number;
+      startOk: boolean;
+      startFailReason: string;
+    }> => ipcRenderer.invoke("api:getMetrics"),
     onStartFailed: (handler: (info: { reason: string }) => void): (() => void) => {
       const listener = (_e: unknown, info: { reason: string }) => handler(info);
       ipcRenderer.on("api:startFailed", listener);

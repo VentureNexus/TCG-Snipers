@@ -38,6 +38,28 @@ let apiStartOk = false;
 /** Human-readable failure reason when startup fails. */
 let apiStartFailReason = "";
 
+// ── Server-side request metrics buffer ───────────────────────────────────────
+const APP_START_MS = Date.now();
+const REQUEST_BUF_SIZE = 200;
+
+interface ServerRequestEntry {
+  id: number;
+  ts: number;
+  method: string;
+  path: string;
+  status: number | null;
+  durationMs: number | null;
+  error: string | null;
+}
+
+const serverRequestLog: ServerRequestEntry[] = [];
+let serverRequestCounter = 0;
+
+function recordServerRequest(entry: ServerRequestEntry) {
+  serverRequestLog.push(entry);
+  if (serverRequestLog.length > REQUEST_BUF_SIZE) serverRequestLog.shift();
+}
+
 // ── Start Express API server in-process ────────────────────────────────────
 // Runs the Express app directly inside the Electron main process rather than
 // as a child process. This eliminates WASM path-resolution problems, startup
@@ -61,6 +83,20 @@ async function startApiServer(): Promise<void> {
     const { default: expressApp } = await import("../../api-server/src/app.js");
 
     apiServer = http.createServer(expressApp);
+
+    // Tap into every HTTP request/response to populate the metrics buffer.
+    apiServer.on("request", (req, res) => {
+      const id = ++serverRequestCounter;
+      const ts = Date.now();
+      const method = req.method ?? "GET";
+      const path = req.url ?? "/";
+      res.on("finish", () => {
+        recordServerRequest({ id, ts, method, path, status: res.statusCode, durationMs: Date.now() - ts, error: null });
+      });
+      res.on("error", (err: Error) => {
+        recordServerRequest({ id, ts, method, path, status: null, durationMs: Date.now() - ts, error: err.message });
+      });
+    });
 
     await new Promise<void>((resolve) => {
       apiServer!.listen(API_PORT, () => {
@@ -166,6 +202,15 @@ ipcMain.handle("api:getHealth", () => ({
 ipcMain.handle("api:getStartStatus", () => ({
   ok: apiStartOk,
   reason: apiStartFailReason,
+}));
+// Returns a snapshot of server-side request metrics for the diagnostics panel.
+ipcMain.handle("api:getMetrics", () => ({
+  requests: [...serverRequestLog],
+  uptimeMs: Date.now() - APP_START_MS,
+  alive: apiServer?.listening ?? false,
+  port: API_PORT,
+  startOk: apiStartOk,
+  startFailReason: apiStartFailReason,
 }));
 
 // ── Update IPC ───────────────────────────────────────────────────────────────
