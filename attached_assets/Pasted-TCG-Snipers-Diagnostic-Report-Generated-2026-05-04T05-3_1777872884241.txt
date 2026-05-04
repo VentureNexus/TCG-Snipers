@@ -1,0 +1,77 @@
+TCG Snipers Diagnostic Report
+Generated: 2026-05-04T05:34:27.330Z
+Version: 1.0.17
+
+=== Client Errors (150) ===
+12:34:11 AM  GET    /api/analytics/summary                   ERR  3ms  Failed to fetch
+12:34:11 AM  GET    /api/tasks                               ERR  1ms  Failed to fetch
+12:34:11 AM  POST   /api/profiles                            ERR  5ms  Failed to fetch
+12:34:11 AM  POST   /api/profiles                            ERR  9ms  Failed to fetch
+12:34:13 AM  GET    /api/analytics/summary                   ERR  2ms  Failed to fetch
+12:34:13 AM  GET    /api/tasks                               ERR  2ms  Failed to fetch
+12:34:14 AM  GET    /api/settings                            ERR  21ms  Failed to fetch
+12:34:15 AM  GET    /api/settings                            ERR  3ms  Failed to fetch
+12:34:17 AM  GET    /api/analytics/summary                   ERR  15ms  Failed to fetch
+12:34:17 AM  GET    /api/tasks                               ERR  3ms  Failed to fetch
+12:34:17 AM  GET    /api/settings                            ERR  3ms  Failed to fetch
+12:34:20 AM  GET    /api/analytics/summary                   ERR  2ms  Failed to fetch
+12:34:20 AM  GET    /api/tasks                               ERR  2ms  Failed to fetch
+12:34:21 AM  GET    /api/analytics/summary                   ERR  2ms  Failed to fetch
+12:34:21 AM  GET    /api/tasks                               ERR  3ms  Failed to fetch
+12:34:21 AM  GET    /api/settings                            ERR  2ms  Failed to fetch
+12:34:23 AM  GET    /api/analytics/summary                   ERR  3ms  Failed to fetch
+12:34:23 AM  GET    /api/tasks                               ERR  3ms  Failed to fetch
+12:34:27 AM  GET    /api/analytics/summary                   ERR  4ms  Failed to fetch
+12:34:27 AM  GET    /api/tasks                               ERR  1ms  Failed to fetch
+
+=== Client Requests (last 50) ===
+12:34:01 AM  GET    /api/tasks                               ERR  2ms
+12:34:03 AM  GET    /api/analytics/summary                   ERR  4ms
+12:34:03 AM  GET    /api/tasks                               ERR  2ms
+12:34:03 AM  POST   /api/profiles                            ERR  8ms
+12:34:06 AM  POST   /api/profiles                            ERR  10ms
+12:34:06 AM  POST   /api/profiles                            ERR  9ms
+12:34:06 AM  POST   /api/profiles                            ERR  8ms
+12:34:07 AM  GET    /api/analytics/summary                   ERR  2ms
+12:34:07 AM  POST   /api/profiles                            ERR  12ms
+12:34:07 AM  GET    /api/tasks                               ERR  13ms
+12:34:07 AM  POST   /api/profiles                            ERR  6ms
+12:34:07 AM  POST   /api/profiles                            ERR  11ms
+12:34:07 AM  POST   /api/profiles                            ERR  7ms
+12:34:08 AM  POST   /api/profiles                            ERR  7ms
+12:34:08 AM  POST   /api/profiles                            ERR  6ms
+12:34:08 AM  POST   /api/profiles                            ERR  9ms
+12:34:08 AM  POST   /api/profiles                            ERR  8ms
+12:34:09 AM  POST   /api/profiles                            ERR  7ms
+12:34:09 AM  POST   /api/profiles                            ERR  8ms
+12:34:09 AM  POST   /api/profiles                            ERR  4ms
+12:34:09 AM  POST   /api/profiles                            ERR  9ms
+12:34:09 AM  POST   /api/profiles                            ERR  7ms
+12:34:10 AM  POST   /api/profiles                            ERR  7ms
+12:34:10 AM  GET    /api/analytics/summary                   ERR  2ms
+12:34:10 AM  GET    /api/tasks                               ERR  2ms
+12:34:10 AM  POST   /api/profiles                            ERR  8ms
+12:34:10 AM  POST   /api/profiles                            ERR  3ms
+12:34:10 AM  POST   /api/profiles                            ERR  6ms
+12:34:10 AM  POST   /api/profiles                            ERR  5ms
+12:34:11 AM  POST   /api/profiles                            ERR  5ms
+12:34:11 AM  GET    /api/analytics/summary                   ERR  3ms
+12:34:11 AM  GET    /api/tasks                               ERR  1ms
+12:34:11 AM  POST   /api/profiles                            ERR  5ms
+12:34:11 AM  POST   /api/profiles                            ERR  9ms
+12:34:13 AM  GET    /api/analytics/summary                   ERR  2ms
+12:34:13 AM  GET    /api/tasks                               ERR  2ms
+12:34:14 AM  GET    /api/settings                            ERR  21ms
+12:34:15 AM  GET    /api/settings                            ERR  3ms
+12:34:17 AM  GET    /api/analytics/summary                   ERR  15ms
+12:34:17 AM  GET    /api/tasks                               ERR  3ms
+12:34:17 AM  GET    /api/settings                            ERR  3ms
+12:34:20 AM  GET    /api/analytics/summary                   ERR  2ms
+12:34:20 AM  GET    /api/tasks                               ERR  2ms
+12:34:21 AM  GET    /api/analytics/summary                   ERR  2ms
+12:34:21 AM  GET    /api/tasks                               ERR  3ms
+12:34:21 AM  GET    /api/settings                            ERR  2ms
+12:34:23 AM  GET    /api/analytics/summary                   ERR  3ms
+12:34:23 AM  GET    /api/tasks                               ERR  3ms
+12:34:27 AM  GET    /api/analytics/summary                   ERR  4ms
+12:34:27 AM  GET    /api/tasks                               ERR  1ms
