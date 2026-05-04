@@ -90,7 +90,7 @@ jobs:
         run: node artifacts/api-server/scripts/smoke-test-pglite.mjs
 
       - name: Build and publish installer (GitHub Release)
-        run: pnpm --filter @workspace/sniper-bot run ${{ matrix.target }}
+        run: pnpm --filter @workspace/sniper-bot run ${{ matrix.target }} -- --publish always
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
