@@ -15,16 +15,21 @@ interface SettingsForm {
   imapPassword: string;
 }
 
-const API_BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
+function getApiBase(): string {
+  if (typeof window !== "undefined" && window.electronAPI) {
+    return "http://localhost:8080";
+  }
+  return import.meta.env.BASE_URL.replace(/\/$/, "");
+}
 
 async function fetchSettings(): Promise<SettingsForm & { id: number }> {
-  const res = await fetch(`${API_BASE}/api/settings`);
+  const res = await fetch(`${getApiBase()}/api/settings`);
   if (!res.ok) throw new Error("Failed to load settings");
   return res.json();
 }
 
 async function saveSettings(data: SettingsForm): Promise<void> {
-  const res = await fetch(`${API_BASE}/api/settings`, {
+  const res = await fetch(`${getApiBase()}/api/settings`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),

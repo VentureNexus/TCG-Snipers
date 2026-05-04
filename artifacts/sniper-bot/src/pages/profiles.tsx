@@ -1081,7 +1081,8 @@ export default function ProfilesPage() {
     setExporting(true);
     try {
       // Use the export endpoint which includes encrypted card blobs for full backup
-      const res = await fetch("/api/profiles/export");
+      const apiBase = window.electronAPI ? "http://localhost:8080" : "";
+      const res = await fetch(`${apiBase}/api/profiles/export`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = (await res.json()) as { profiles: Profile[]; cards: unknown[] };
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
@@ -1115,7 +1116,8 @@ export default function ProfilesPage() {
           ? []
           : ((raw as Record<string, unknown>).cards as unknown[] ?? []);
 
-        const res = await fetch("/api/profiles/import", {
+        const importBase = window.electronAPI ? "http://localhost:8080" : "";
+        const res = await fetch(`${importBase}/api/profiles/import`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ profiles: profilesArr, cards: cardsArr }),
