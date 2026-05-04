@@ -1,0 +1,77 @@
+TCG Snipers Diagnostic Report
+Generated: 2026-05-04T05:55:07.898Z
+Version: 1.0.18
+
+=== Client Errors (54) ===
+12:54:44 AM  GET    /api/tasks                               ERR  2ms  Failed to fetch
+12:54:44 AM  GET    /api/analytics/summary                   ERR  1ms  Failed to fetch
+12:54:46 AM  GET    /api/tasks                               ERR  2ms  Failed to fetch
+12:54:46 AM  GET    /api/analytics/summary                   ERR  2ms  Failed to fetch
+12:54:50 AM  GET    /api/tasks                               ERR  1ms  Failed to fetch
+12:54:50 AM  GET    /api/analytics/summary                   ERR  2ms  Failed to fetch
+12:54:53 AM  GET    /api/tasks                               ERR  5ms  Failed to fetch
+12:54:53 AM  GET    /api/analytics/summary                   ERR  5ms  Failed to fetch
+12:54:54 AM  GET    /api/tasks                               ERR  2ms  Failed to fetch
+12:54:54 AM  GET    /api/analytics/summary                   ERR  2ms  Failed to fetch
+12:54:56 AM  GET    /api/tasks                               ERR  3ms  Failed to fetch
+12:54:56 AM  GET    /api/analytics/summary                   ERR  3ms  Failed to fetch
+12:55:00 AM  GET    /api/tasks                               ERR  2ms  Failed to fetch
+12:55:00 AM  GET    /api/analytics/summary                   ERR  2ms  Failed to fetch
+12:55:03 AM  GET    /api/tasks                               ERR  3ms  Failed to fetch
+12:55:03 AM  GET    /api/analytics/summary                   ERR  3ms  Failed to fetch
+12:55:04 AM  GET    /api/tasks                               ERR  3ms  Failed to fetch
+12:55:04 AM  GET    /api/analytics/summary                   ERR  3ms  Failed to fetch
+12:55:06 AM  GET    /api/tasks                               ERR  1ms  Failed to fetch
+12:55:06 AM  GET    /api/analytics/summary                   ERR  1ms  Failed to fetch
+
+=== Client Requests (last 50) ===
+12:54:23 AM  GET    /api/analytics/checkouts-over-time       ERR  27ms
+12:54:24 AM  GET    /api/tasks                               ERR  8ms
+12:54:24 AM  GET    /api/profiles                            ERR  7ms
+12:54:24 AM  GET    /api/analytics/summary                   ERR  8ms
+12:54:24 AM  GET    /api/checkout-results                    ERR  8ms
+12:54:24 AM  GET    /api/analytics/checkouts-over-time       ERR  2ms
+12:54:26 AM  GET    /api/tasks                               ERR  2ms
+12:54:26 AM  GET    /api/profiles                            ERR  2ms
+12:54:26 AM  GET    /api/analytics/summary                   ERR  3ms
+12:54:26 AM  GET    /api/checkout-results                    ERR  3ms
+12:54:26 AM  GET    /api/analytics/checkouts-over-time       ERR  2ms
+12:54:30 AM  GET    /api/tasks                               ERR  3ms
+12:54:30 AM  GET    /api/profiles                            ERR  3ms
+12:54:30 AM  GET    /api/analytics/summary                   ERR  3ms
+12:54:30 AM  GET    /api/checkout-results                    ERR  3ms
+12:54:30 AM  GET    /api/analytics/checkouts-over-time       ERR  2ms
+12:54:33 AM  GET    /api/tasks                               ERR  10ms
+12:54:33 AM  GET    /api/analytics/summary                   ERR  10ms
+12:54:33 AM  GET    /api/settings                            ERR  32ms
+12:54:34 AM  GET    /api/tasks                               ERR  1ms
+12:54:34 AM  GET    /api/analytics/summary                   ERR  1ms
+12:54:34 AM  GET    /api/settings                            ERR  1ms
+12:54:36 AM  GET    /api/tasks                               ERR  2ms
+12:54:36 AM  GET    /api/analytics/summary                   ERR  2ms
+12:54:36 AM  GET    /api/settings                            ERR  2ms
+12:54:40 AM  GET    /api/tasks                               ERR  2ms
+12:54:40 AM  GET    /api/analytics/summary                   ERR  2ms
+12:54:40 AM  GET    /api/settings                            ERR  2ms
+12:54:43 AM  GET    /api/tasks                               ERR  3ms
+12:54:43 AM  GET    /api/analytics/summary                   ERR  2ms
+12:54:44 AM  GET    /api/tasks                               ERR  2ms
+12:54:44 AM  GET    /api/analytics/summary                   ERR  1ms
+12:54:46 AM  GET    /api/tasks                               ERR  2ms
+12:54:46 AM  GET    /api/analytics/summary                   ERR  2ms
+12:54:50 AM  GET    /api/tasks                               ERR  1ms
+12:54:50 AM  GET    /api/analytics/summary                   ERR  2ms
+12:54:53 AM  GET    /api/tasks                               ERR  5ms
+12:54:53 AM  GET    /api/analytics/summary                   ERR  5ms
+12:54:54 AM  GET    /api/tasks                               ERR  2ms
+12:54:54 AM  GET    /api/analytics/summary                   ERR  2ms
+12:54:56 AM  GET    /api/tasks                               ERR  3ms
+12:54:56 AM  GET    /api/analytics/summary                   ERR  3ms
+12:55:00 AM  GET    /api/tasks                               ERR  2ms
+12:55:00 AM  GET    /api/analytics/summary                   ERR  2ms
+12:55:03 AM  GET    /api/tasks                               ERR  3ms
+12:55:03 AM  GET    /api/analytics/summary                   ERR  3ms
+12:55:04 AM  GET    /api/tasks                               ERR  3ms
+12:55:04 AM  GET    /api/analytics/summary                   ERR  3ms
+12:55:06 AM  GET    /api/tasks                               ERR  1ms
+12:55:06 AM  GET    /api/analytics/summary                   ERR  1ms
