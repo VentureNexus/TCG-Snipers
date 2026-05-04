@@ -1,5 +1,5 @@
 import type { QueryKey, UseMutationOptions, UseMutationResult, UseQueryOptions, UseQueryResult } from "@tanstack/react-query";
-import type { AnalyticsSummary, BulkActionResult, CheckoutResult, CheckoutTimeSeriesPoint, CreateCheckoutResultBody, CreateCreditCardBody, CreateProfileBody, CreateProxyBody, CreateTaskBody, CreateTaskGroupBody, CreditCard, GetCheckoutsOverTimeParams, HealthStatus, ListCheckoutResultsParams, ListCreditCardsParams, ListTasksParams, Profile, Proxy, ProxyTestResult, Task, TaskGroup, UpdateCheckoutResultBody, UpdateCreditCardBody, UpdateProfileBody, UpdateProxyBody, UpdateTaskBody, UpdateTaskGroupBody } from "./api.schemas";
+import type { AnalyticsSummary, BulkActionResult, CheckoutResult, CheckoutTimeSeriesPoint, CreateCheckoutResultBody, CreateCreditCardBody, CreateProfileBody, CreateProxyBody, CreateTaskBody, CreateTaskGroupBody, CreditCard, GetCheckoutsOverTimeParams, HealthStatus, ListCheckoutResultsParams, ListCreditCardsParams, ListTasksParams, Profile, ProfileExportData, ProfileImportBody, ProfileImportResult, Proxy, ProxyTestResult, Settings, Task, TaskGroup, UpdateCheckoutResultBody, UpdateCreditCardBody, UpdateProfileBody, UpdateProxyBody, UpdateSettingsBody, UpdateTaskBody, UpdateTaskGroupBody } from "./api.schemas";
 import { customFetch } from "../custom-fetch";
 import type { ErrorType, BodyType } from "../custom-fetch";
 type AwaitedInput<T> = PromiseLike<T> | T;
@@ -29,6 +29,106 @@ export declare function useHealthCheck<TData = Awaited<ReturnType<typeof healthC
 }): UseQueryResult<TData, TError> & {
     queryKey: QueryKey;
 };
+/**
+ * @summary Get application settings
+ */
+export declare const getGetSettingsUrl: () => string;
+export declare const getSettings: (options?: RequestInit) => Promise<Settings>;
+export declare const getGetSettingsQueryKey: () => readonly ["/api/settings"];
+export declare const getGetSettingsQueryOptions: <TData = Awaited<ReturnType<typeof getSettings>>, TError = ErrorType<unknown>>(options?: {
+    query?: UseQueryOptions<Awaited<ReturnType<typeof getSettings>>, TError, TData>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseQueryOptions<Awaited<ReturnType<typeof getSettings>>, TError, TData> & {
+    queryKey: QueryKey;
+};
+export type GetSettingsQueryResult = NonNullable<Awaited<ReturnType<typeof getSettings>>>;
+export type GetSettingsQueryError = ErrorType<unknown>;
+/**
+ * @summary Get application settings
+ */
+export declare function useGetSettings<TData = Awaited<ReturnType<typeof getSettings>>, TError = ErrorType<unknown>>(options?: {
+    query?: UseQueryOptions<Awaited<ReturnType<typeof getSettings>>, TError, TData>;
+    request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+};
+/**
+ * @summary Update application settings
+ */
+export declare const getUpdateSettingsUrl: () => string;
+export declare const updateSettings: (updateSettingsBody: UpdateSettingsBody, options?: RequestInit) => Promise<Settings>;
+export declare const getUpdateSettingsMutationOptions: <TError = ErrorType<unknown>, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof updateSettings>>, TError, {
+        data: BodyType<UpdateSettingsBody>;
+    }, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseMutationOptions<Awaited<ReturnType<typeof updateSettings>>, TError, {
+    data: BodyType<UpdateSettingsBody>;
+}, TContext>;
+export type UpdateSettingsMutationResult = NonNullable<Awaited<ReturnType<typeof updateSettings>>>;
+export type UpdateSettingsMutationBody = BodyType<UpdateSettingsBody>;
+export type UpdateSettingsMutationError = ErrorType<unknown>;
+/**
+ * @summary Update application settings
+ */
+export declare const useUpdateSettings: <TError = ErrorType<unknown>, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof updateSettings>>, TError, {
+        data: BodyType<UpdateSettingsBody>;
+    }, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseMutationResult<Awaited<ReturnType<typeof updateSettings>>, TError, {
+    data: BodyType<UpdateSettingsBody>;
+}, TContext>;
+/**
+ * @summary Export all profiles with encrypted card data
+ */
+export declare const getExportProfilesUrl: () => string;
+export declare const exportProfiles: (options?: RequestInit) => Promise<ProfileExportData>;
+export declare const getExportProfilesQueryKey: () => readonly ["/api/profiles/export"];
+export declare const getExportProfilesQueryOptions: <TData = Awaited<ReturnType<typeof exportProfiles>>, TError = ErrorType<unknown>>(options?: {
+    query?: UseQueryOptions<Awaited<ReturnType<typeof exportProfiles>>, TError, TData>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseQueryOptions<Awaited<ReturnType<typeof exportProfiles>>, TError, TData> & {
+    queryKey: QueryKey;
+};
+export type ExportProfilesQueryResult = NonNullable<Awaited<ReturnType<typeof exportProfiles>>>;
+export type ExportProfilesQueryError = ErrorType<unknown>;
+/**
+ * @summary Export all profiles with encrypted card data
+ */
+export declare function useExportProfiles<TData = Awaited<ReturnType<typeof exportProfiles>>, TError = ErrorType<unknown>>(options?: {
+    query?: UseQueryOptions<Awaited<ReturnType<typeof exportProfiles>>, TError, TData>;
+    request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+};
+/**
+ * @summary Import profiles and restore encrypted card data
+ */
+export declare const getImportProfilesUrl: () => string;
+export declare const importProfiles: (profileImportBody: ProfileImportBody, options?: RequestInit) => Promise<ProfileImportResult>;
+export declare const getImportProfilesMutationOptions: <TError = ErrorType<unknown>, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof importProfiles>>, TError, {
+        data: BodyType<ProfileImportBody>;
+    }, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseMutationOptions<Awaited<ReturnType<typeof importProfiles>>, TError, {
+    data: BodyType<ProfileImportBody>;
+}, TContext>;
+export type ImportProfilesMutationResult = NonNullable<Awaited<ReturnType<typeof importProfiles>>>;
+export type ImportProfilesMutationBody = BodyType<ProfileImportBody>;
+export type ImportProfilesMutationError = ErrorType<unknown>;
+/**
+ * @summary Import profiles and restore encrypted card data
+ */
+export declare const useImportProfiles: <TError = ErrorType<unknown>, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof importProfiles>>, TError, {
+        data: BodyType<ProfileImportBody>;
+    }, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseMutationResult<Awaited<ReturnType<typeof importProfiles>>, TError, {
+    data: BodyType<ProfileImportBody>;
+}, TContext>;
 /**
  * @summary List all profiles
  */
