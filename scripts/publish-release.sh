@@ -41,6 +41,10 @@ if git --no-optional-locks rev-parse --verify "refs/tags/${TAG}" &>/dev/null; th
   echo "ERROR: Tag ${TAG} already exists locally. Aborting." >&2
   exit 1
 fi
+if git ls-remote --tags origin "refs/tags/${TAG}" | grep -q "${TAG}"; then
+  echo "ERROR: Tag ${TAG} already exists on remote origin. Aborting." >&2
+  exit 1
+fi
 
 echo "Creating annotated tag ${TAG} at HEAD ($(git --no-optional-locks rev-parse --short HEAD))..."
 git tag -a "${TAG}" -m "Release ${TAG}"
