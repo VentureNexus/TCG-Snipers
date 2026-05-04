@@ -1,4 +1,4 @@
-import { app, BrowserWindow, shell, ipcMain } from "electron";
+import { app, BrowserWindow, shell, ipcMain, dialog } from "electron";
 import http from "http";
 import path from "path";
 import fs from "fs";
@@ -94,21 +94,39 @@ function recordServerRequest(entry: ServerRequestEntry) {
 
 // ── Start Express API server in-process ────────────────────────────────────
 async function startApiServer(): Promise<void> {
-  // Try ports 8080 → 8081 → 8082 in case one is occupied
   const CANDIDATE_PORTS = [8080, 8081, 8082, 8083];
 
   try {
+    writeLog("INFO", `Node version: ${process.version}`);
+    writeLog("INFO", `Platform: ${process.platform} arch: ${process.arch}`);
+    writeLog("INFO", `isPackaged: ${app.isPackaged}`);
+
     const electronDbPath = path.join(app.getPath("userData"), "pgdata");
     writeLog("INFO", `DB path: ${electronDbPath}`);
     process.env.ELECTRON_DB_PATH = electronDbPath;
     process.env.NODE_ENV = isDev ? "development" : "production";
+    writeLog("INFO", `NODE_ENV set to: ${process.env.NODE_ENV}`);
 
-    writeLog("INFO", "Importing API server module…");
+    // Verify that the electron/dist directory exists and list chunk files
+    try {
+      const distFiles = fs.readdirSync(__dirname);
+      writeLog("INFO", `electron/dist contents (${distFiles.length} files): ${distFiles.slice(0, 20).join(", ")}`);
+    } catch (e) {
+      writeLog("WARN", `Could not list electron/dist: ${e}`);
+    }
+
+    writeLog("INFO", "Step 1: importing API server module…");
     // @ts-expect-error – cross-package import resolved by esbuild at build time
-    const { default: expressApp } = await import("../../api-server/src/app.js");
-    writeLog("INFO", "API server module imported successfully");
+    const apiModule = await import("../../api-server/src/app.js");
+    writeLog("INFO", "Step 1 OK: module imported");
 
+    const expressApp = apiModule.default;
+    if (!expressApp || typeof expressApp !== "function") {
+      throw new Error(`API module default export is not a function: ${typeof expressApp}`);
+    }
+    writeLog("INFO", "Step 2: creating HTTP server…");
     apiServer = http.createServer(expressApp);
+    writeLog("INFO", "Step 2 OK");
 
     apiServer.on("request", (req, res) => {
       const id = ++serverRequestCounter;
@@ -123,12 +141,14 @@ async function startApiServer(): Promise<void> {
       });
     });
 
+    writeLog("INFO", "Step 3: binding to port…");
     for (const port of CANDIDATE_PORTS) {
+      writeLog("INFO", `  trying port ${port}…`);
       const bound = await tryListen(apiServer, port);
       if (bound) {
         apiPort = port;
         apiStartOk = true;
-        writeLog("INFO", `API server listening on port ${port}`);
+        writeLog("INFO", `Step 3 OK: listening on port ${port}`);
         if (mainWindow && !mainWindow.isDestroyed()) {
           mainWindow.webContents.send("api:recovered");
         }
@@ -136,14 +156,15 @@ async function startApiServer(): Promise<void> {
       }
     }
 
-    // All candidate ports failed
     apiStartFailReason = `API server could not bind to any port (tried ${CANDIDATE_PORTS.join(", ")}). Another process may be using these ports.`;
     writeLog("ERROR", apiStartFailReason);
 
   } catch (err) {
-    const msg = err instanceof Error ? `${err.message}\n${err.stack ?? ""}` : String(err);
+    const stack = err instanceof Error ? (err.stack ?? err.message) : String(err);
     apiStartFailReason = `Failed to initialize API: ${err instanceof Error ? err.message : String(err)}`;
-    writeLog("ERROR", "API in-process startup failed:", msg);
+    writeLog("ERROR", "=== API STARTUP FAILED ===");
+    writeLog("ERROR", stack);
+    writeLog("ERROR", "=== END STARTUP FAILURE ===");
   }
 }
 
@@ -284,6 +305,18 @@ app.whenReady().then(async () => {
   } catch (err) {
     writeLog("ERROR", "startApiServer threw:", err);
   }
+
+  // Show a native dialog immediately if the API didn't start — impossible to miss.
+  if (!apiStartOk) {
+    const logHint = logFilePath
+      ? `\n\nFull details in log file:\n${logFilePath}`
+      : "";
+    dialog.showErrorBox(
+      "TCG Snipers — API failed to start",
+      `${apiStartFailReason || "Unknown error"}${logHint}`,
+    );
+  }
+
   createWindow();
   try {
     startUpdateChecker(() => mainWindow);
