@@ -77,6 +77,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { getApiBase } from "@/lib/api-base";
 
 // ─── Schemas ────────────────────────────────────────────────────────────────
 
@@ -1081,7 +1082,7 @@ export default function ProfilesPage() {
     setExporting(true);
     try {
       // Use the export endpoint which includes encrypted card blobs for full backup
-      const apiBase = window.electronAPI ? "http://localhost:8080" : import.meta.env.BASE_URL.replace(/\/$/, "");
+      const apiBase = getApiBase();
       const res = await fetch(`${apiBase}/api/profiles/export`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = (await res.json()) as { profiles: Profile[]; cards: unknown[] };
@@ -1116,8 +1117,7 @@ export default function ProfilesPage() {
           ? []
           : ((raw as Record<string, unknown>).cards as unknown[] ?? []);
 
-        const importBase = window.electronAPI ? "http://localhost:8080" : import.meta.env.BASE_URL.replace(/\/$/, "");
-        const res = await fetch(`${importBase}/api/profiles/import`, {
+        const res = await fetch(`${getApiBase()}/api/profiles/import`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ profiles: profilesArr, cards: cardsArr }),

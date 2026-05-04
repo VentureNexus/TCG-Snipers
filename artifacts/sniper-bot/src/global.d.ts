@@ -30,7 +30,7 @@ declare global {
     electronAPI?: {
       getVersion: () => Promise<string>;
       getPlatform: () => Promise<string>;
-      /** Returns the base URL of the local Express API, e.g. "http://localhost:8080" */
+      /** Returns the base URL of the local Express API (derived from API_PORT in electron/main.ts). */
       getApiBaseUrl: () => Promise<string>;
       /** Open a URL in the user's default browser. */
       openExternal: (url: string) => Promise<void>;

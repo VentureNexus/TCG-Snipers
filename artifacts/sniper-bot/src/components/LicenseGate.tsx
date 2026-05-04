@@ -6,6 +6,7 @@ import {
   loadStoredLicense,
   saveStoredLicense,
 } from "@/lib/license";
+import { getApiBase } from "@/lib/api-base";
 
 interface LicenseContextValue {
   email: string | null;
@@ -35,7 +36,7 @@ const isDevPreview = import.meta.env.DEV && !window.electronAPI?.license;
 
 async function stopAllTasks(): Promise<void> {
   try {
-    const apiBase = window.electronAPI ? await window.electronAPI.getApiBaseUrl() : "";
+    const apiBase = getApiBase();
     const res = await fetch(`${apiBase}/api/tasks/stop-all`, { method: "POST" });
     if (!res.ok) {
       console.warn(`[LicenseGate] stop-all returned HTTP ${res.status} — tasks may still be running`);

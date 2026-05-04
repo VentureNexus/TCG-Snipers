@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { getApiBase } from "@/lib/api-base";
 
 interface SettingsForm {
   concurrency: number;
@@ -13,13 +14,6 @@ interface SettingsForm {
   imapPort: string;
   imapEmail: string;
   imapPassword: string;
-}
-
-function getApiBase(): string {
-  if (typeof window !== "undefined" && window.electronAPI) {
-    return "http://localhost:8080";
-  }
-  return import.meta.env.BASE_URL.replace(/\/$/, "");
 }
 
 async function fetchSettings(): Promise<SettingsForm & { id: number }> {
