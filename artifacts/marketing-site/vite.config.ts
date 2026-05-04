@@ -61,6 +61,14 @@ export default defineConfig({
     strictPort: true,
     host: "0.0.0.0",
     allowedHosts: true,
+    // In dev the license API runs on a separate port. Proxy /license/* so that
+    // VITE_LICENSE_API_URL can be left empty and relative URLs just work.
+    proxy: {
+      "/license": {
+        target: "http://localhost:8082",
+        changeOrigin: true,
+      },
+    },
     fs: {
       strict: true,
     },
