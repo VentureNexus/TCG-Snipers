@@ -1,5 +1,3 @@
-import { ImapFlow } from "imapflow";
-
 export interface ImapConfig {
   host: string;
   port: number;
@@ -12,6 +10,10 @@ export async function imapFetchCode(
   pattern: RegExp,
   timeoutMs = 30000,
 ): Promise<string | null> {
+  // imapflow is lazy-loaded so the module can be evaluated without it present
+  // at startup in the packaged Electron build.
+  const { ImapFlow } = await import("imapflow");
+
   const deadline = Date.now() + timeoutMs;
   const pollInterval = 3000;
 
@@ -30,12 +32,10 @@ export async function imapFetchCode(
       while (Date.now() < deadline) {
         const since = new Date(Date.now() - 120_000);
 
-        // Collect all matching messages then pick the newest
         const candidates: { date: Date; code: string }[] = [];
         for await (const msg of client.fetch({ since }, { envelope: true, source: true })) {
           const subject = msg.envelope?.subject ?? "";
           const body = msg.source?.toString("utf8") ?? "";
-          // Match pattern against subject OR body
           if (!pattern.test(subject) && !pattern.test(body)) continue;
           const combined = `${subject}\n${body}`;
           const match = combined.match(/\b(\d{6})\b/);
@@ -48,7 +48,6 @@ export async function imapFetchCode(
         }
 
         if (candidates.length > 0) {
-          // Return code from the most recent matching email
           candidates.sort((a, b) => b.date.getTime() - a.date.getTime());
           return candidates[0].code;
         }
