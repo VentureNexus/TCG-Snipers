@@ -1,5 +1,5 @@
 import { app, BrowserWindow, shell, ipcMain } from "electron";
-import { spawn, type ChildProcess } from "child_process";
+import http from "http";
 import path from "path";
 import { fileURLToPath } from "url";
 import { computeFingerprint, osLabel } from "./fingerprint.js";
@@ -28,127 +28,62 @@ const isDev = process.env.NODE_ENV === "development" || !app.isPackaged;
 const API_PORT = 8080;
 
 // In dev the Vite dev-server listens on whatever PORT the platform assigns.
-// Electron reads the same env var so it always connects to the right port.
-// Fallback to 5173 only when running Electron outside the Replit environment.
 const RENDERER_PORT = Number(process.env.PORT ?? 5173);
 
 let mainWindow: BrowserWindow | null = null;
-let apiProcess: ChildProcess | null = null;
+let apiServer: http.Server | null = null;
 
-/** Set to true only when the API server emits "Server listening". */
+/** Set to true once the API server successfully starts listening. */
 let apiStartOk = false;
-/** Human-readable reason string when startup fails. */
+/** Human-readable failure reason when startup fails. */
 let apiStartFailReason = "";
 
-const MAX_LOG_LINES = 200;
-const apiLogBuffer: string[] = [];
+// ── Start Express API server in-process ────────────────────────────────────
+// Runs the Express app directly inside the Electron main process rather than
+// as a child process. This eliminates WASM path-resolution problems, startup
+// timeouts, and cross-process module-loading complexity that affected the
+// previous child-process approach.
+//
+// ORDERING IS CRITICAL: ELECTRON_DB_PATH must be written to process.env
+// BEFORE the dynamic import so that lib/db's top-level await initialises
+// PGlite with the correct data directory. esbuild (with splitting:true)
+// places the Express app in a separate chunk, guaranteeing the env var is
+// visible when the chunk — and therefore lib/db — is first evaluated.
+async function startApiServer(): Promise<void> {
+  try {
+    // Use the same pgdata directory name as the old child-process build so
+    // existing user data is preserved across the upgrade.
+    const electronDbPath = path.join(app.getPath("userData"), "pgdata");
+    process.env.ELECTRON_DB_PATH = electronDbPath;
+    process.env.NODE_ENV = isDev ? "development" : "production";
 
-function pushLog(line: string): void {
-  apiLogBuffer.push(line);
-  if (apiLogBuffer.length > MAX_LOG_LINES) apiLogBuffer.shift();
-}
+    // @ts-expect-error – cross-package import resolved by esbuild at build time
+    const { default: expressApp } = await import("../../api-server/src/app.js");
 
-// ── Start Express API server ────────────────────────────────────────────────
-// We use Electron's bundled Node runtime (process.execPath + ELECTRON_RUN_AS_NODE=1)
-// so we don't depend on the user having Node installed on their machine.
-// Errors are caught so a failed API server start does NOT kill the desktop app —
-// the renderer can still load and surface the error to the user.
-function startApiServer(): Promise<void> {
-  return new Promise((resolve) => {
-    // Dev:  sibling artifact built output  (artifacts/api-server/dist/index.mjs)
-    // Prod: bundled into app resources     (resources/api-server/index.mjs)
-    const apiServerPath = isDev
-      ? path.resolve(APP_ROOT, "..", "api-server", "dist", "index.mjs")
-      : path.join(process.resourcesPath, "api-server", "index.mjs");
+    apiServer = http.createServer(expressApp);
 
-    try {
-      // Provide the path to a local PGlite data directory so the API server
-      // can run an embedded PostgreSQL instance without any DATABASE_URL.
-      // This is only used when DATABASE_URL is absent (i.e. on end-user machines).
-      const electronDbPath = path.join(app.getPath("userData"), "pgdata");
-
-      apiProcess = spawn(process.execPath, ["--enable-source-maps", apiServerPath], {
-        env: {
-          ...process.env,
-          // Tell Electron to behave as plain Node when launched this way.
-          ELECTRON_RUN_AS_NODE: "1",
-          PORT: String(API_PORT),
-          NODE_ENV: isDev ? "development" : "production",
-          // Only set ELECTRON_DB_PATH when DATABASE_URL is absent so the
-          // Replit dev environment (which has DATABASE_URL) continues to use
-          // the real PostgreSQL instance.
-          ...(process.env.DATABASE_URL ? {} : { ELECTRON_DB_PATH: electronDbPath }),
-        },
-        stdio: ["ignore", "pipe", "pipe"],
-      });
-
-      apiProcess.stdout?.on("data", (data: Buffer) => {
-        const text = data.toString().trim();
-        for (const line of text.split("\n")) {
-          if (line) pushLog(`[stdout] ${line}`);
+    await new Promise<void>((resolve) => {
+      apiServer!.listen(API_PORT, () => {
+        apiStartOk = true;
+        console.log(`[API] Listening on port ${API_PORT}`);
+        // If the window was already shown before startup completed (shouldn't
+        // happen with current flow), send a recovery signal.
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send("api:recovered");
         }
-        console.log("[API]", text);
-        if (text.includes("Server listening")) {
-          const wasOk = apiStartOk;
-          apiStartOk = true;
-          // If the process came up after the timeout already resolved and told
-          // the renderer startup failed, send a recovery event so the banner
-          // can clear itself.
-          if (!wasOk && mainWindow && !mainWindow.isDestroyed()) {
-            mainWindow.webContents.send("api:recovered");
-          }
-          resolve();
-        }
-      });
-
-      apiProcess.stderr?.on("data", (data: Buffer) => {
-        const text = data.toString().trim();
-        for (const line of text.split("\n")) {
-          if (line) pushLog(`[stderr] ${line}`);
-        }
-        console.error("[API ERR]", text);
-      });
-
-      apiProcess.on("error", (err) => {
-        pushLog(`[spawn-error] ${err.message}`);
-        console.error("[API spawn error]", err);
-        if (!apiStartOk) {
-          apiStartFailReason = `Failed to launch the database process: ${err.message}`;
-        }
-        // Don't reject — let the desktop app load anyway.
         resolve();
       });
-
-      apiProcess.on("exit", (code, signal) => {
-        pushLog(`[exit] code=${code} signal=${signal}`);
-        console.error(`[API exited] code=${code} signal=${signal}`);
-        // If the process exits after a successful start, notify the renderer.
-        if (apiStartOk && mainWindow && !mainWindow.isDestroyed()) {
-          mainWindow.webContents.send("api:crashed", {
-            reason: `The database process stopped unexpectedly (code=${code}).`,
-          });
-        }
-        apiProcess = null;
+      apiServer!.on("error", (err: NodeJS.ErrnoException) => {
+        apiStartFailReason = `API server failed to start: ${err.message}`;
+        console.error("[API]", err.message);
+        resolve(); // non-fatal — app still launches, renderer shows error banner
       });
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      console.error("[API failed to spawn]", err);
-      if (!apiStartOk) {
-        apiStartFailReason = `Failed to start the database process: ${msg}`;
-      }
-      resolve();
-    }
-
-    // Fallback: resolve after 8 s if the startup log never fires.
-    // 8 s gives slow machines and WASM-initialisation enough time to avoid
-    // false-positive "failed to start" banners while still being responsive.
-    setTimeout(() => {
-      if (!apiStartOk && !apiStartFailReason) {
-        apiStartFailReason = "The database process did not respond in time.";
-      }
-      resolve();
-    }, 8000);
-  });
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    apiStartFailReason = `Failed to initialize API: ${msg}`;
+    console.error("[API in-process startup failed]", err);
+  }
 }
 
 // ── BrowserWindow factory ────────────────────────────────────────────────────
@@ -178,15 +113,12 @@ function createWindow(): void {
     mainWindow.webContents.openDevTools({ mode: "detach" });
   } else {
     // Production: Vite outputs to dist/public/index.html
-    // APP_ROOT = artifacts/sniper-bot, build outDir = dist/public
     const indexHtml = path.join(APP_ROOT, "dist", "public", "index.html");
     mainWindow.loadFile(indexHtml);
   }
 
   mainWindow.once("ready-to-show", () => {
     mainWindow?.show();
-    // If the API server failed to start, notify the renderer now that it is
-    // visible so it can display a non-dismissible error banner.
     if (!apiStartOk && apiStartFailReason) {
       mainWindow?.webContents.send("api:startFailed", { reason: apiStartFailReason });
     }
@@ -206,7 +138,6 @@ function createWindow(): void {
 // ── IPC handlers ─────────────────────────────────────────────────────────────
 ipcMain.handle("app:version", () => app.getVersion());
 ipcMain.handle("app:platform", () => process.platform);
-// Renderer calls this to discover the local API origin
 ipcMain.handle("app:apiBaseUrl", () => `http://localhost:${API_PORT}`);
 
 // ── License IPC ─────────────────────────────────────────────────────────────
@@ -226,8 +157,12 @@ ipcMain.handle("license:clear", () => {
 ipcMain.handle("app:openExternal", (_e, url: string) => shell.openExternal(url));
 
 // ── Diagnostics IPC ──────────────────────────────────────────────────────────
-ipcMain.handle("api:getLogs", () => [...apiLogBuffer]);
-ipcMain.handle("api:getHealth", () => ({ alive: apiProcess !== null, port: API_PORT }));
+// The API now runs in-process; logs appear in the Electron console / DevTools.
+ipcMain.handle("api:getLogs", () => []);
+ipcMain.handle("api:getHealth", () => ({
+  alive: apiServer?.listening ?? false,
+  port: API_PORT,
+}));
 ipcMain.handle("api:getStartStatus", () => ({
   ok: apiStartOk,
   reason: apiStartFailReason,
@@ -235,9 +170,6 @@ ipcMain.handle("api:getStartStatus", () => ({
 
 // ── Update IPC ───────────────────────────────────────────────────────────────
 ipcMain.handle("update:check", async () => {
-  // Kick off both the manifest check (drives the "available" banner) and the
-  // electron-updater check (drives the in-app silent download). They run
-  // independently so a failure in one doesn't block the other.
   void checkForUpdatesNow();
   return checkForUpdate(mainWindow);
 });
@@ -248,7 +180,6 @@ ipcMain.handle("update:install", () => quitAndInstallUpdate());
 
 // ── App lifecycle ────────────────────────────────────────────────────────────
 app.whenReady().then(async () => {
-  // Catch any unexpected error in startup so the app doesn't die silently.
   try {
     await startApiServer();
   } catch (err) {
@@ -273,8 +204,7 @@ app.whenReady().then(async () => {
   console.error("[startup] whenReady chain failed:", err);
 });
 
-// Last-resort safety net: log unhandled errors instead of letting them
-// crash the process before the window appears.
+// Last-resort safety net
 process.on("uncaughtException", (err) => console.error("[uncaughtException]", err));
 process.on("unhandledRejection", (reason) => console.error("[unhandledRejection]", reason));
 
@@ -283,8 +213,8 @@ app.on("window-all-closed", () => {
 });
 
 app.on("before-quit", () => {
-  if (apiProcess) {
-    apiProcess.kill("SIGTERM");
-    apiProcess = null;
+  if (apiServer) {
+    apiServer.close();
+    apiServer = null;
   }
 });

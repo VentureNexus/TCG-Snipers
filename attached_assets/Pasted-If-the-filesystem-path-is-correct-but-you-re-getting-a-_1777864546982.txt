@@ -1,0 +1,54 @@
+If the filesystem path is correct but you're getting a "Failed to Fetch" error when clicking Save, the issue isn't database persistence—it's a network or process-to-process communication failure.
+
+Since your PGlite instance is wrapped in a "spawned API server process," the UI (Renderer) is trying to talk to that local server (likely via fetch('http://localhost:PORT/...')). A "Failed to Fetch" means the request never even reached the database logic.
+
+Here are the most likely culprits and how to fix them:
+
+1. The CORS Block (Most Likely)
+Even though it's all "local," Electron's Renderer process is treated like a browser. If your spawned API server doesn't explicitly allow requests from the Electron origin (devtools:// or file://), the browser will kill the request before it leaves.
+
+The Fix: Ensure your API server (Express/FastAPI) has CORS enabled:
+
+TypeScript
+// In your spawned API server code:
+import cors from 'cors';
+app.use(cors({
+  origin: '*', // For development, or specify the Electron URL
+  methods: ['GET', 'POST', 'PUT', 'DELETE']
+}));
+2. Port Mismatch or "Zombies"
+When you "spawn" the API server from main.ts, the port might not be ready by the time the UI tries to save, or the port changed.
+
+The Check: Look at your Electron terminal/logs. Is the API server actually successfully bound to the port (e.g., listening on port 3000)?
+
+The Ghost Port: Sometimes an old instance of your API server is still running in the background (a "zombie process") holding the port, but it doesn't have the new database logic. Kill all Node processes and restart.
+
+3. The ELECTRON_DB_PATH Environment Variable Injection
+When you spawn the process, the environment variables might not be passing through correctly to the child.
+
+The Fix: Double-check your spawn call in main.ts. It should look like this to ensure the child process "sees" the path:
+
+TypeScript
+const apiProcess = spawn('node', ['server.js'], {
+  env: { 
+    ...process.env, 
+    ELECTRON_DB_PATH: electronDbPath 
+  }
+});
+4. Firewall / Loopback Restrictions
+On some Windows/Mac setups, localhost (127.0.0.1) is restricted.
+
+The Fix: Try changing your fetch URL in the frontend from http://localhost:3000 to [http://127.0.0.1:3000](http://127.0.0.1:3000).
+
+How to Debug This Right Now:
+Open Electron DevTools (Ctrl+Shift+I).
+
+Go to the Network tab and click "Save" again.
+
+Click on the red failed request.
+
+If it says "CORS Error", it's the middleware.
+
+If it says "Connection Refused", the API server process crashed or isn't listening on that port.
+
+If it says "404" or "500", the server is alive, but the route for saving addresses is wrong.

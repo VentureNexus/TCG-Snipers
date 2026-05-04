@@ -26,6 +26,10 @@ interface UpdateProgress {
 }
 
 declare global {
+  // Build-time constant injected by Vite's `define` in vite.config.ts.
+  // Equals the `version` field from package.json at the time of the build.
+  const __APP_VERSION__: string;
+
   interface Window {
     electronAPI?: {
       getVersion: () => Promise<string>;

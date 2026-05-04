@@ -13,16 +13,19 @@ files:
   # production dependencies from node_modules — required so electron-updater
   # and its transitive deps are bundled into the asar at runtime.
 
-extraResources:
-  - from: ../api-server/dist
-    to: api-server
-    filter:
-      - "**/*.mjs"
-      - "**/*.cjs"
-      - "**/*.json"
-      - "**/*.wasm"
-      - "**/*.data"
-      - "!**/*.map"
+# The Express API server now runs in-process inside the Electron main bundle
+# (see electron/build.mjs). No extraResources needed for a separate api-server
+# child process any more.
+
+# PGlite WASM/data files and any native .node addons must live on the real
+# filesystem (not inside the asar archive) so they can be mmap'd / dlopen'd.
+# electron-builder mirrors the asar path under app.asar.unpacked/ for any
+# file matched here, and Electron's module loader transparently redirects
+# file:// URLs and require() calls to the unpacked copy.
+asarUnpack:
+  - "**/*.wasm"
+  - "**/*.data"
+  - "**/*.node"
 
 win:
   target:

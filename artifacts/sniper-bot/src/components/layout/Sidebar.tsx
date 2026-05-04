@@ -7,11 +7,14 @@ import { useTheme } from "@/lib/theme";
 const STORAGE_KEY = "sidebar-collapsed";
 
 function AppVersion({ collapsed }: { collapsed: boolean }) {
-  const [version, setVersion] = useState<string>("");
+  const [version, setVersion] = useState<string>(`v${__APP_VERSION__}`);
   useEffect(() => {
-    window.electronAPI?.getVersion?.().then((v) => setVersion(`v${v}`)).catch(() => {});
+    if (window.electronAPI?.getVersion) {
+      window.electronAPI.getVersion()
+        .then((v) => setVersion(`v${v}`))
+        .catch(() => setVersion(`v${__APP_VERSION__}`));
+    }
   }, []);
-  if (!version) return null;
   return (
     <div className={`text-xs text-muted-foreground/50 font-mono mt-2 whitespace-nowrap overflow-hidden transition-all duration-200 ${collapsed ? "w-0 opacity-0 h-0" : "w-auto opacity-100"}`}>
       {version}
@@ -56,6 +59,7 @@ export function Sidebar() {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (!e.key) return; // guard against synthetic events with no key value
       if (e.key.toLowerCase() === "b" && (e.ctrlKey || e.metaKey)) {
         const tag = (e.target as HTMLElement)?.tagName;
         if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;

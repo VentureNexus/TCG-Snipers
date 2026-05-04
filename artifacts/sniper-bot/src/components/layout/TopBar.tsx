@@ -58,7 +58,15 @@ export function TopBar() {
   ).length;
 
   useEffect(() => {
-    window.electronAPI?.getVersion?.().then((v) => setAppVersion(`v${v}`)).catch(() => {});
+    if (window.electronAPI?.getVersion) {
+      window.electronAPI.getVersion()
+        .then((v) => setAppVersion(`v${v}`))
+        .catch(() => setAppVersion(`v${__APP_VERSION__}`));
+    } else {
+      // In the browser dev preview window.electronAPI is absent — fall back
+      // to the version baked in at Vite build time.
+      setAppVersion(`v${__APP_VERSION__}`);
+    }
   }, []);
 
   useEffect(() => {
@@ -74,7 +82,7 @@ export function TopBar() {
   return (
     <header className="h-14 bg-background border-b border-border flex items-center justify-between px-6 shrink-0">
       <div className="flex items-center gap-3">
-        {appVersion && <span className="text-muted-foreground/50 text-xs font-mono">{appVersion}</span>}
+        <span className="text-muted-foreground/50 text-xs font-mono">{appVersion}</span>
         <span className="w-px h-4 bg-border" />
         <h1 className="text-sm font-semibold tracking-tight">{pageTitle}</h1>
       </div>

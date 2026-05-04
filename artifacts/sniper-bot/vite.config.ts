@@ -2,7 +2,12 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import path from "path";
+import { readFileSync } from "fs";
 import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
+
+const pkg = JSON.parse(
+  readFileSync(new URL("./package.json", import.meta.url), "utf-8"),
+);
 
 // In the Replit dev environment PORT and BASE_PATH are injected by the platform.
 // When building for Electron packaging (or running locally), they may be absent
@@ -11,6 +16,11 @@ const port = Number(process.env.PORT ?? 5173);
 const basePath = process.env.BASE_PATH ?? "/";
 
 export default defineConfig(async ({ command }) => ({
+  define: {
+    // Bake the package version into the renderer bundle so it shows in both
+    // the dev preview (where window.electronAPI is absent) and the packaged app.
+    __APP_VERSION__: JSON.stringify(pkg.version),
+  },
   // `vite build` always emits relative asset URLs (./assets/...) so the
   // resulting index.html works under Electron's file:// protocol — absolute
   // paths like /assets/... resolve to the filesystem root there and 404,
