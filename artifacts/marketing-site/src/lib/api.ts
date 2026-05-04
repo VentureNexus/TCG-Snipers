@@ -28,12 +28,15 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 export const licenseApi = {
   startCheckout(email: string, origin: string): Promise<{ url: string; sessionId: string }> {
+    // BASE_URL is "/marketing/" on Replit and "/" on Vercel. Strip the trailing
+    // slash so we can append route names cleanly without double-slashes.
+    const base = (import.meta.env.BASE_URL ?? "/").replace(/\/$/, "");
     return request("/license/checkout", {
       method: "POST",
       body: JSON.stringify({
         email: email || undefined,
-        successUrl: `${origin}/marketing/success`,
-        cancelUrl: `${origin}/marketing/cancel`,
+        successUrl: `${origin}${base}/success`,
+        cancelUrl: `${origin}${base}/cancel`,
       }),
     });
   },
