@@ -4,7 +4,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { getApiBase } from "@/lib/api-base";
+import { useQueryClient } from "@tanstack/react-query";
+import { useGetSettings, useUpdateSettings, getGetSettingsQueryKey } from "@workspace/api-client-react";
 
 interface SettingsForm {
   concurrency: number;
@@ -14,25 +15,6 @@ interface SettingsForm {
   imapPort: string;
   imapEmail: string;
   imapPassword: string;
-}
-
-async function fetchSettings(): Promise<SettingsForm & { id: number }> {
-  const res = await fetch(`${getApiBase()}/api/settings`);
-  if (!res.ok) throw new Error("Failed to load settings");
-  return res.json();
-}
-
-async function saveSettings(data: SettingsForm): Promise<void> {
-  const res = await fetch(`${getApiBase()}/api/settings`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
-  });
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({})) as Record<string, unknown>;
-    const msg = typeof body.error === "string" ? body.error : `HTTP ${res.status}`;
-    throw new Error(msg);
-  }
 }
 
 const DEFAULT_SETTINGS: SettingsForm = {
@@ -47,9 +29,13 @@ const DEFAULT_SETTINGS: SettingsForm = {
 
 export default function SettingsPage() {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [settings, setSettings] = useState<SettingsForm>(DEFAULT_SETTINGS);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [formInitialized, setFormInitialized] = useState(false);
+
+  const { data: settingsData, isLoading: loading, isError } = useGetSettings();
+  const updateSettingsMutation = useUpdateSettings();
+  const saving = updateSettingsMutation.isPending;
 
   const hasElectron = typeof window !== "undefined" && !!window.electronAPI?.diagnostics;
   const [health, setHealth] = useState<{ alive: boolean; port: number } | null>(null);
@@ -59,23 +45,25 @@ export default function SettingsPage() {
   const logAutoScrollRef = useRef(true);
 
   useEffect(() => {
-    fetchSettings()
-      .then((data) => {
-        setSettings({
-          concurrency: data.concurrency,
-          monitorDelay: data.monitorDelay,
-          webhookUrl: data.webhookUrl,
-          imapHost: data.imapHost,
-          imapPort: data.imapPort,
-          imapEmail: data.imapEmail,
-          imapPassword: data.imapPassword,
-        });
-      })
-      .catch(() => {
-        toast({ title: "Could not load settings", description: "Using defaults.", variant: "destructive" });
-      })
-      .finally(() => setLoading(false));
-  }, []);
+    if (settingsData && !formInitialized) {
+      setSettings({
+        concurrency: settingsData.concurrency,
+        monitorDelay: settingsData.monitorDelay,
+        webhookUrl: settingsData.webhookUrl,
+        imapHost: settingsData.imapHost,
+        imapPort: settingsData.imapPort,
+        imapEmail: settingsData.imapEmail,
+        imapPassword: settingsData.imapPassword,
+      });
+      setFormInitialized(true);
+    }
+  }, [settingsData, formInitialized]);
+
+  useEffect(() => {
+    if (isError) {
+      toast({ title: "Could not load settings", description: "Using defaults.", variant: "destructive" });
+    }
+  }, [isError]);
 
   useEffect(() => {
     if (!hasElectron) return;
@@ -116,20 +104,23 @@ export default function SettingsPage() {
     setSettings((s) => ({ ...s, [name]: type === "number" ? Number(value) : value }));
   };
 
-  const handleSave = async () => {
-    setSaving(true);
-    try {
-      await saveSettings(settings);
-      toast({ title: "Settings Saved", description: "Your settings have been persisted to the server." });
-    } catch (err) {
-      toast({
-        title: "Save Failed",
-        description: err instanceof Error ? err.message : "Could not save settings.",
-        variant: "destructive",
-      });
-    } finally {
-      setSaving(false);
-    }
+  const handleSave = () => {
+    updateSettingsMutation.mutate(
+      { data: settings },
+      {
+        onSuccess: (updatedSettings) => {
+          queryClient.setQueryData(getGetSettingsQueryKey(), updatedSettings);
+          toast({ title: "Settings Saved", description: "Your settings have been persisted to the server." });
+        },
+        onError: (err) => {
+          toast({
+            title: "Save Failed",
+            description: err instanceof Error ? err.message : "Could not save settings.",
+            variant: "destructive",
+          });
+        },
+      }
+    );
   };
 
   const handleRefreshLogs = async () => {

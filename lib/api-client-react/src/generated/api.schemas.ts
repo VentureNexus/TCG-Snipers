@@ -9,6 +9,27 @@ export interface HealthStatus {
   status: string;
 }
 
+export interface Settings {
+  id: number;
+  concurrency: number;
+  monitorDelay: number;
+  webhookUrl: string;
+  imapHost: string;
+  imapPort: string;
+  imapEmail: string;
+  imapPassword: string;
+}
+
+export interface UpdateSettingsBody {
+  concurrency?: number;
+  monitorDelay?: number;
+  webhookUrl?: string;
+  imapHost?: string;
+  imapPort?: string;
+  imapEmail?: string;
+  imapPassword?: string;
+}
+
 export interface Profile {
   id: number;
   name: string;
@@ -38,6 +59,22 @@ export interface Profile {
   imapUser: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface ProfileExportData {
+  profiles: Profile[];
+  cards: unknown[];
+}
+
+export interface ProfileImportBody {
+  profiles: unknown[];
+  cards: unknown[];
+}
+
+export interface ProfileImportResult {
+  upserted: number;
+  cardsImported: number;
+  errors: string[];
 }
 
 export interface CreateProfileBody {

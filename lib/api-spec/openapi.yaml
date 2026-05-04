@@ -10,6 +10,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: settings
+    description: Application settings
   - name: profiles
     description: Profile management
   - name: credit-cards
@@ -40,7 +42,70 @@ paths:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
 
+  # ── SETTINGS ──────────────────────────────────────────────────────────────
+  /settings:
+    get:
+      operationId: getSettings
+      tags: [settings]
+      summary: Get application settings
+      responses:
+        "200":
+          description: Current settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Settings"
+    put:
+      operationId: updateSettings
+      tags: [settings]
+      summary: Update application settings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateSettingsBody"
+      responses:
+        "200":
+          description: Updated settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Settings"
+
   # ── PROFILES ──────────────────────────────────────────────────────────────
+  /profiles/export:
+    get:
+      operationId: exportProfiles
+      tags: [profiles]
+      summary: Export all profiles with encrypted card data
+      responses:
+        "200":
+          description: Exported profiles and cards
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProfileExportData"
+
+  /profiles/import:
+    post:
+      operationId: importProfiles
+      tags: [profiles]
+      summary: Import profiles and restore encrypted card data
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProfileImportBody"
+      responses:
+        "200":
+          description: Import result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProfileImportResult"
+
   /profiles:
     get:
       operationId: listProfiles
@@ -785,6 +850,98 @@ components:
           type: string
       required:
         - status
+
+    # ── SETTINGS ──────────────────────────────────────────────────────────────
+    Settings:
+      type: object
+      properties:
+        id:
+          type: integer
+        concurrency:
+          type: integer
+        monitorDelay:
+          type: integer
+        webhookUrl:
+          type: string
+        imapHost:
+          type: string
+        imapPort:
+          type: string
+        imapEmail:
+          type: string
+        imapPassword:
+          type: string
+      required:
+        - id
+        - concurrency
+        - monitorDelay
+        - webhookUrl
+        - imapHost
+        - imapPort
+        - imapEmail
+        - imapPassword
+
+    UpdateSettingsBody:
+      type: object
+      properties:
+        concurrency:
+          type: integer
+        monitorDelay:
+          type: integer
+        webhookUrl:
+          type: string
+        imapHost:
+          type: string
+        imapPort:
+          type: string
+        imapEmail:
+          type: string
+        imapPassword:
+          type: string
+
+    # ── PROFILE EXPORT/IMPORT ─────────────────────────────────────────────
+    ProfileExportData:
+      type: object
+      properties:
+        profiles:
+          type: array
+          items:
+            $ref: "#/components/schemas/Profile"
+        cards:
+          type: array
+          items: {}
+      required:
+        - profiles
+        - cards
+
+    ProfileImportBody:
+      type: object
+      properties:
+        profiles:
+          type: array
+          items: {}
+        cards:
+          type: array
+          items: {}
+      required:
+        - profiles
+        - cards
+
+    ProfileImportResult:
+      type: object
+      properties:
+        upserted:
+          type: integer
+        cardsImported:
+          type: integer
+        errors:
+          type: array
+          items:
+            type: string
+      required:
+        - upserted
+        - cardsImported
+        - errors
 
     # ── PROFILE ──────────────────────────────────────────────────────────────
     Profile:

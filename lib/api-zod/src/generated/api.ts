@@ -16,6 +16,97 @@ export const HealthCheckResponse = zod.object({
 });
 
 /**
+ * @summary Get application settings
+ */
+export const GetSettingsResponse = zod.object({
+  id: zod.number(),
+  concurrency: zod.number(),
+  monitorDelay: zod.number(),
+  webhookUrl: zod.string(),
+  imapHost: zod.string(),
+  imapPort: zod.string(),
+  imapEmail: zod.string(),
+  imapPassword: zod.string(),
+});
+
+/**
+ * @summary Update application settings
+ */
+export const UpdateSettingsBody = zod.object({
+  concurrency: zod.number().optional(),
+  monitorDelay: zod.number().optional(),
+  webhookUrl: zod.string().optional(),
+  imapHost: zod.string().optional(),
+  imapPort: zod.string().optional(),
+  imapEmail: zod.string().optional(),
+  imapPassword: zod.string().optional(),
+});
+
+export const UpdateSettingsResponse = zod.object({
+  id: zod.number(),
+  concurrency: zod.number(),
+  monitorDelay: zod.number(),
+  webhookUrl: zod.string(),
+  imapHost: zod.string(),
+  imapPort: zod.string(),
+  imapEmail: zod.string(),
+  imapPassword: zod.string(),
+});
+
+/**
+ * @summary Export all profiles with encrypted card data
+ */
+export const ExportProfilesResponse = zod.object({
+  profiles: zod.array(
+    zod.object({
+      id: zod.number(),
+      name: zod.string(),
+      email: zod.string(),
+      phone: zod.string(),
+      shipFirstName: zod.string(),
+      shipLastName: zod.string(),
+      shipAddress1: zod.string(),
+      shipAddress2: zod.string(),
+      shipCity: zod.string(),
+      shipState: zod.string(),
+      shipZip: zod.string(),
+      shipCountry: zod.string(),
+      billSameAsShip: zod.boolean(),
+      billFirstName: zod.string(),
+      billLastName: zod.string(),
+      billAddress1: zod.string(),
+      billAddress2: zod.string(),
+      billCity: zod.string(),
+      billState: zod.string(),
+      billZip: zod.string(),
+      billCountry: zod.string(),
+      addressJigEnabled: zod.boolean(),
+      costcoMembershipId: zod.string(),
+      imapHost: zod.string(),
+      imapPort: zod.string(),
+      imapUser: zod.string(),
+      createdAt: zod.string(),
+      updatedAt: zod.string(),
+    }),
+  ),
+  cards: zod.array(zod.unknown()),
+});
+
+/**
+ * @summary Import profiles and restore encrypted card data
+ */
+export const ImportProfilesBody = zod.object({
+  profiles: zod.array(zod.unknown()),
+  cards: zod.array(zod.unknown()),
+});
+
+export const ImportProfilesResponse = zod.object({
+  upserted: zod.number(),
+  cardsImported: zod.number(),
+  errors: zod.array(zod.string()),
+});
+
+/**
  * @summary List all profiles
  */
 export const ListProfilesResponseItem = zod.object({

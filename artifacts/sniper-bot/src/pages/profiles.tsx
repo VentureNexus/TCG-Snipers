@@ -9,6 +9,8 @@ import {
   useDeleteCreditCard,
   getListProfilesQueryKey,
   getListCreditCardsQueryKey,
+  exportProfiles,
+  importProfiles,
 } from "@workspace/api-client-react";
 import type { Profile, CreditCard } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -77,7 +79,6 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { getApiBase } from "@/lib/api-base";
 
 // ─── Schemas ────────────────────────────────────────────────────────────────
 
@@ -1081,11 +1082,7 @@ export default function ProfilesPage() {
   async function handleExport() {
     setExporting(true);
     try {
-      // Use the export endpoint which includes encrypted card blobs for full backup
-      const apiBase = getApiBase();
-      const res = await fetch(`${apiBase}/api/profiles/export`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = (await res.json()) as { profiles: Profile[]; cards: unknown[] };
+      const data = await exportProfiles();
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -1109,7 +1106,6 @@ export default function ProfilesPage() {
     reader.onload = async (ev) => {
       try {
         const raw = JSON.parse(ev.target?.result as string) as unknown;
-        // Support both { profiles, cards } format (from export) and plain Profile[] arrays
         const profilesArr: unknown[] = Array.isArray(raw)
           ? raw
           : ((raw as Record<string, unknown>).profiles as unknown[] ?? []);
@@ -1117,13 +1113,7 @@ export default function ProfilesPage() {
           ? []
           : ((raw as Record<string, unknown>).cards as unknown[] ?? []);
 
-        const res = await fetch(`${getApiBase()}/api/profiles/import`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ profiles: profilesArr, cards: cardsArr }),
-        });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const result = (await res.json()) as { upserted: number; cardsImported: number; errors: string[] };
+        const result = await importProfiles({ profiles: profilesArr, cards: cardsArr });
         queryClient.invalidateQueries({ queryKey: getListProfilesQueryKey() });
         queryClient.invalidateQueries({ queryKey: getListCreditCardsQueryKey() });
         toast({
