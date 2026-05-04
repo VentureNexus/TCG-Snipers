@@ -206,9 +206,9 @@ function SignInScreen({
 
   function openPortal() {
     if (window.electronAPI?.openExternal) {
-      void window.electronAPI.openExternal(`${PORTAL_URL}/marketing/manage`);
+      void window.electronAPI.openExternal(`${PORTAL_URL}/manage`);
     } else {
-      window.open(`${PORTAL_URL}/marketing/manage`, "_blank");
+      window.open(`${PORTAL_URL}/manage`, "_blank");
     }
   }
 
@@ -296,9 +296,9 @@ function SubscriptionBlockedScreen({
 }) {
   function openPortal() {
     if (window.electronAPI?.openExternal) {
-      void window.electronAPI.openExternal(`${PORTAL_URL}/marketing/manage`);
+      void window.electronAPI.openExternal(`${PORTAL_URL}/manage`);
     } else {
-      window.open(`${PORTAL_URL}/marketing/manage`, "_blank");
+      window.open(`${PORTAL_URL}/manage`, "_blank");
     }
   }
   return (
