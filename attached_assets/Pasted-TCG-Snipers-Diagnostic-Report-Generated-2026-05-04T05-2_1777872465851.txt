@@ -1,0 +1,77 @@
+TCG Snipers Diagnostic Report
+Generated: 2026-05-04T05:25:04.594Z
+Version: 1.0.17
+
+=== Client Errors (82) ===
+12:24:46 AM  GET    /api/task-groups                         ERR  1ms  Failed to fetch
+12:24:48 AM  GET    /api/task-groups                         ERR  4ms  Failed to fetch
+12:24:49 AM  GET    /api/tasks                               ERR  2ms  Failed to fetch
+12:24:49 AM  GET    /api/analytics/summary                   ERR  1ms  Failed to fetch
+12:24:49 AM  GET    /api/settings                            ERR  27ms  Failed to fetch
+12:24:50 AM  GET    /api/settings                            ERR  2ms  Failed to fetch
+12:24:52 AM  GET    /api/tasks                               ERR  5ms  Failed to fetch
+12:24:52 AM  GET    /api/analytics/summary                   ERR  5ms  Failed to fetch
+12:24:52 AM  GET    /api/settings                            ERR  1ms  Failed to fetch
+12:24:53 AM  GET    /api/tasks                               ERR  2ms  Failed to fetch
+12:24:53 AM  GET    /api/analytics/summary                   ERR  2ms  Failed to fetch
+12:24:55 AM  GET    /api/tasks                               ERR  2ms  Failed to fetch
+12:24:55 AM  GET    /api/analytics/summary                   ERR  2ms  Failed to fetch
+12:24:56 AM  GET    /api/settings                            ERR  4ms  Failed to fetch
+12:24:59 AM  GET    /api/tasks                               ERR  1ms  Failed to fetch
+12:24:59 AM  GET    /api/analytics/summary                   ERR  1ms  Failed to fetch
+12:25:02 AM  GET    /api/tasks                               ERR  4ms  Failed to fetch
+12:25:02 AM  GET    /api/analytics/summary                   ERR  3ms  Failed to fetch
+12:25:03 AM  GET    /api/tasks                               ERR  7ms  Failed to fetch
+12:25:03 AM  GET    /api/analytics/summary                   ERR  6ms  Failed to fetch
+
+=== Client Requests (last 50) ===
+12:24:32 AM  GET    /api/profiles                            ERR  10ms
+12:24:32 AM  GET    /api/credit-cards                        ERR  9ms
+12:24:33 AM  GET    /api/tasks                               ERR  2ms
+12:24:33 AM  GET    /api/analytics/summary                   ERR  2ms
+12:24:33 AM  GET    /api/profiles                            ERR  1ms
+12:24:33 AM  GET    /api/credit-cards                        ERR  1ms
+12:24:35 AM  GET    /api/tasks                               ERR  4ms
+12:24:35 AM  GET    /api/analytics/summary                   ERR  3ms
+12:24:35 AM  GET    /api/task-groups                         ERR  6ms
+12:24:35 AM  GET    /api/profiles                            ERR  2ms
+12:24:36 AM  GET    /api/task-groups                         ERR  2ms
+12:24:38 AM  GET    /api/task-groups                         ERR  1ms
+12:24:39 AM  GET    /api/tasks                               ERR  2ms
+12:24:39 AM  GET    /api/analytics/summary                   ERR  2ms
+12:24:39 AM  GET    /api/profiles                            ERR  2ms
+12:24:42 AM  GET    /api/tasks                               ERR  5ms
+12:24:42 AM  GET    /api/analytics/summary                   ERR  5ms
+12:24:42 AM  GET    /api/task-groups                         ERR  2ms
+12:24:43 AM  GET    /api/tasks                               ERR  2ms
+12:24:43 AM  GET    /api/analytics/summary                   ERR  4ms
+12:24:43 AM  POST   /api/task-groups                         ERR  6ms
+12:24:44 AM  POST   /api/task-groups                         ERR  5ms
+12:24:44 AM  POST   /api/task-groups                         ERR  3ms
+12:24:44 AM  POST   /api/task-groups                         ERR  8ms
+12:24:44 AM  POST   /api/task-groups                         ERR  3ms
+12:24:45 AM  POST   /api/task-groups                         ERR  4ms
+12:24:45 AM  GET    /api/tasks                               ERR  4ms
+12:24:45 AM  GET    /api/analytics/summary                   ERR  3ms
+12:24:45 AM  POST   /api/task-groups                         ERR  3ms
+12:24:45 AM  GET    /api/task-groups                         ERR  4ms
+12:24:46 AM  GET    /api/task-groups                         ERR  1ms
+12:24:48 AM  GET    /api/task-groups                         ERR  4ms
+12:24:49 AM  GET    /api/tasks                               ERR  2ms
+12:24:49 AM  GET    /api/analytics/summary                   ERR  1ms
+12:24:49 AM  GET    /api/settings                            ERR  27ms
+12:24:50 AM  GET    /api/settings                            ERR  2ms
+12:24:52 AM  GET    /api/tasks                               ERR  5ms
+12:24:52 AM  GET    /api/analytics/summary                   ERR  5ms
+12:24:52 AM  GET    /api/settings                            ERR  1ms
+12:24:53 AM  GET    /api/tasks                               ERR  2ms
+12:24:53 AM  GET    /api/analytics/summary                   ERR  2ms
+12:24:55 AM  GET    /api/tasks                               ERR  2ms
+12:24:55 AM  GET    /api/analytics/summary                   ERR  2ms
+12:24:56 AM  GET    /api/settings                            ERR  4ms
+12:24:59 AM  GET    /api/tasks                               ERR  1ms
+12:24:59 AM  GET    /api/analytics/summary                   ERR  1ms
+12:25:02 AM  GET    /api/tasks                               ERR  4ms
+12:25:02 AM  GET    /api/analytics/summary                   ERR  3ms
+12:25:03 AM  GET    /api/tasks                               ERR  7ms
+12:25:03 AM  GET    /api/analytics/summary                   ERR  6ms
