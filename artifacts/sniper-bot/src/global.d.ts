@@ -25,6 +25,25 @@ interface UpdateProgress {
   total: number;
 }
 
+export interface ServerRequestEntry {
+  id: number;
+  ts: number;
+  method: string;
+  path: string;
+  status: number | null;
+  durationMs: number | null;
+  error: string | null;
+}
+
+export interface ElectronMetrics {
+  requests: ServerRequestEntry[];
+  uptimeMs: number;
+  alive: boolean;
+  port: number;
+  startOk: boolean;
+  startFailReason: string;
+}
+
 declare global {
   // Build-time constant injected by Vite's `define` in vite.config.ts.
   // Equals the `version` field from package.json at the time of the build.
@@ -53,11 +72,14 @@ declare global {
         /** Fires periodically while a new version is being downloaded. */
         onProgress: (handler: (p: UpdateProgress) => void) => () => void;
       };
-      /** In-app diagnostics — API server health and log buffer. */
+      /** In-app diagnostics — API server health, log buffer, and request metrics. */
       diagnostics: {
         getLogs: () => Promise<string[]>;
+        getLogFilePath: () => Promise<string>;
+        openLogFile: () => Promise<void>;
         getHealth: () => Promise<{ alive: boolean; port: number }>;
         getStartStatus: () => Promise<{ ok: boolean; reason: string }>;
+        getMetrics: () => Promise<ElectronMetrics>;
         onStartFailed: (handler: (info: { reason: string }) => void) => () => void;
         onCrashed: (handler: (info: { reason: string }) => void) => () => void;
         onRecovered: (handler: () => void) => () => void;
