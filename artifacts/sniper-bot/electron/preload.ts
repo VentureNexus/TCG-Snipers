@@ -42,18 +42,14 @@ const api = {
       ipcRenderer.on("update:available", listener);
       return () => ipcRenderer.removeListener("update:available", listener);
     },
-    /** Returns the staged update (downloaded + ready to install) if any. */
     downloaded: (): Promise<DownloadedUpdate | null> =>
       ipcRenderer.invoke("update:downloaded"),
-    /** Quit, install the staged update, and relaunch. No-op if nothing staged. */
     install: (): Promise<boolean> => ipcRenderer.invoke("update:install"),
-    /** Fires when electron-updater has finished downloading a new version. */
     onDownloaded: (handler: (info: DownloadedUpdate) => void): (() => void) => {
       const listener = (_e: unknown, info: DownloadedUpdate) => handler(info);
       ipcRenderer.on("update:downloaded", listener);
       return () => ipcRenderer.removeListener("update:downloaded", listener);
     },
-    /** Fires periodically while a new version is being downloaded. */
     onProgress: (handler: (p: UpdateProgress) => void): (() => void) => {
       const listener = (_e: unknown, p: UpdateProgress) => handler(p);
       ipcRenderer.on("update:progress", listener);
@@ -64,10 +60,11 @@ const api = {
   /** In-app diagnostics — API server health, log buffer, and request metrics. */
   diagnostics: {
     getLogs: (): Promise<string[]> => ipcRenderer.invoke("api:getLogs"),
+    getLogFilePath: (): Promise<string> => ipcRenderer.invoke("api:getLogFilePath"),
+    openLogFile: (): Promise<void> => ipcRenderer.invoke("api:openLogFile"),
     getHealth: (): Promise<{ alive: boolean; port: number }> => ipcRenderer.invoke("api:getHealth"),
     getStartStatus: (): Promise<{ ok: boolean; reason: string }> =>
       ipcRenderer.invoke("api:getStartStatus"),
-    /** Returns a snapshot of server-side HTTP request metrics. */
     getMetrics: (): Promise<{
       requests: Array<{
         id: number; ts: number; method: string; path: string;

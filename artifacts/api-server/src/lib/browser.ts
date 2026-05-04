@@ -1,4 +1,3 @@
-import { chromium, type Browser, type BrowserContext, type Page } from "playwright";
 import { execSync } from "child_process";
 
 const USER_AGENTS = [
@@ -22,6 +21,10 @@ export interface ProxyConfig {
   username?: string;
   password?: string;
 }
+
+export type Browser = import("playwright").Browser;
+export type BrowserContext = import("playwright").BrowserContext;
+export type Page = import("playwright").Page;
 
 export function pickUserAgent(): string {
   return USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)];
@@ -56,19 +59,29 @@ const STEALTH_SCRIPT = `
   })();
 `;
 
-function resolveChromiumPath(): string | undefined {
+async function getChromium() {
+  const pw = await import("playwright");
+  return pw.chromium;
+}
+
+function resolveChromiumPathSync(): string | undefined {
   if (process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH) {
     return process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH;
   }
-  // Try well-known system binary names on PATH
   for (const bin of ["chromium", "chromium-browser", "google-chrome", "google-chrome-stable"]) {
     try {
       const p = execSync(`which ${bin} 2>/dev/null`, { encoding: "utf8" }).trim();
       if (p) return p;
     } catch (_) {}
   }
-  // Fall back to Playwright's own managed binary (works if `playwright install chromium` was run)
+  return undefined;
+}
+
+async function resolveChromiumPath(): Promise<string | undefined> {
+  const fromEnvOrSystem = resolveChromiumPathSync();
+  if (fromEnvOrSystem) return fromEnvOrSystem;
   try {
+    const chromium = await getChromium();
     const p = chromium.executablePath();
     if (p) return p;
   } catch (_) {}
@@ -77,12 +90,13 @@ function resolveChromiumPath(): string | undefined {
 
 export async function createBrowser(proxy?: ProxyConfig | null): Promise<Browser> {
   const headless = process.env.SHOW_BROWSER !== "true";
-  const executablePath = resolveChromiumPath();
+  const executablePath = await resolveChromiumPath();
   if (!executablePath) {
     throw new Error(
       "Chromium not found. Run `playwright install chromium` or set PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH.",
     );
   }
+  const chromium = await getChromium();
   return chromium.launch({
     headless,
     executablePath,

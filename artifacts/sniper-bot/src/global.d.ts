@@ -75,6 +75,8 @@ declare global {
       /** In-app diagnostics — API server health, log buffer, and request metrics. */
       diagnostics: {
         getLogs: () => Promise<string[]>;
+        getLogFilePath: () => Promise<string>;
+        openLogFile: () => Promise<void>;
         getHealth: () => Promise<{ alive: boolean; port: number }>;
         getStartStatus: () => Promise<{ ok: boolean; reason: string }>;
         getMetrics: () => Promise<ElectronMetrics>;
