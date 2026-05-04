@@ -2,6 +2,9 @@
 
 # compiled output
 dist
+# api-client-react dist must be committed so check-dist CI can detect drift
+!lib/api-client-react/dist/
+!lib/api-client-react/dist/**
 tmp
 out-tsc
 *.tsbuildinfo
