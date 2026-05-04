@@ -19,7 +19,7 @@
 import { existsSync } from "node:fs";
 import { stat } from "node:fs/promises";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { createRequire } from "node:module";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -73,7 +73,7 @@ if (!existsSync(wasmPath) || !existsSync(dataPath)) {
       path.resolve(__dirname, "../../../lib/db/src/index.ts")
     );
     const pgliteMain = req.resolve("@electric-sql/pglite");
-    const { PGlite } = await import(pgliteMain);
+    const { PGlite } = await import(pathToFileURL(pgliteMain).href);
 
     const db = new PGlite();
     await db.waitReady;
