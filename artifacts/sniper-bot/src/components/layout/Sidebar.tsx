@@ -6,6 +6,19 @@ import { useTheme } from "@/lib/theme";
 
 const STORAGE_KEY = "sidebar-collapsed";
 
+function AppVersion({ collapsed }: { collapsed: boolean }) {
+  const [version, setVersion] = useState<string>("");
+  useEffect(() => {
+    window.electronAPI?.getVersion?.().then((v) => setVersion(`v${v}`)).catch(() => {});
+  }, []);
+  if (!version) return null;
+  return (
+    <div className={`text-xs text-muted-foreground/50 font-mono mt-2 whitespace-nowrap overflow-hidden transition-all duration-200 ${collapsed ? "w-0 opacity-0 h-0" : "w-auto opacity-100"}`}>
+      {version}
+    </div>
+  );
+}
+
 function getInitialCollapsed(): boolean {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
@@ -89,7 +102,7 @@ export function Sidebar() {
           <HelpCircle className="w-5 h-5" />
           <span className={`text-sm whitespace-nowrap overflow-hidden transition-all duration-200 ${collapsed ? 'w-0 opacity-0' : 'w-auto opacity-100'}`}>Support</span>
         </Link>
-        <div className={`text-xs text-muted-foreground/50 font-mono mt-2 whitespace-nowrap overflow-hidden transition-all duration-200 ${collapsed ? 'w-0 opacity-0 h-0' : 'w-auto opacity-100'}`}>v1.0.10</div>
+        <AppVersion collapsed={collapsed} />
       </div>
     </div>
   );

@@ -9,7 +9,6 @@ import {
 } from "@workspace/api-client-react";
 
 const APP_NAME = "TCG SNIPERS";
-const APP_VERSION = "v1.0.10";
 
 const PAGE_TITLES: Record<string, string> = {
   "/": "Dashboard",
@@ -44,6 +43,7 @@ export function TopBar() {
   const [location] = useLocation();
   const [time, setTime] = useState(new Date());
   const [uptimeSeconds, setUptimeSeconds] = useState(0);
+  const [appVersion, setAppVersion] = useState<string>("");
 
   const { data: tasks = [] } = useListTasks(undefined, {
     query: { refetchInterval: 3000, queryKey: getListTasksQueryKey() },
@@ -58,6 +58,10 @@ export function TopBar() {
   ).length;
 
   useEffect(() => {
+    window.electronAPI?.getVersion?.().then((v) => setAppVersion(`v${v}`)).catch(() => {});
+  }, []);
+
+  useEffect(() => {
     const timer = setInterval(() => {
       setTime(new Date());
       setUptimeSeconds(Math.floor((Date.now() - SESSION_START) / 1000));
@@ -70,7 +74,7 @@ export function TopBar() {
   return (
     <header className="h-14 bg-background border-b border-border flex items-center justify-between px-6 shrink-0">
       <div className="flex items-center gap-3">
-        <span className="text-muted-foreground/50 text-xs font-mono">{APP_VERSION}</span>
+        {appVersion && <span className="text-muted-foreground/50 text-xs font-mono">{appVersion}</span>}
         <span className="w-px h-4 bg-border" />
         <h1 className="text-sm font-semibold tracking-tight">{pageTitle}</h1>
       </div>
