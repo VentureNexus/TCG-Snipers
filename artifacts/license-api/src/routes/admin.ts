@@ -2,7 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { randomUUID, timingSafeEqual } from "node:crypto";
 import { db, customersTable, licensesTable, devicesTable } from "@workspace/db";
-import { desc, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { generateLicenseKey, hashToken, last4, encryptSecret } from "../lib/crypto";
 import { sendEmail, licenseIssuedEmail } from "../lib/email";
 import { logger } from "../lib/logger";
@@ -121,64 +121,89 @@ router.post("/admin/issue-license", async (req, res) => {
   res.json({ customerId, licenses: issued });
 });
 
-const deactivateDeviceSchema = z.object({
-  email: z.string().email(),
-  note: z.string().max(200).optional(),
-});
-
 /**
- * POST /admin/deactivate-device
+ * GET /admin/licenses?email=...
  *
- * Force-deactivate the active device for a customer's most-recent license.
- * Useful when a customer is locked out because their previous device record
- * was not cleaned up (e.g. machine was wiped, OS reinstalled, etc.).
+ * Look up all licenses and their registered devices for a customer email.
+ * Use this first to identify the exact licenseId and deviceId before calling
+ * the deactivate-device endpoint below.
  *
  * Auth: `Authorization: Bearer $LICENSE_ADMIN_TOKEN`
  *
- * Body:
- *   email: customer email (required)
- *   note:  free-form note logged for audit (optional)
- *
- * Response: { ok: true, licenseId, deviceId } or { ok: true, message: "no device" }
+ * Response: { customerId, email, licenses: [{ id, keyLast4, status, device: {...} | null }] }
  */
-router.post("/admin/deactivate-device", async (req, res) => {
+router.get("/admin/licenses", async (req, res) => {
   if (!adminAuth(req)) {
     res.status(401).json({ error: "Unauthorized" });
     return;
   }
-  const parsed = deactivateDeviceSchema.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ error: "Invalid body", details: parsed.error.format() });
+  const email = String(req.query.email ?? "").trim().toLowerCase();
+  if (!email) {
+    res.status(400).json({ error: "email query parameter is required" });
     return;
   }
-  const { email, note } = parsed.data;
 
-  const customer = (await db.select().from(customersTable).where(eq(customersTable.email, email.toLowerCase())).limit(1))[0];
+  const customer = (await db.select().from(customersTable).where(eq(customersTable.email, email)).limit(1))[0];
   if (!customer) {
     res.status(404).json({ error: "No customer found for that email" });
     return;
   }
 
-  const license = (await db
-    .select()
-    .from(licensesTable)
-    .where(eq(licensesTable.customerId, customer.id))
-    .orderBy(desc(licensesTable.createdAt))
-    .limit(1))[0];
+  const licenses = await db.select().from(licensesTable).where(eq(licensesTable.customerId, customer.id));
+  const result = await Promise.all(
+    licenses.map(async (lic) => {
+      const device = (await db.select().from(devicesTable).where(eq(devicesTable.licenseId, lic.id)).limit(1))[0] ?? null;
+      return {
+        id: lic.id,
+        keyLast4: lic.keyLast4,
+        status: lic.status,
+        createdAt: lic.createdAt,
+        device: device
+          ? { id: device.id, osPlatform: device.osPlatform, label: device.label, fingerprint: device.fingerprint, activatedAt: device.activatedAt, lastSeenAt: device.lastSeenAt }
+          : null,
+      };
+    }),
+  );
+
+  res.json({ customerId: customer.id, email: customer.email, licenses: result });
+});
+
+/**
+ * POST /admin/licenses/:id/deactivate-device
+ *
+ * Force-deactivate the registered device for a specific license by ID.
+ * Use GET /admin/licenses?email=... first to find the correct licenseId.
+ *
+ * Auth: `Authorization: Bearer $LICENSE_ADMIN_TOKEN`
+ *
+ * Response: { ok: true, licenseId, deviceId } or { ok: true, message: "no device" }
+ */
+router.post("/admin/licenses/:id/deactivate-device", async (req, res) => {
+  if (!adminAuth(req)) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+  const licenseId = Number(req.params.id);
+  if (!Number.isInteger(licenseId) || licenseId <= 0) {
+    res.status(400).json({ error: "Invalid license ID" });
+    return;
+  }
+
+  const license = (await db.select().from(licensesTable).where(eq(licensesTable.id, licenseId)).limit(1))[0];
   if (!license) {
-    res.status(404).json({ error: "No license found for that customer" });
+    res.status(404).json({ error: "License not found" });
     return;
   }
 
-  const device = (await db.select().from(devicesTable).where(eq(devicesTable.licenseId, license.id)).limit(1))[0];
+  const device = (await db.select().from(devicesTable).where(eq(devicesTable.licenseId, licenseId)).limit(1))[0];
   if (!device) {
-    res.json({ ok: true, licenseId: license.id, message: "no device registered — nothing to deactivate" });
+    res.json({ ok: true, licenseId, message: "no device registered — nothing to deactivate" });
     return;
   }
 
-  await db.delete(devicesTable).where(eq(devicesTable.licenseId, license.id));
-  logger.info({ customerId: customer.id, licenseId: license.id, deviceId: device.id, note }, "Admin force-deactivated device");
-  res.json({ ok: true, licenseId: license.id, deviceId: device.id });
+  await db.delete(devicesTable).where(eq(devicesTable.licenseId, licenseId));
+  logger.info({ licenseId, deviceId: device.id, customerId: license.customerId }, "Admin force-deactivated device");
+  res.json({ ok: true, licenseId, deviceId: device.id });
 });
 
 export default router;
