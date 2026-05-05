@@ -11,6 +11,7 @@ import {
   useListProfiles,
   useListTaskGroups,
   useListProxies,
+  useListCheckoutResults,
   getListTasksQueryKey,
   SUPPORTED_RETAILERS,
   ApiError,
@@ -391,6 +392,7 @@ function TaskRow({
   isExpanded,
   profiles,
   initialStatus,
+  lastError,
   onToggle,
   onStatusChange,
   onStart,
@@ -402,6 +404,7 @@ function TaskRow({
   isExpanded: boolean;
   profiles: Profile[];
   initialStatus?: string | null;
+  lastError?: string;
   onToggle: () => void;
   onStatusChange: (s: string) => void;
   onStart: () => void;
@@ -493,10 +496,25 @@ function TaskRow({
         </td>
         <td className="px-4 py-3">
           <div className="flex flex-col items-start gap-1">
-            <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs font-mono tracking-wide ${cfg.cls}`} data-testid={`status-task-${task.id}`}>
-              {cfg.dot && <span className={`w-1.5 h-1.5 rounded-full bg-current ${cfg.dot}`} />}
-              {cfg.label}
-            </span>
+            {effectiveStatus === "failed" && lastError ? (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs font-mono tracking-wide cursor-help ${cfg.cls}`} data-testid={`status-task-${task.id}`}>
+                    {cfg.dot && <span className={`w-1.5 h-1.5 rounded-full bg-current ${cfg.dot}`} />}
+                    {cfg.label}
+                    <Info className="w-3 h-3 opacity-70" />
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-[280px] text-xs whitespace-pre-wrap break-words">
+                  {lastError}
+                </TooltipContent>
+              </Tooltip>
+            ) : (
+              <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs font-mono tracking-wide ${cfg.cls}`} data-testid={`status-task-${task.id}`}>
+                {cfg.dot && <span className={`w-1.5 h-1.5 rounded-full bg-current ${cfg.dot}`} />}
+                {cfg.label}
+              </span>
+            )}
             <TimeLimitBadge task={task} isRunning={isRunning} />
             <TaskRetryBadge taskId={task.id} retryProgress={retryProgress} liveStatus={liveStatus} />
           </div>
@@ -985,6 +1003,16 @@ export default function TasksPage() {
   const { data: profiles = [] } = useListProfiles();
   const { data: groups = [] } = useListTaskGroups();
   const { data: proxies = [] } = useListProxies();
+  const { data: failedResults = [] } = useListCheckoutResults({ success: false });
+  const lastErrorByTaskId = useMemo(() => {
+    const map = new Map<number, string>();
+    for (const r of failedResults) {
+      if (r.taskId != null && r.errorMessage && !map.has(r.taskId)) {
+        map.set(r.taskId, r.errorMessage);
+      }
+    }
+    return map;
+  }, [failedResults]);
 
   const [createOpen, setCreateOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
@@ -1193,6 +1221,7 @@ export default function TasksPage() {
                     isExpanded={isExpanded}
                     profiles={profiles}
                     initialStatus={liveStatuses[task.id] ?? null}
+                    lastError={lastErrorByTaskId.get(task.id)}
                     onToggle={() => setExpandedTaskId(isExpanded ? null : task.id)}
                     onStatusChange={handleStatusChange(task.id)}
                     onStart={() => {

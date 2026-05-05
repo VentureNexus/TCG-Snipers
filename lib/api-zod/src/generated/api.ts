@@ -627,6 +627,7 @@ export const CreateTaskBody = zod.object({
     "Costco",
     "Pokemon Center",
     "Sam's Club",
+    "Walmart",
   ]),
   productUrl: zod.string().optional(),
   productKeywords: zod.string().optional(),
@@ -690,7 +691,7 @@ export const UpdateTaskBody = zod.object({
   profileId: zod.number().optional(),
   proxyId: zod.number().optional(),
   retailer: zod
-    .enum(["Target", "Amazon", "Best Buy", "Costco", "Pokemon Center", "Sam's Club"])
+    .enum(["Target", "Amazon", "Best Buy", "Costco", "Pokemon Center", "Sam's Club", "Walmart"])
     .optional(),
   productUrl: zod.string().optional(),
   productKeywords: zod.string().optional(),
