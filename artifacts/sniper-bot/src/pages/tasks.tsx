@@ -406,10 +406,10 @@ function TaskFormFields({
   useEffect(() => {
     if (stopAtTimeValue) {
       setStopMode("time");
-    } else if (!stopAtTimeValue && form.getValues("stopAfterHours") !== undefined) {
+    } else {
       setStopMode("hours");
     }
-  }, [stopAtTimeValue, form]);
+  }, [stopAtTimeValue]);
   const selectedIncomplete = selectedProfile ? isProfileIncomplete(selectedProfile) : false;
 
   return (
