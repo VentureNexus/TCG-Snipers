@@ -1,4 +1,4 @@
-import { pgTable, serial, integer, text, bigint } from "drizzle-orm/pg-core";
+import { pgTable, serial, integer, text } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -12,10 +12,6 @@ export const settingsTable = pgTable("settings", {
   imapPort: text("imap_port").notNull().default("993"),
   imapEmail: text("imap_email").notNull().default(""),
   imapPassword: text("imap_password").notNull().default(""),
-  googleEmail: text("google_email"),
-  googleAccessToken: text("google_access_token"),
-  googleRefreshToken: text("google_refresh_token"),
-  googleTokenExpiry: bigint("google_token_expiry", { mode: "number" }),
   discordGuildName: text("discord_guild_name"),
   discordChannelName: text("discord_channel_name"),
 });

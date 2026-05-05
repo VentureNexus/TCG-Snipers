@@ -28,10 +28,6 @@ export const GetSettingsResponse = zod.object({
   imapPort: zod.string(),
   imapEmail: zod.string(),
   imapPassword: zod.string(),
-  googleEmail: zod.string().nullable().optional(),
-  googleAccessToken: zod.string().nullable().optional(),
-  googleRefreshToken: zod.string().nullable().optional(),
-  googleTokenExpiry: zod.number().nullable().optional(),
   discordGuildName: zod.string().nullable().optional(),
   discordChannelName: zod.string().nullable().optional(),
 });
@@ -48,10 +44,6 @@ export const UpdateSettingsBody = zod.object({
   imapPort: zod.string().optional(),
   imapEmail: zod.string().optional(),
   imapPassword: zod.string().optional(),
-  googleEmail: zod.string().nullable().optional(),
-  googleAccessToken: zod.string().nullable().optional(),
-  googleRefreshToken: zod.string().nullable().optional(),
-  googleTokenExpiry: zod.number().nullable().optional(),
   discordGuildName: zod.string().nullable().optional(),
   discordChannelName: zod.string().nullable().optional(),
 });
@@ -66,10 +58,6 @@ export const UpdateSettingsResponse = zod.object({
   imapPort: zod.string(),
   imapEmail: zod.string(),
   imapPassword: zod.string(),
-  googleEmail: zod.string().nullable().optional(),
-  googleAccessToken: zod.string().nullable().optional(),
-  googleRefreshToken: zod.string().nullable().optional(),
-  googleTokenExpiry: zod.number().nullable().optional(),
   discordGuildName: zod.string().nullable().optional(),
   discordChannelName: zod.string().nullable().optional(),
 });

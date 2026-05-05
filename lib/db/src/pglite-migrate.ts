@@ -2,6 +2,13 @@ import type { PGlite } from "@electric-sql/pglite";
 
 export async function runPgliteMigrations(client: PGlite): Promise<void> {
   // Additive migrations for existing databases — safe to run multiple times.
+
+  // Remove orphaned Google OAuth columns (no longer used).
+  await client.exec(`ALTER TABLE settings DROP COLUMN IF EXISTS google_email;`).catch(() => {});
+  await client.exec(`ALTER TABLE settings DROP COLUMN IF EXISTS google_access_token;`).catch(() => {});
+  await client.exec(`ALTER TABLE settings DROP COLUMN IF EXISTS google_refresh_token;`).catch(() => {});
+  await client.exec(`ALTER TABLE settings DROP COLUMN IF EXISTS google_token_expiry;`).catch(() => {});
+
   await client.exec(`
     ALTER TABLE profiles ADD COLUMN IF NOT EXISTS sams_membership_id TEXT NOT NULL DEFAULT '';
   `).catch(() => { /* table may not exist yet — CREATE below will include it */ });
@@ -13,48 +20,6 @@ export async function runPgliteMigrations(client: PGlite): Promise<void> {
   await client.exec(`
     ALTER TABLE tasks ADD COLUMN IF NOT EXISTS stop_after_ms INTEGER;
   `).catch(() => { /* table may not exist yet — CREATE below will include it */ });
-
-  await client.exec(`
-    ALTER TABLE settings ADD COLUMN IF NOT EXISTS google_email TEXT;
-  `).catch(() => { /* table may not exist yet — CREATE below will include it */ });
-
-  await client.exec(`
-    ALTER TABLE settings ADD COLUMN IF NOT EXISTS google_access_token TEXT;
-  `).catch(() => { /* table may not exist yet — CREATE below will include it */ });
-
-  await client.exec(`
-    ALTER TABLE settings ADD COLUMN IF NOT EXISTS google_refresh_token TEXT;
-  `).catch(() => { /* table may not exist yet — CREATE below will include it */ });
-
-  await client.exec(`
-    ALTER TABLE settings ADD COLUMN IF NOT EXISTS google_token_expiry BIGINT;
-  `).catch(() => { /* table may not exist yet — CREATE below will include it */ });
-
-  // Migrate google_token_expiry from TEXT (ISO string) to BIGINT (ms since epoch).
-  //
-  // Step 1: NULL out any values that don't look like ISO timestamps so the
-  // TIMESTAMPTZ cast below cannot throw on malformed legacy data.
-  // This UPDATE itself may fail if the column is already BIGINT (regex can't be
-  // applied to an integer), which is fine — it means the migration already ran.
-  await client.exec(`
-    UPDATE settings
-    SET google_token_expiry = NULL
-    WHERE google_token_expiry IS NOT NULL
-      AND google_token_expiry !~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}T';
-  `).catch(() => { /* column is already BIGINT or table may not exist yet */ });
-
-  // Step 2: Convert the now-clean TEXT values to BIGINT milliseconds.
-  // After step 1 every non-null value is a well-formed ISO string, so the
-  // TIMESTAMPTZ cast is safe.  If the column is already BIGINT this ALTER
-  // fails (caught silently) because you cannot cast BIGINT to TIMESTAMPTZ.
-  await client.exec(`
-    ALTER TABLE settings
-      ALTER COLUMN google_token_expiry TYPE BIGINT
-      USING CASE
-        WHEN google_token_expiry IS NULL THEN NULL
-        ELSE EXTRACT(EPOCH FROM google_token_expiry::TIMESTAMPTZ)::BIGINT * 1000
-      END;
-  `).catch(() => { /* column may already be BIGINT or table may not exist yet */ });
 
   await client.exec(`
     ALTER TABLE settings ADD COLUMN IF NOT EXISTS discord_guild_name TEXT;
@@ -197,10 +162,6 @@ export async function runPgliteMigrations(client: PGlite): Promise<void> {
       imap_port TEXT NOT NULL DEFAULT '993',
       imap_email TEXT NOT NULL DEFAULT '',
       imap_password TEXT NOT NULL DEFAULT '',
-      google_email TEXT,
-      google_access_token TEXT,
-      google_refresh_token TEXT,
-      google_token_expiry BIGINT,
       discord_guild_name TEXT,
       discord_channel_name TEXT
     );

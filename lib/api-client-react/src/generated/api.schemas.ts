@@ -19,10 +19,6 @@ export interface Settings {
   imapPort: string;
   imapEmail: string;
   imapPassword: string;
-  googleEmail?: string | null;
-  googleAccessToken?: string | null;
-  googleRefreshToken?: string | null;
-  googleTokenExpiry?: number | null;
   discordGuildName?: string | null;
   discordChannelName?: string | null;
 }
@@ -36,10 +32,6 @@ export interface UpdateSettingsBody {
   imapPort?: string;
   imapEmail?: string;
   imapPassword?: string;
-  googleEmail?: string | null;
-  googleAccessToken?: string | null;
-  googleRefreshToken?: string | null;
-  googleTokenExpiry?: number | null;
   discordGuildName?: string | null;
   discordChannelName?: string | null;
 }
