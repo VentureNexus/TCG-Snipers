@@ -1,6 +1,11 @@
 import type { PGlite } from "@electric-sql/pglite";
 
 export async function runPgliteMigrations(client: PGlite): Promise<void> {
+  // Additive migrations for existing databases — safe to run multiple times.
+  await client.exec(`
+    ALTER TABLE profiles ADD COLUMN IF NOT EXISTS sams_membership_id TEXT NOT NULL DEFAULT '';
+  `).catch(() => { /* table may not exist yet — CREATE below will include it */ });
+
   await client.exec(`
     CREATE TABLE IF NOT EXISTS profiles (
       id SERIAL PRIMARY KEY,
@@ -26,6 +31,7 @@ export async function runPgliteMigrations(client: PGlite): Promise<void> {
       bill_country TEXT NOT NULL DEFAULT 'US',
       address_jig_enabled BOOLEAN NOT NULL DEFAULT FALSE,
       costco_membership_id TEXT NOT NULL DEFAULT '',
+      sams_membership_id TEXT NOT NULL DEFAULT '',
       imap_host TEXT NOT NULL DEFAULT '',
       imap_port TEXT NOT NULL DEFAULT '993',
       imap_user TEXT NOT NULL DEFAULT '',

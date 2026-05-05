@@ -51,6 +51,7 @@ export interface Profile {
     billCountry: string;
     addressJigEnabled: boolean;
     costcoMembershipId: string;
+    samsMembershipId: string;
     imapHost: string;
     imapPort: string;
     imapUser: string;
@@ -93,6 +94,7 @@ export interface CreateProfileBody {
     billCountry?: string;
     addressJigEnabled?: boolean;
     costcoMembershipId?: string;
+    samsMembershipId?: string;
     imapHost?: string;
     imapPort?: string;
     imapUser?: string;
@@ -121,6 +123,7 @@ export interface UpdateProfileBody {
     billCountry?: string;
     addressJigEnabled?: boolean;
     costcoMembershipId?: string;
+    samsMembershipId?: string;
     imapHost?: string;
     imapPort?: string;
     imapUser?: string;

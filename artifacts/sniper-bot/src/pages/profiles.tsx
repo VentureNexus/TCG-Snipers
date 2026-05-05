@@ -105,6 +105,7 @@ const profileSchema = z.object({
   billCountry: z.string().optional(),
   addressJigEnabled: z.boolean().default(false),
   costcoMembershipId: z.string().optional(),
+  samsMembershipId: z.string().optional(),
 });
 
 const creditCardSchema = z.object({
@@ -144,6 +145,7 @@ const EMPTY_PROFILE: ProfileFormValues = {
   billCountry: "US",
   addressJigEnabled: false,
   costcoMembershipId: "",
+  samsMembershipId: "",
 };
 
 function isProfileIncomplete(profile: Profile): boolean {
@@ -351,6 +353,7 @@ function ProfileFormDialog({
         billCountry: editingProfile.billCountry ?? "US",
         addressJigEnabled: editingProfile.addressJigEnabled,
         costcoMembershipId: editingProfile.costcoMembershipId ?? "",
+        samsMembershipId: editingProfile.samsMembershipId ?? "",
       });
     } else {
       form.reset(EMPTY_PROFILE);
@@ -385,6 +388,7 @@ function ProfileFormDialog({
       phone: values.phone ?? "",
       shipAddress2: values.shipAddress2 ?? "",
       costcoMembershipId: values.costcoMembershipId ?? "",
+      samsMembershipId: values.samsMembershipId ?? "",
     };
 
     if (isEditing && editingProfile) {
@@ -451,13 +455,22 @@ function ProfileFormDialog({
                     <FormMessage />
                   </FormItem>
                 )} />
-                <FormField control={form.control} name="costcoMembershipId" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Costco Membership ID <span className="text-muted-foreground text-xs">(optional)</span></FormLabel>
-                    <FormControl><Input placeholder="Optional" {...field} data-testid="input-costco-membership" /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )} />
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField control={form.control} name="costcoMembershipId" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Costco Membership ID <span className="text-muted-foreground text-xs">(optional)</span></FormLabel>
+                      <FormControl><Input placeholder="Optional" {...field} data-testid="input-costco-membership" /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={form.control} name="samsMembershipId" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Sam's Club Membership ID <span className="text-muted-foreground text-xs">(optional)</span></FormLabel>
+                      <FormControl><Input placeholder="Optional" {...field} data-testid="input-sams-membership" /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                </div>
               </div>
             </div>
 
@@ -798,6 +811,9 @@ function ProfileCard({
           {profile.costcoMembershipId && (
             <Badge variant="outline" className="text-yellow-300 border-yellow-400/20 bg-yellow-400/5 text-[10px]">Costco</Badge>
           )}
+          {profile.samsMembershipId && (
+            <Badge variant="outline" className="text-blue-300 border-blue-400/20 bg-blue-400/5 text-[10px]">Sam's Club</Badge>
+          )}
           <Badge variant="outline" className="text-[10px]">
             <CreditCardIcon className="w-2.5 h-2.5 mr-1" />{cards.length}/5 cards
           </Badge>
@@ -1031,6 +1047,7 @@ export default function ProfilesPage() {
           billCountry: profile.billCountry ?? "US",
           addressJigEnabled: profile.addressJigEnabled,
           costcoMembershipId: profile.costcoMembershipId ?? "",
+          samsMembershipId: profile.samsMembershipId ?? "",
         },
       },
       {
