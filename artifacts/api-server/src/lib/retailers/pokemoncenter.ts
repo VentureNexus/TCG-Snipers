@@ -3,11 +3,12 @@ import { createBrowser, createStealthContext, humanDelay, humanType } from "../b
 import type { RetailerContext, RetailerResult } from "./types";
 import { decrypt } from "../crypto";
 import { applyCartQuantity } from "./cartHelpers";
+import { emitScreenshot } from "./screenshotUtil";
 
 const RETAILER = "Pokemon Center";
 
 export async function runPokemonCenter(ctx: RetailerContext): Promise<RetailerResult> {
-  const { task, profile, card, proxy, token, log, setStatus, setRetryProgress } = ctx;
+  const { task, profile, card, proxy, token, log, setStatus, setRetryProgress, retailerAccount } = ctx;
   let browser: Browser | null = null;
 
   const fail = (msg: string): RetailerResult => ({
@@ -18,6 +19,9 @@ export async function runPokemonCenter(ctx: RetailerContext): Promise<RetailerRe
     orderNumber: "",
     errorMessage: msg,
   });
+
+  const screenshot = async (page: Parameters<typeof emitScreenshot>[1]) =>
+    emitScreenshot(task.id, page);
 
   try {
     log("INFO", `[${RETAILER}] Launching stealth browser...`);
@@ -57,6 +61,7 @@ export async function runPokemonCenter(ctx: RetailerContext): Promise<RetailerRe
         const queue = await page.$('[id*="queue"], [class*="waiting-room"], h1:has-text("Waiting")');
         if (queue) {
           log("WARN", `[${RETAILER}] Waiting room detected — standing by...`);
+          await screenshot(page);
           const queueStart = Date.now();
           const maxWait = 120_000;
           while (Date.now() - queueStart < maxWait) {
@@ -124,6 +129,27 @@ export async function runPokemonCenter(ctx: RetailerContext): Promise<RetailerRe
     await checkoutBtn.click();
     await humanDelay(2000, 3000);
     if (token.cancelled) return fail("Task cancelled");
+    await screenshot(page);
+
+    // Detect Shopify sign-in page if user has a Pokemon Center account
+    const pcSignInEmail = await page.$('input[name="email"][autocomplete*="email"], #checkout_email');
+    const pcLoginIdentity = retailerAccount ?? null;
+    if (pcSignInEmail && pcLoginIdentity) {
+      const isLoginPage = await page.$('button:has-text("Log in"), a:has-text("Log in"), input[name="password"]');
+      if (isLoginPage) {
+        log("INFO", `[${RETAILER}] Account sign-in detected — logging in as ${pcLoginIdentity.email}...`);
+        try { await humanType(page, 'input[name="email"]', pcLoginIdentity.email); } catch (_) {}
+        await humanDelay(300, 600);
+        if (pcLoginIdentity.password) {
+          try { await humanType(page, 'input[name="password"]', pcLoginIdentity.password); } catch (_) {}
+          await humanDelay(200, 400);
+        }
+        const loginSubmit = await page.$('button:has-text("Log in"), button[type="submit"]');
+        if (loginSubmit) { await loginSubmit.click(); await humanDelay(2000, 3000); }
+        await screenshot(page);
+        if (token.cancelled) return fail("Task cancelled");
+      }
+    }
 
     if (profile) {
       log("INFO", `[${RETAILER}] Filling Shopify contact & shipping for profile: ${profile.name}`);
@@ -168,12 +194,14 @@ export async function runPokemonCenter(ctx: RetailerContext): Promise<RetailerRe
       log("WARN", `[${RETAILER}] No credit card provided — skipping payment step`);
     }
 
+    await screenshot(page);
     log("INFO", `[${RETAILER}] Submitting Shopify order...`);
     const placeOrder = await page.$('button#continue_button, button:has-text("Pay now"), button:has-text("Complete order")');
     if (!placeOrder) return fail("Place order button not found");
     await placeOrder.click();
     await humanDelay(3000, 5000);
 
+    await screenshot(page);
     const confirmation = await page.$('[class*="thank-you"], h2:has-text("Thank you"), h1:has-text("Order confirmed")');
     if (!confirmation) return fail("Order confirmation not detected");
 

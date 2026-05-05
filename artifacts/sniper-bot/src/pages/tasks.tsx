@@ -280,6 +280,7 @@ function LogPanel({
   liveStatus,
   retryProgress,
   isReconnecting,
+  latestScreenshot,
   clear,
   copyLogs,
 }: {
@@ -289,6 +290,7 @@ function LogPanel({
   liveStatus: string | null;
   retryProgress: RetryProgress | null;
   isReconnecting: boolean;
+  latestScreenshot: string | null;
   clear: () => void;
   copyLogs: () => void;
 }) {
@@ -320,8 +322,33 @@ function LogPanel({
     toast({ title: "Logs copied to clipboard" });
   };
 
+  const [screenshotOpen, setScreenshotOpen] = useState(false);
+
   return (
     <div className="bg-black/60 border-t border-border/30 rounded-b-lg">
+      {latestScreenshot && (
+        <div className="border-b border-border/20">
+          <button
+            onClick={() => setScreenshotOpen((v) => !v)}
+            className="w-full flex items-center justify-between px-4 py-1.5 text-xs font-mono text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <span className="flex items-center gap-1.5 uppercase tracking-wider">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              Live Browser View
+            </span>
+            <span>{screenshotOpen ? "▲ Hide" : "▼ Show"}</span>
+          </button>
+          {screenshotOpen && (
+            <div className="px-4 pb-3">
+              <img
+                src={latestScreenshot}
+                alt="Live browser screenshot"
+                className="w-full rounded border border-border/30 object-contain max-h-[320px]"
+              />
+            </div>
+          )}
+        </div>
+      )}
       <div className="flex items-center justify-between px-4 py-2 border-b border-border/20">
         <div className="flex items-center gap-2">
           <span className="text-xs font-mono text-muted-foreground uppercase tracking-wider">Task Log</span>
@@ -415,7 +442,7 @@ function TaskRow({
   const baseIsRunning = !["idle", "stopped", "failed", "success"].includes(task.status);
   const logsEnabled = baseIsRunning || isExpanded;
   const lastLiveStatusRef = useRef<string | null>(initialStatus ?? null);
-  const { logs, liveStatus, retryProgress, isReconnecting, clear: clearLogs, copyLogs } = useTaskLogs(task.id, logsEnabled, lastLiveStatusRef.current);
+  const { logs, liveStatus, retryProgress, isReconnecting, latestScreenshot, clear: clearLogs, copyLogs } = useTaskLogs(task.id, logsEnabled, lastLiveStatusRef.current);
 
   const clear = useCallback(() => {
     lastLiveStatusRef.current = null;
@@ -569,6 +596,7 @@ function TaskRow({
               liveStatus={liveStatus}
               retryProgress={retryProgress}
               isReconnecting={isReconnecting}
+              latestScreenshot={latestScreenshot}
               clear={clear}
               copyLogs={copyLogs}
             />

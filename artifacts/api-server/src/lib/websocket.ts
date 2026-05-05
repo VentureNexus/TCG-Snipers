@@ -25,7 +25,13 @@ export interface RetryProgressMessage {
   total: number | null;
 }
 
-export type WsMessage = LogMessage | StatusMessage | RetryProgressMessage;
+export interface ScreenshotMessage {
+  type: "screenshot";
+  taskId: number;
+  dataUrl: string;
+}
+
+export type WsMessage = LogMessage | StatusMessage | RetryProgressMessage | ScreenshotMessage;
 
 const subscribers = new Map<number, Set<WebSocket>>();
 
@@ -170,5 +176,10 @@ export function broadcastStatus(taskId: number, status: string): void {
 export function broadcastRetryProgress(taskId: number, attempt: number, total: number | null): void {
   const msg: RetryProgressMessage = { type: "retry_progress", taskId, attempt, total };
   retryProgressCache.set(taskId, msg);
+  sendToTaskSubscribers(taskId, msg);
+}
+
+export function broadcastScreenshot(taskId: number, dataUrl: string): void {
+  const msg: ScreenshotMessage = { type: "screenshot", taskId, dataUrl };
   sendToTaskSubscribers(taskId, msg);
 }

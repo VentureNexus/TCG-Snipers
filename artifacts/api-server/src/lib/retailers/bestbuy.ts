@@ -3,11 +3,12 @@ import { createBrowser, createStealthContext, humanDelay, humanType } from "../b
 import type { RetailerContext, RetailerResult } from "./types";
 import { decrypt } from "../crypto";
 import { applyCartQuantity } from "./cartHelpers";
+import { emitScreenshot } from "./screenshotUtil";
 
 const RETAILER = "Best Buy";
 
 export async function runBestBuy(ctx: RetailerContext): Promise<RetailerResult> {
-  const { task, profile, card, proxy, token, log, setStatus, setRetryProgress } = ctx;
+  const { task, profile, card, proxy, token, log, setStatus, setRetryProgress, retailerAccount } = ctx;
   let browser: Browser | null = null;
 
   const fail = (msg: string): RetailerResult => ({
@@ -18,6 +19,9 @@ export async function runBestBuy(ctx: RetailerContext): Promise<RetailerResult> 
     orderNumber: "",
     errorMessage: msg,
   });
+
+  const screenshot = async (page: Parameters<typeof emitScreenshot>[1]) =>
+    emitScreenshot(task.id, page);
 
   try {
     log("INFO", `[${RETAILER}] Launching stealth browser...`);
@@ -119,6 +123,24 @@ export async function runBestBuy(ctx: RetailerContext): Promise<RetailerResult> 
     await checkoutBtn.click();
     await humanDelay(2000, 3000);
     if (token.cancelled) return fail("Task cancelled");
+    await screenshot(page);
+
+    // Detect sign-in prompt and handle it
+    const bbSignInEmail = await page.$('input[id="userName"], input[name="email"], input[type="email"]');
+    const bbLoginIdentity = retailerAccount ?? (profile ? { email: profile.email, password: null } : null);
+    if (bbSignInEmail && bbLoginIdentity) {
+      log("INFO", `[${RETAILER}] Sign-in prompt — logging in as ${bbLoginIdentity.email}...`);
+      try { await humanType(page, 'input[id="userName"], input[name="email"]', bbLoginIdentity.email); } catch (_) {}
+      await humanDelay(300, 600);
+      if (retailerAccount?.password) {
+        try { await humanType(page, 'input[id="password"], input[name="password"], input[type="password"]', retailerAccount.password); } catch (_) {}
+        await humanDelay(200, 400);
+      }
+      const loginSubmit = await page.$('button:has-text("Sign In"), button:has-text("Log in"), button[type="submit"]');
+      if (loginSubmit) { await loginSubmit.click(); await humanDelay(2000, 3000); }
+      await screenshot(page);
+      if (token.cancelled) return fail("Task cancelled");
+    }
 
     if (profile) {
       log("INFO", `[${RETAILER}] Filling contact & shipping for profile: ${profile.name}`);
@@ -161,12 +183,14 @@ export async function runBestBuy(ctx: RetailerContext): Promise<RetailerResult> 
       log("WARN", `[${RETAILER}] No credit card provided — skipping payment step`);
     }
 
+    await screenshot(page);
     log("INFO", `[${RETAILER}] Submitting order...`);
     const placeOrder = await page.$('button:has-text("Place Your Order"), button.btn-primary:has-text("order")');
     if (!placeOrder) return fail("Place order button not found");
     await placeOrder.click();
     await humanDelay(3000, 5000);
 
+    await screenshot(page);
     const confirmation = await page.$('[class*="thank-you"], [class*="confirmation"], h1:has-text("Thank you")');
     if (!confirmation) return fail("Order confirmation not detected");
 

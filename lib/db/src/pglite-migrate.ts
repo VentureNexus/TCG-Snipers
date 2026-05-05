@@ -59,6 +59,19 @@ export async function runPgliteMigrations(client: PGlite): Promise<void> {
 
   // Checkout selector learning table — tracks which CSS selectors work per
   // retailer/step so the bot tries the best-known selector first next time.
+  // Retailer account credentials — encrypted passwords per retailer+profile
+  await client.exec(`
+    CREATE TABLE IF NOT EXISTS retailer_accounts (
+      id SERIAL PRIMARY KEY,
+      retailer TEXT NOT NULL,
+      profile_id INTEGER REFERENCES profiles(id) ON DELETE CASCADE,
+      email TEXT NOT NULL,
+      encrypted_password TEXT NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `).catch(() => {});
+
   await client.exec(`
     CREATE TABLE IF NOT EXISTS checkout_selector_stats (
       id SERIAL PRIMARY KEY,

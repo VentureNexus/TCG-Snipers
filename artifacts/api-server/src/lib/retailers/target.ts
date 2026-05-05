@@ -3,11 +3,12 @@ import { createBrowser, createStealthContext, humanDelay, humanType } from "../b
 import type { RetailerContext, RetailerResult } from "./types";
 import { decrypt } from "../crypto";
 import { applyCartQuantity } from "./cartHelpers";
+import { emitScreenshot } from "./screenshotUtil";
 
 const RETAILER = "Target";
 
 export async function runTarget(ctx: RetailerContext): Promise<RetailerResult> {
-  const { task, profile, card, proxy, token, log, setStatus, setRetryProgress } = ctx;
+  const { task, profile, card, proxy, token, log, setStatus, setRetryProgress, retailerAccount } = ctx;
   let browser: Browser | null = null;
 
   const fail = (msg: string): RetailerResult => ({
@@ -18,6 +19,9 @@ export async function runTarget(ctx: RetailerContext): Promise<RetailerResult> {
     orderNumber: "",
     errorMessage: msg,
   });
+
+  const screenshot = async (page: Parameters<typeof emitScreenshot>[1]) =>
+    emitScreenshot(task.id, page);
 
   try {
     log("INFO", `[${RETAILER}] Launching stealth browser...`);
@@ -126,6 +130,24 @@ export async function runTarget(ctx: RetailerContext): Promise<RetailerResult> {
     await checkoutBtn.click();
     await humanDelay(2000, 3000);
     if (token.cancelled) return fail("Task cancelled");
+    await screenshot(page);
+
+    // Detect Target sign-in page and handle it
+    const targetSignInEmail = await page.$('input[id="username"], input[name="username"], input[type="email"][id*="email"]');
+    const tgtLoginIdentity = retailerAccount ?? (profile ? { email: profile.email, password: null } : null);
+    if (targetSignInEmail && tgtLoginIdentity) {
+      log("INFO", `[${RETAILER}] Sign-in prompt — logging in as ${tgtLoginIdentity.email}...`);
+      try { await humanType(page, 'input[id="username"], input[name="username"]', tgtLoginIdentity.email); } catch (_) {}
+      await humanDelay(300, 600);
+      if (retailerAccount?.password) {
+        try { await humanType(page, 'input[id="password"], input[name="password"]', retailerAccount.password); } catch (_) {}
+        await humanDelay(200, 400);
+      }
+      const loginSubmit = await page.$('button:has-text("Sign in"), button[type="submit"]');
+      if (loginSubmit) { await loginSubmit.click(); await humanDelay(2000, 3000); }
+      await screenshot(page);
+      if (token.cancelled) return fail("Task cancelled");
+    }
 
     if (profile) {
       log("INFO", `[${RETAILER}] Filling contact & shipping for profile: ${profile.name}`);
@@ -168,12 +190,14 @@ export async function runTarget(ctx: RetailerContext): Promise<RetailerResult> {
       log("WARN", `[${RETAILER}] No credit card provided — skipping payment step`);
     }
 
+    await screenshot(page);
     log("INFO", `[${RETAILER}] Submitting order...`);
     const placeOrder = await page.$('[data-test="place-order-button"], button:has-text("Place order")');
     if (!placeOrder) return fail("Place order button not found");
     await placeOrder.click();
     await humanDelay(3000, 5000);
 
+    await screenshot(page);
     const confirmation = await page.$('[data-test="order-confirmation"], h1:has-text("Thank you")');
     if (!confirmation) return fail("Order confirmation not detected");
 

@@ -21,6 +21,7 @@ export interface UseTaskLogsResult {
   liveStatus: string | null;
   retryProgress: RetryProgress | null;
   isReconnecting: boolean;
+  latestScreenshot: string | null;
   clear: () => void;
   copyLogs: () => void;
 }
@@ -46,6 +47,7 @@ export function useTaskLogs(taskId: number, enabled: boolean, initialStatus?: st
   const [liveStatus, setLiveStatus] = useState<string | null>(initialStatus ?? null);
   const [retryProgress, setRetryProgress] = useState<RetryProgress | null>(null);
   const [isReconnecting, setIsReconnecting] = useState(false);
+  const [latestScreenshot, setLatestScreenshot] = useState<string | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const retryCountRef = useRef(0);
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -79,6 +81,7 @@ export function useTaskLogs(taskId: number, enabled: boolean, initialStatus?: st
           status?: string;
           attempt?: number;
           total?: number | null;
+          dataUrl?: string;
         };
         if (msg.type === "log" && msg.level && msg.message && msg.timestamp) {
           const seq = typeof msg.seq === "number" ? msg.seq : -1;
@@ -102,6 +105,8 @@ export function useTaskLogs(taskId: number, enabled: boolean, initialStatus?: st
           }
         } else if (msg.type === "retry_progress" && typeof msg.attempt === "number") {
           setRetryProgress({ attempt: msg.attempt, total: msg.total ?? null });
+        } else if (msg.type === "screenshot" && msg.dataUrl) {
+          setLatestScreenshot(msg.dataUrl);
         }
       } catch {
         // ignore malformed messages
@@ -160,6 +165,7 @@ export function useTaskLogs(taskId: number, enabled: boolean, initialStatus?: st
     setLogs([]);
     setLiveStatus(null);
     setRetryProgress(null);
+    setLatestScreenshot(null);
     lastSeqRef.current = -1;
   }, []);
 
@@ -177,5 +183,5 @@ export function useTaskLogs(taskId: number, enabled: boolean, initialStatus?: st
     });
   }, [logs]);
 
-  return { logs, liveStatus, retryProgress, isReconnecting, clear, copyLogs };
+  return { logs, liveStatus, retryProgress, isReconnecting, latestScreenshot, clear, copyLogs };
 }

@@ -5,11 +5,12 @@ import type { RetailerContext, RetailerResult } from "./types";
 import { decrypt } from "../crypto";
 import { applyCartQuantity } from "./cartHelpers";
 import { smartClick, smartFind } from "../checkoutLearner";
+import { emitScreenshot } from "./screenshotUtil";
 
 const RETAILER = "Amazon";
 
 export async function runAmazon(ctx: RetailerContext): Promise<RetailerResult> {
-  const { task, profile, card, proxy, token, log, setStatus, setRetryProgress } = ctx;
+  const { task, profile, card, proxy, token, log, setStatus, setRetryProgress, retailerAccount } = ctx;
   let browser: Browser | null = null;
 
   const fail = (msg: string): RetailerResult => ({
@@ -20,6 +21,9 @@ export async function runAmazon(ctx: RetailerContext): Promise<RetailerResult> {
     orderNumber: "",
     errorMessage: msg,
   });
+
+  const screenshot = async (page: Parameters<typeof emitScreenshot>[1]) =>
+    emitScreenshot(task.id, page);
 
   try {
     log("INFO", `[${RETAILER}] Launching stealth browser...`);
@@ -117,16 +121,31 @@ export async function runAmazon(ctx: RetailerContext): Promise<RetailerResult> {
     await humanDelay(1500, 2500);
     if (token.cancelled) return fail("Task cancelled");
 
+    await screenshot(page);
+
     const signInCheck = await page.$('input[name="email"], #ap_email');
-    if (signInCheck && profile) {
-      log("INFO", `[${RETAILER}] Signing in as ${profile.email}...`);
-      try { await humanType(page, '#ap_email', profile.email); } catch (_) {}
+    if (signInCheck && (profile || retailerAccount)) {
+      const loginEmail = retailerAccount?.email ?? profile?.email ?? "";
+      log("INFO", `[${RETAILER}] Signing in as ${loginEmail}...`);
+      try { await humanType(page, '#ap_email', loginEmail); } catch (_) {}
       const continueBtn = await page.$('#continue, input[id="continue"]');
       if (continueBtn) { await continueBtn.click(); await humanDelay(1500, 2500); }
       if (token.cancelled) return fail("Task cancelled");
+      await screenshot(page);
+
+      // Try password field first (faster than OTP when account has password)
+      const passwordField = await page.$('#ap_password, input[name="password"]');
+      if (passwordField && retailerAccount?.password) {
+        log("INFO", `[${RETAILER}] Password prompt — entering credentials...`);
+        try { await humanType(page, '#ap_password', retailerAccount.password); } catch (_) {}
+        await humanDelay(300, 600);
+        const signInBtn = await page.$('#signInSubmit, input[id="signInSubmit"]');
+        if (signInBtn) { await signInBtn.click(); await humanDelay(2000, 3000); }
+        await screenshot(page);
+      }
 
       const otpCheck = await page.$('input[name="otpCode"], #auth-mfa-otpcode');
-      const amazonImapConfig = profile.imapHost
+      const amazonImapConfig = profile?.imapHost
         ? { host: profile.imapHost, port: parseInt(profile.imapPort, 10), user: profile.imapUser, password: profile.imapPassword }
         : ctx.globalImapConfig;
       if (otpCheck && amazonImapConfig) {
@@ -141,6 +160,7 @@ export async function runAmazon(ctx: RetailerContext): Promise<RetailerResult> {
           await humanType(page, '#auth-mfa-otpcode', code);
           const submitOtp = await page.$('input[id="auth-signin-button"]');
           if (submitOtp) { await submitOtp.click(); await humanDelay(2000, 3000); }
+          await screenshot(page);
         } else {
           log("WARN", `[${RETAILER}] OTP code not found in IMAP within timeout`);
         }
@@ -208,6 +228,7 @@ export async function runAmazon(ctx: RetailerContext): Promise<RetailerResult> {
       log("WARN", `[${RETAILER}] No credit card provided — skipping payment step`);
     }
     if (token.cancelled) return fail("Task cancelled");
+    await screenshot(page);
 
     log("INFO", `[${RETAILER}] Submitting order...`);
     const placeOrderSelectors = [
@@ -237,6 +258,7 @@ export async function runAmazon(ctx: RetailerContext): Promise<RetailerResult> {
     await page.evaluate(el => (el as unknown as { click(): void }).click(), placeOrder);
     await humanDelay(3000, 5000);
 
+    await screenshot(page);
     const confirmation = await page.$('[class*="confirmation"], h1:has-text("order"), h4:has-text("order")');
     if (!confirmation) return fail("Order confirmation not detected");
 

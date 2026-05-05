@@ -16,6 +16,12 @@ export interface TaskInfo {
   stopAfterMs: number | null;
 }
 
+/** Decrypted retailer account credentials fetched from retailer_accounts table. */
+export interface RetailerAccountCredentials {
+  email: string;
+  password: string;
+}
+
 export interface RetailerContext {
   task: TaskInfo;
   profile: Profile | null;
@@ -30,6 +36,8 @@ export interface RetailerContext {
   setRetryProgress: (attempt: number, total: number | null) => void;
   /** Global IMAP config (from app Settings), used when the profile has no per-profile IMAP. */
   globalImapConfig: ImapConfig | null;
+  /** Decrypted credentials for the retailer account (email + password). Null if not configured. */
+  retailerAccount: RetailerAccountCredentials | null;
 }
 
 export interface RetailerResult {

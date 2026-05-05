@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
   useListProfiles,
   useCreateProfile,
@@ -26,6 +26,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/componen
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -78,8 +80,12 @@ import {
   Search,
   AlertTriangle,
   Mail,
+  KeyRound,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { getApiBase } from "@/lib/api-base";
 
 // ─── Schemas ────────────────────────────────────────────────────────────────
 
@@ -1075,6 +1081,279 @@ function AddCardDialog({ open, onOpenChange, profileId, existingCardCount }: Add
   );
 }
 
+// ─── Retailer Accounts Dialog ────────────────────────────────────────────────
+
+const SUPPORTED_RETAILERS = [
+  "Amazon",
+  "Walmart",
+  "Best Buy",
+  "Target",
+  "Costco",
+  "Sam's Club",
+  "Pokemon Center",
+] as const;
+
+interface RetailerAccount {
+  id: number;
+  retailer: string;
+  profileId: number;
+  email: string;
+  createdAt: string;
+}
+
+interface RetailerAccountsDialogProps {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  profiles: { id: number; name: string }[];
+}
+
+function RetailerAccountsDialog({ open, onOpenChange, profiles }: RetailerAccountsDialogProps) {
+  const { toast } = useToast();
+  const [accounts, setAccounts] = useState<RetailerAccount[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({});
+
+  // Form state for add/edit
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [formRetailer, setFormRetailer] = useState(SUPPORTED_RETAILERS[0] as string);
+  const [formProfileId, setFormProfileId] = useState<number | "">("");
+  const [formEmail, setFormEmail] = useState("");
+  const [formPassword, setFormPassword] = useState("");
+  const [showForm, setShowForm] = useState(false);
+
+  const apiBase = getApiBase();
+
+  const fetchAccounts = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${apiBase}/retailer-accounts`);
+      if (!res.ok) throw new Error("Failed to fetch");
+      setAccounts(await res.json());
+    } catch {
+      toast({ title: "Failed to load accounts", variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  }, [apiBase, toast]);
+
+  useEffect(() => {
+    if (open) fetchAccounts();
+  }, [open, fetchAccounts]);
+
+  function resetForm() {
+    setEditingId(null);
+    setFormRetailer(SUPPORTED_RETAILERS[0]);
+    setFormProfileId("");
+    setFormEmail("");
+    setFormPassword("");
+    setShowForm(false);
+    setShowPasswords({});
+  }
+
+  function openAdd() {
+    resetForm();
+    setShowForm(true);
+  }
+
+  function openEdit(acct: RetailerAccount) {
+    setEditingId(acct.id);
+    setFormRetailer(acct.retailer);
+    setFormProfileId(acct.profileId);
+    setFormEmail(acct.email);
+    setFormPassword("");
+    setShowForm(true);
+  }
+
+  async function handleSave() {
+    if (!formRetailer || !formProfileId || !formEmail || (!editingId && !formPassword)) {
+      toast({ title: "Please fill in all fields", variant: "destructive" });
+      return;
+    }
+    setSaving(true);
+    try {
+      const body: Record<string, unknown> = {
+        retailer: formRetailer,
+        profileId: Number(formProfileId),
+        email: formEmail,
+      };
+      if (formPassword) body.password = formPassword;
+
+      let res: Response;
+      if (editingId) {
+        res = await fetch(`${apiBase}/retailer-accounts/${editingId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+      } else {
+        res = await fetch(`${apiBase}/retailer-accounts`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+      }
+      if (!res.ok) throw new Error(await res.text());
+      toast({ title: editingId ? "Account updated" : "Account saved" });
+      resetForm();
+      fetchAccounts();
+    } catch (e) {
+      toast({ title: "Failed to save account", description: e instanceof Error ? e.message : undefined, variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleDelete(id: number) {
+    setDeletingId(id);
+    try {
+      await fetch(`${apiBase}/retailer-accounts/${id}`, { method: "DELETE" });
+      toast({ title: "Account removed" });
+      setAccounts((prev) => prev.filter((a) => a.id !== id));
+    } catch {
+      toast({ title: "Failed to delete account", variant: "destructive" });
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
+  function toggleShow(key: number | "new") {
+    setShowPasswords((prev) => ({ ...prev, [key]: !prev[key] }));
+  }
+
+  const profileName = (id: number) => profiles.find((p) => p.id === id)?.name ?? `Profile #${id}`;
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => { if (!v) resetForm(); onOpenChange(v); }}>
+      <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <KeyRound className="w-4 h-4" /> Retailer Accounts
+          </DialogTitle>
+          <DialogDescription>
+            Store login credentials per retailer and profile. Passwords are encrypted at rest.
+          </DialogDescription>
+        </DialogHeader>
+
+        {/* Existing accounts */}
+        <div className="space-y-2">
+          {loading ? (
+            <div className="flex justify-center py-6"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
+          ) : accounts.length === 0 && !showForm ? (
+            <p className="text-xs text-muted-foreground text-center py-6">No accounts saved yet.</p>
+          ) : (
+            accounts.map((acct) => (
+              <div key={acct.id} className="flex items-center justify-between gap-3 rounded-lg border border-border/50 px-3 py-2.5 bg-muted/10">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-foreground">{acct.retailer}</span>
+                    <span className="text-[10px] text-muted-foreground bg-muted/30 px-1.5 py-0.5 rounded">{profileName(acct.profileId)}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground truncate mt-0.5">{acct.email}</p>
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={() => openEdit(acct)} title="Edit">
+                    <Pencil className="w-3.5 h-3.5" />
+                  </Button>
+                  <Button
+                    variant="ghost" size="icon"
+                    className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                    onClick={() => handleDelete(acct.id)}
+                    disabled={deletingId === acct.id}
+                    title="Delete"
+                  >
+                    {deletingId === acct.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                  </Button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Add/Edit form */}
+        {showForm && (
+          <div className="rounded-lg border border-border/50 p-4 bg-muted/10 space-y-3 mt-2">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              {editingId ? "Edit Account" : "Add Account"}
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground">Retailer</label>
+                <select
+                  value={formRetailer}
+                  onChange={(e) => setFormRetailer(e.target.value)}
+                  className="w-full h-8 rounded-md border border-input bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+                >
+                  {SUPPORTED_RETAILERS.map((r) => <option key={r} value={r}>{r}</option>)}
+                </select>
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground">Profile</label>
+                <select
+                  value={formProfileId}
+                  onChange={(e) => setFormProfileId(e.target.value ? Number(e.target.value) : "")}
+                  className="w-full h-8 rounded-md border border-input bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+                >
+                  <option value="">Select profile…</option>
+                  {profiles.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                </select>
+              </div>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-muted-foreground">Email / Username</label>
+              <Input
+                className="h-8 text-xs"
+                type="email"
+                placeholder="user@example.com"
+                value={formEmail}
+                onChange={(e) => setFormEmail(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-muted-foreground">
+                Password {editingId && <span className="text-muted-foreground/60">(leave blank to keep current)</span>}
+              </label>
+              <div className="relative">
+                <Input
+                  className="h-8 text-xs pr-8"
+                  type={showPasswords["new"] ? "text" : "password"}
+                  placeholder={editingId ? "••••••••" : "Required"}
+                  value={formPassword}
+                  onChange={(e) => setFormPassword(e.target.value)}
+                />
+                <button
+                  type="button"
+                  onClick={() => toggleShow("new")}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  {showPasswords["new"] ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                </button>
+              </div>
+            </div>
+            <div className="flex gap-2 pt-1">
+              <Button size="sm" className="flex-1" onClick={handleSave} disabled={saving}>
+                {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : null}
+                {editingId ? "Update" : "Save"}
+              </Button>
+              <Button size="sm" variant="outline" onClick={resetForm} disabled={saving}>Cancel</Button>
+            </div>
+          </div>
+        )}
+
+        <DialogFooter className="flex items-center justify-between sm:justify-between gap-2 mt-2">
+          {!showForm ? (
+            <Button size="sm" variant="outline" className="gap-1.5" onClick={openAdd}>
+              <Plus className="w-3.5 h-3.5" /> Add Account
+            </Button>
+          ) : <div />}
+          <Button size="sm" variant="ghost" onClick={() => { resetForm(); onOpenChange(false); }}>Close</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function ProfilesPage() {
@@ -1094,6 +1373,7 @@ export default function ProfilesPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [exporting, setExporting] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [accountsOpen, setAccountsOpen] = useState(false);
   const importRef = useRef<HTMLInputElement>(null);
 
   function openCreate() { setEditingProfile(null); setFormOpen(true); }
@@ -1262,6 +1542,9 @@ export default function ProfilesPage() {
           <Button variant="outline" size="sm" className="gap-2 text-xs" onClick={handleExport} disabled={profiles.length === 0 || exporting} data-testid="button-export-profiles">
             {exporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />} Export
           </Button>
+          <Button variant="outline" size="sm" className="gap-2" onClick={() => setAccountsOpen(true)} data-testid="button-open-accounts">
+            <KeyRound className="w-3.5 h-3.5" /> Accounts
+          </Button>
           <Button size="sm" className="gap-2" onClick={openCreate} data-testid="button-create-profile">
             <Plus className="w-4 h-4" /> New Profile
           </Button>
@@ -1393,6 +1676,12 @@ export default function ProfilesPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <RetailerAccountsDialog
+        open={accountsOpen}
+        onOpenChange={setAccountsOpen}
+        profiles={profiles.map((p) => ({ id: p.id, name: p.name }))}
+      />
     </div>
   );
 }

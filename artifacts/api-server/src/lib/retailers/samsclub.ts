@@ -3,11 +3,12 @@ import { createBrowser, createStealthContext, humanDelay, humanType } from "../b
 import type { RetailerContext, RetailerResult } from "./types";
 import { decrypt } from "../crypto";
 import { applyCartQuantity } from "./cartHelpers";
+import { emitScreenshot } from "./screenshotUtil";
 
 const RETAILER = "Sam's Club";
 
 export async function runSamsClub(ctx: RetailerContext): Promise<RetailerResult> {
-  const { task, profile, card, proxy, token, log, setStatus, setRetryProgress } = ctx;
+  const { task, profile, card, proxy, token, log, setStatus, setRetryProgress, retailerAccount } = ctx;
   let browser: Browser | null = null;
 
   const fail = (msg: string): RetailerResult => ({
@@ -18,6 +19,9 @@ export async function runSamsClub(ctx: RetailerContext): Promise<RetailerResult>
     orderNumber: "",
     errorMessage: msg,
   });
+
+  const screenshot = async (page: Parameters<typeof emitScreenshot>[1]) =>
+    emitScreenshot(task.id, page);
 
   try {
     log("INFO", `[${RETAILER}] Launching stealth browser...`);
@@ -63,17 +67,25 @@ export async function runSamsClub(ctx: RetailerContext): Promise<RetailerResult>
         if (token.cancelled) return fail("Task cancelled");
 
         const signInBtn = await page.$('a[href*="login"], button:has-text("Sign In"), a:has-text("Sign in")');
-        if (signInBtn && profile) {
+        const samLoginIdentity = retailerAccount ?? (profile ? { email: profile.email, password: null } : null);
+        if (signInBtn && samLoginIdentity) {
           log("INFO", `[${RETAILER}] Sign-in prompt detected — logging in...`);
           await signInBtn.click();
           await humanDelay(1200, 2000);
+          await screenshot(page);
           try {
-            await humanType(page, 'input[name="email"], input[id*="email"]', profile.email);
+            await humanType(page, 'input[name="email"], input[id*="email"]', samLoginIdentity.email);
             await humanDelay(300, 600);
             const nextBtn = await page.$('button:has-text("Continue"), button:has-text("Next")');
             if (nextBtn) { await nextBtn.click(); await humanDelay(800, 1400); }
+            await screenshot(page);
+            if (retailerAccount?.password) {
+              try { await humanType(page, 'input[name="password"], input[type="password"]', retailerAccount.password); } catch (_) {}
+              await humanDelay(200, 400);
+            }
             const loginBtn = await page.$('button:has-text("Sign In"), button[type="submit"]');
             if (loginBtn) { await loginBtn.click(); await humanDelay(2000, 3000); }
+            await screenshot(page);
           } catch (_) {}
         }
 
@@ -138,6 +150,7 @@ export async function runSamsClub(ctx: RetailerContext): Promise<RetailerResult>
     await checkoutBtn.click();
     await humanDelay(2000, 3000);
     if (token.cancelled) return fail("Task cancelled");
+    await screenshot(page);
 
     if (profile) {
       log("INFO", `[${RETAILER}] Filling shipping for profile: ${profile.name}`);
@@ -181,12 +194,14 @@ export async function runSamsClub(ctx: RetailerContext): Promise<RetailerResult>
       log("WARN", `[${RETAILER}] No credit card provided — skipping payment step`);
     }
 
+    await screenshot(page);
     log("INFO", `[${RETAILER}] Submitting order...`);
     const placeOrder = await page.$('button:has-text("Place Order"), button:has-text("Place order")');
     if (!placeOrder) return fail("Place order button not found");
     await placeOrder.click();
     await humanDelay(3000, 5000);
 
+    await screenshot(page);
     const confirmation = await page.$(
       '[class*="confirmation"], h1:has-text("Thank you"), h1:has-text("Order Confirmed"), h2:has-text("Order placed")'
     );

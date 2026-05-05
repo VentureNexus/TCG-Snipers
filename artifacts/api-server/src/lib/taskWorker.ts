@@ -1,4 +1,5 @@
 import { db, tasksTable, checkoutResultsTable, profilesTable, proxiesTable, creditCardsTable } from "@workspace/db";
+import { getDecryptedRetailerAccount } from "../routes/retailerAccounts";
 import { eq, inArray } from "drizzle-orm";
 import { broadcastLog, broadcastStatus, broadcastRetryProgress } from "./websocket";
 import { dispatchRetailer } from "./retailers";
@@ -98,6 +99,13 @@ async function runTaskAutomation(task: TaskRow, token: { cancelled: boolean }) {
       ? (await db.select().from(profilesTable).where(eq(profilesTable.id, task.profileId)))[0] ?? null
       : null;
 
+    const retailerAccount = task.profileId
+      ? await getDecryptedRetailerAccount(task.retailer, task.profileId)
+      : null;
+    if (retailerAccount) {
+      log("INFO", `[${task.retailer}] Using saved account: ${retailerAccount.email}`);
+    }
+
     const proxyRow = task.proxyId
       ? (await db.select().from(proxiesTable).where(eq(proxiesTable.id, task.proxyId)))[0] ?? null
       : null;
@@ -172,6 +180,7 @@ async function runTaskAutomation(task: TaskRow, token: { cancelled: boolean }) {
         setStatus,
         setRetryProgress,
         globalImapConfig,
+        retailerAccount: retailerAccount ?? null,
       });
 
       if (token.cancelled) break;

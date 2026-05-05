@@ -9,6 +9,7 @@ import checkoutResultsRouter from "./checkoutResults";
 import analyticsRouter from "./analytics";
 import settingsRouter from "./settings";
 import ogImageRouter from "./ogImage";
+import retailerAccountsRouter from "./retailerAccounts";
 const router: IRouter = Router();
 
 router.use(healthRouter);
@@ -21,5 +22,6 @@ router.use(checkoutResultsRouter);
 router.use(analyticsRouter);
 router.use(settingsRouter);
 router.use(ogImageRouter);
+router.use(retailerAccountsRouter);
 
 export default router;
