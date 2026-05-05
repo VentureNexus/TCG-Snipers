@@ -100,6 +100,7 @@ const taskSchema = z.object({
   maxPrice: z.coerce.number().min(0).optional(),
   stopAfterHours: z.coerce.number().min(0.1).optional(),
   stopAtTime: z.string().optional(),
+  stopMode: z.enum(["hours", "time"]).default("hours"),
 }).refine(
   (data) => data.monitorDelayMax > data.monitorDelay,
   { message: "Min must be less than Max", path: ["monitorDelayMax"] },
@@ -128,10 +129,10 @@ function formValuesToPayload(values: TaskFormValues) {
     maxPrice: values.maxPrice !== undefined && values.maxPrice !== null
       ? Math.round(values.maxPrice * 100)
       : undefined,
-    stopAfterMs: isUnlimited && values.stopAfterHours
+    stopAfterMs: isUnlimited && values.stopMode === "hours" && values.stopAfterHours
       ? Math.round(values.stopAfterHours * 3_600_000)
       : null,
-    stopAtTime: isUnlimited && values.stopAtTime ? values.stopAtTime : null,
+    stopAtTime: isUnlimited && values.stopMode === "time" && values.stopAtTime ? values.stopAtTime : null,
   };
 }
 
@@ -153,6 +154,7 @@ function taskToFormValues(task: Task): TaskFormValues {
       ? task.stopAfterMs / 3_600_000
       : undefined,
     stopAtTime: task.stopAtTime ?? undefined,
+    stopMode: task.stopAtTime ? "time" : "hours",
   };
 }
 
@@ -561,12 +563,9 @@ function TaskFormFields({
   const selectedProfileId = useWatch({ control: form.control, name: "profileId" });
   const selectedProfile = profiles.find((p) => p.id === Number(selectedProfileId));
   const retryCountValue = useWatch({ control: form.control, name: "retryCount" });
-  const stopAtTimeValue = useWatch({ control: form.control, name: "stopAtTime" });
   const [isUnlimited, setIsUnlimited] = useState(retryCountValue === -1);
   const [prevRetryCount, setPrevRetryCount] = useState(retryCountValue === -1 ? 3 : (retryCountValue ?? 3));
-  const [stopMode, setStopMode] = useState<"hours" | "time">(() =>
-    form.getValues("stopAtTime") ? "time" : "hours"
-  );
+  const stopMode = useWatch({ control: form.control, name: "stopMode" }) ?? "hours";
 
   useEffect(() => {
     if (retryCountValue === -1) {
@@ -576,13 +575,6 @@ function TaskFormFields({
     }
   }, [retryCountValue]);
 
-  useEffect(() => {
-    if (stopAtTimeValue) {
-      setStopMode("time");
-    } else {
-      setStopMode("hours");
-    }
-  }, [stopAtTimeValue]);
   const selectedIncomplete = selectedProfile ? isProfileIncomplete(selectedProfile) : false;
 
   return (
@@ -868,8 +860,8 @@ function TaskFormFields({
                       form.setValue("retryCount", restore);
                       form.setValue("stopAfterHours", undefined);
                       form.setValue("stopAtTime", undefined);
+                      form.setValue("stopMode", "hours");
                       setIsUnlimited(false);
-                      setStopMode("hours");
                     }
                   }}
                 />
@@ -900,10 +892,7 @@ function TaskFormFields({
               <button
                 type="button"
                 data-testid="stop-mode-hours"
-                onClick={() => {
-                  setStopMode("hours");
-                  form.setValue("stopAtTime", undefined);
-                }}
+                onClick={() => form.setValue("stopMode", "hours")}
                 className={`px-3 py-1 text-xs rounded transition-colors ${stopMode === "hours" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
               >
                 Duration
@@ -911,10 +900,7 @@ function TaskFormFields({
               <button
                 type="button"
                 data-testid="stop-mode-time"
-                onClick={() => {
-                  setStopMode("time");
-                  form.setValue("stopAfterHours", undefined);
-                }}
+                onClick={() => form.setValue("stopMode", "time")}
                 className={`px-3 py-1 text-xs rounded transition-colors ${stopMode === "time" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
               >
                 At time
