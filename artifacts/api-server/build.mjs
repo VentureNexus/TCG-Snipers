@@ -97,6 +97,9 @@ async function buildAll() {
       "zeromq",
       "zeromq-prebuilt",
       "playwright",
+      "playwright-core",
+      // playwright-core optional sub-dependency (BiDi protocol) — not used; cannot be bundled
+      "chromium-bidi",
       "puppeteer",
       "puppeteer-core",
       "electron",
