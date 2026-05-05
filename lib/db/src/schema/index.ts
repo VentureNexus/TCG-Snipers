@@ -9,3 +9,4 @@ export * from "./customers";
 export * from "./licenses";
 export * from "./devices";
 export * from "./magicLinkTokens";
+export * from "./checkoutSelectorStats";

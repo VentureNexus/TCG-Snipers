@@ -3,6 +3,7 @@ import { createBrowser, createStealthContext, humanDelay, humanType } from "../b
 import type { RetailerContext, RetailerResult } from "./types";
 import { decrypt } from "../crypto";
 import { applyCartQuantity } from "./cartHelpers";
+import { smartClick, smartFind } from "../checkoutLearner";
 
 const RETAILER = "Walmart";
 
@@ -93,21 +94,13 @@ export async function runWalmart(ctx: RetailerContext): Promise<RetailerResult> 
 
     await setStatus("adding_to_cart");
     log("INFO", `[${RETAILER}] Adding to cart...`);
-    try {
-      // Re-query the button — Walmart re-renders on hydration so the stock-check
-      // reference may be stale. scrollIntoViewIfNeeded + JS click bypasses overlay issues.
-      const atcForClick = await page.$('button[data-automation-id="add-to-cart"]:not([disabled])')
-        ?? await page.$('button:has-text("Add to cart"):not([disabled])');
-      if (atcForClick) {
-        await atcForClick.scrollIntoViewIfNeeded();
-        await humanDelay(200, 400);
-        await page.evaluate(el => (el as HTMLElement).click(), atcForClick);
-      } else {
-        await page.click('button[data-automation-id="add-to-cart"]', { timeout: 5000, force: true });
-      }
-    } catch (_) {
-      return fail("Could not click Add to Cart button");
-    }
+    // Re-query — Walmart re-renders the button on hydration so the stock-check reference is stale
+    const atcClicked = await smartClick(page, RETAILER, "atc", [
+      "button[data-automation-id='add-to-cart']:not([disabled])",
+      "button:has-text('Add to cart'):not([disabled])",
+      "button[data-automation-id='add-to-cart']",
+    ]);
+    if (!atcClicked) return fail("Could not click Add to Cart button");
     await humanDelay(1500, 2500);
 
     log("INFO", `[${RETAILER}] Navigating to cart...`);
@@ -120,17 +113,14 @@ export async function runWalmart(ctx: RetailerContext): Promise<RetailerResult> 
 
     log("INFO", `[${RETAILER}] Proceeding to checkout...`);
     await setStatus("checking_out");
-    const checkoutBtn = await page.$(
-      '[data-automation-id="cart-checkout-btn"], ' +
-      'button:has-text("Continue to checkout"), ' +
-      'button:has-text("Check out"), ' +
-      'button:has-text("Checkout"), ' +
-      'a[href*="/checkout"]:not([href*="help"]):not([href*="account"])'
-    );
-    if (!checkoutBtn) return fail("Checkout button not found");
-    await checkoutBtn.scrollIntoViewIfNeeded();
-    await humanDelay(200, 400);
-    await page.evaluate(el => (el as HTMLElement).click(), checkoutBtn);
+    const checkoutClicked = await smartClick(page, RETAILER, "checkout_btn", [
+      "[data-automation-id='cart-checkout-btn']",
+      "button:has-text('Continue to checkout')",
+      "button:has-text('Check out')",
+      "button:has-text('Checkout')",
+      "a[href*='/checkout']:not([href*='help']):not([href*='account'])",
+    ]);
+    if (!checkoutClicked) return fail("Checkout button not found");
     await humanDelay(1500, 2500);
     if (token.cancelled) return fail("Task cancelled");
 
@@ -177,9 +167,13 @@ export async function runWalmart(ctx: RetailerContext): Promise<RetailerResult> 
     }
 
     log("INFO", `[${RETAILER}] Submitting order...`);
-    const placeOrder = await page.$('button:has-text("Place Order"), button:has-text("Place order")');
-    if (!placeOrder) return fail("Place order button not found");
-    await placeOrder.click();
+    const placeOrderClicked = await smartClick(page, RETAILER, "place_order", [
+      "button:has-text('Place Order')",
+      "button:has-text('Place order')",
+      "[data-automation-id='place-order-btn']",
+      "button:has-text('Submit order')",
+    ]);
+    if (!placeOrderClicked) return fail("Place order button not found");
     await humanDelay(3000, 5000);
 
     const confirmation = await page.$(

@@ -4,6 +4,7 @@ import { imapFetchCode } from "../imap";
 import type { RetailerContext, RetailerResult } from "./types";
 import { decrypt } from "../crypto";
 import { applyCartQuantity } from "./cartHelpers";
+import { smartClick, smartFind } from "../checkoutLearner";
 
 const RETAILER = "Amazon";
 
@@ -89,23 +90,14 @@ export async function runAmazon(ctx: RetailerContext): Promise<RetailerResult> {
 
     await setStatus("adding_to_cart");
     log("INFO", `[${RETAILER}] Adding to cart...`);
-    // Amazon's sticky header frequently pushes the ATC button outside the viewport.
-    // scrollIntoViewIfNeeded + JS click bypasses the "element is outside of the viewport" error.
-    const atcEl = await page.$('#add-to-cart-button');
-    if (atcEl) {
-      await atcEl.scrollIntoViewIfNeeded();
-      await humanDelay(200, 400);
-      await page.evaluate(el => (el as HTMLElement).click(), atcEl);
-    } else {
-      await page.click('#add-to-cart-button', { timeout: 5000, force: true });
-    }
+    await smartClick(page, RETAILER, "atc", [
+      "#add-to-cart-button",
+      "#buy-now-button",
+      "input[name='submit.add-to-cart']",
+    ]);
     await humanDelay(1500, 2500);
 
-    const proceedToCart = await page.$('a:has-text("Cart"), a[href*="/cart"]');
-    if (proceedToCart) {
-      await proceedToCart.scrollIntoViewIfNeeded();
-      await page.evaluate(el => (el as HTMLElement).click(), proceedToCart);
-    }
+    // Navigate directly to cart — more reliable than clicking the cart link
     await page.goto("https://www.amazon.com/gp/cart/view.html", { waitUntil: "domcontentloaded" });
     await humanDelay(1000, 1800);
     if (token.cancelled) return fail("Task cancelled");
@@ -115,12 +107,14 @@ export async function runAmazon(ctx: RetailerContext): Promise<RetailerResult> {
 
     log("INFO", `[${RETAILER}] Proceeding to checkout...`);
     await setStatus("checking_out");
-    const checkoutBtn = await page.$('[name="proceedToRetailCheckout"], button:has-text("Proceed to checkout")');
-    if (!checkoutBtn) return fail("Checkout button not found");
-    await checkoutBtn.scrollIntoViewIfNeeded();
-    await humanDelay(200, 400);
-    await page.evaluate(el => (el as HTMLElement).click(), checkoutBtn);
-    await humanDelay(2000, 3000);
+    const clicked = await smartClick(page, RETAILER, "checkout_btn", [
+      "[name='proceedToRetailCheckout']",
+      "input[name='proceedToRetailCheckout']",
+      "button:has-text('Proceed to checkout')",
+      "a:has-text('Proceed to checkout')",
+    ]);
+    if (!clicked) return fail("Checkout button not found");
+    await humanDelay(1500, 2500);
     if (token.cancelled) return fail("Task cancelled");
 
     const signInCheck = await page.$('input[name="email"], #ap_email');
@@ -202,16 +196,20 @@ export async function runAmazon(ctx: RetailerContext): Promise<RetailerResult> {
     }
 
     log("INFO", `[${RETAILER}] Submitting order...`);
-    // Re-query in case page navigated after filling address/payment
-    const placeOrder = quickPlaceOrder ?? await page.$(
-      'input[name="placeYourOrder1"], [data-action="place-order"], ' +
-      'span[id*="placeOrder"] input[type="submit"], ' +
-      'button:has-text("Place your order"), button:has-text("Place Order")'
-    );
+    const placeOrderSelectors = [
+      "input[name='placeYourOrder1']",
+      "[data-action='place-order']",
+      "span[id*='placeOrder'] input[type='submit']",
+      "button:has-text('Place your order')",
+      "button:has-text('Place Order')",
+      "input[value*='Place your order']",
+    ];
+    // Re-query (quickPlaceOrder ref may be stale after address/payment nav)
+    const placeOrder = quickPlaceOrder ?? await smartFind(page, RETAILER, "place_order", placeOrderSelectors);
     if (!placeOrder) return fail("Place order button not found");
     await placeOrder.scrollIntoViewIfNeeded();
     await humanDelay(200, 400);
-    await page.evaluate(el => (el as HTMLElement).click(), placeOrder);
+    await page.evaluate(el => (el as unknown as { click(): void }).click(), placeOrder);
     await humanDelay(3000, 5000);
 
     const confirmation = await page.$('[class*="confirmation"], h1:has-text("order"), h4:has-text("order")');

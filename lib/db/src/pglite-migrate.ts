@@ -57,6 +57,21 @@ export async function runPgliteMigrations(client: PGlite): Promise<void> {
     ALTER TABLE tasks ADD COLUMN IF NOT EXISTS priority INTEGER NOT NULL DEFAULT 2;
   `).catch(() => { /* table may not exist yet — CREATE below will include it */ });
 
+  // Checkout selector learning table — tracks which CSS selectors work per
+  // retailer/step so the bot tries the best-known selector first next time.
+  await client.exec(`
+    CREATE TABLE IF NOT EXISTS checkout_selector_stats (
+      id SERIAL PRIMARY KEY,
+      retailer TEXT NOT NULL,
+      step TEXT NOT NULL,
+      selector TEXT NOT NULL,
+      successes INTEGER NOT NULL DEFAULT 0,
+      failures INTEGER NOT NULL DEFAULT 0,
+      avg_duration_ms REAL NOT NULL DEFAULT 0,
+      last_success_at TIMESTAMPTZ
+    );
+  `).catch(() => {});
+
   await client.exec(`
     CREATE TABLE IF NOT EXISTS profiles (
       id SERIAL PRIMARY KEY,
