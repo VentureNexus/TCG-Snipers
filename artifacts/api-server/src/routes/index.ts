@@ -8,6 +8,7 @@ import tasksRouter from "./tasks";
 import checkoutResultsRouter from "./checkoutResults";
 import analyticsRouter from "./analytics";
 import settingsRouter from "./settings";
+import ogImageRouter from "./ogImage";
 const router: IRouter = Router();
 
 router.use(healthRouter);
@@ -19,5 +20,6 @@ router.use(tasksRouter);
 router.use(checkoutResultsRouter);
 router.use(analyticsRouter);
 router.use(settingsRouter);
+router.use(ogImageRouter);
 
 export default router;

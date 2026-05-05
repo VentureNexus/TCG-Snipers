@@ -33,6 +33,7 @@ export async function runAmazon(ctx: RetailerContext): Promise<RetailerResult> {
     let inStock = false;
     let productName = task.productUrl || task.productKeywords || "Amazon Product";
     let productPrice = "";
+    let productImage = "";
 
     const isUnlimited = task.retryCount === -1;
     const stopAt = isUnlimited && task.stopAfterMs != null ? Date.now() + task.stopAfterMs : null;
@@ -60,6 +61,10 @@ export async function runAmazon(ctx: RetailerContext): Promise<RetailerResult> {
 
         const priceEl = await page.$('.a-price .a-offscreen, #priceblock_ourprice, #priceblock_dealprice');
         if (priceEl) productPrice = (await priceEl.textContent())?.trim().replace(/[^0-9.]/g, "") ?? "";
+
+        if (!productImage) {
+          productImage = await page.$eval('#landingImage, #imgBlkFront, meta[property="og:image"]', el => (el as HTMLImageElement).src || el.getAttribute("content") || "").catch(() => "");
+        }
 
         const atcBtn = await page.$('#add-to-cart-button:not([disabled]), #buy-now-button:not([disabled])');
         if (atcBtn) {
@@ -183,7 +188,7 @@ export async function runAmazon(ctx: RetailerContext): Promise<RetailerResult> {
 
     const orderNumber = `AMZ-${Date.now()}`;
     log("SUCCESS", `[${RETAILER}] Order placed! ${productName}${productPrice ? " @ $" + productPrice : ""}`);
-    return { success: true, productName, productImage: "", price: productPrice || null, orderNumber, errorMessage: "" };
+    return { success: true, productName, productImage, price: productPrice || null, orderNumber, errorMessage: "" };
   } catch (err) {
     return fail(String(err));
   } finally {

@@ -32,6 +32,7 @@ export async function runPokemonCenter(ctx: RetailerContext): Promise<RetailerRe
     let inStock = false;
     let productName = task.productUrl || task.productKeywords || "Pokémon Center Product";
     let productPrice = "";
+    let productImage = "";
 
     const isUnlimited = task.retryCount === -1;
     const stopAt = isUnlimited && task.stopAfterMs != null ? Date.now() + task.stopAfterMs : null;
@@ -73,6 +74,10 @@ export async function runPokemonCenter(ctx: RetailerContext): Promise<RetailerRe
 
         const priceEl = await page.$('.ProductPrice, [class*="product-price"], [class*="Price"]');
         if (priceEl) productPrice = (await priceEl.textContent())?.trim().replace(/[^0-9.]/g, "") ?? "";
+
+        if (!productImage) {
+          productImage = await page.$eval('meta[property="og:image"]', el => el.getAttribute("content") ?? "").catch(() => "");
+        }
 
         // Pokémon Center uses Shopify — look for "Add to cart" button
         const atcBtn = await page.$('button[name="add"]:not([disabled]), button.add-to-cart:not([disabled]), button:has-text("Add to Cart"):not([disabled])');
@@ -181,7 +186,7 @@ export async function runPokemonCenter(ctx: RetailerContext): Promise<RetailerRe
     const orderNumber = (await orderNumEl?.textContent())?.trim().replace(/[^0-9A-Z-]/g, "") || `PCK-${Date.now()}`;
 
     log("SUCCESS", `[${RETAILER}] Order placed! Order #${orderNumber} — ${productName}${productPrice ? " @ $" + productPrice : ""}`);
-    return { success: true, productName, productImage: "", price: productPrice || null, orderNumber, errorMessage: "" };
+    return { success: true, productName, productImage, price: productPrice || null, orderNumber, errorMessage: "" };
   } catch (err) {
     return fail(String(err));
   } finally {

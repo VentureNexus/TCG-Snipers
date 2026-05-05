@@ -38,6 +38,7 @@ export async function runCostco(ctx: RetailerContext): Promise<RetailerResult> {
     let inStock = false;
     let productName = task.productUrl || task.productKeywords || "Costco Product";
     let productPrice = "";
+    let productImage = "";
 
     const isUnlimited = task.retryCount === -1;
     const stopAt = isUnlimited && task.stopAfterMs != null ? Date.now() + task.stopAfterMs : null;
@@ -65,6 +66,10 @@ export async function runCostco(ctx: RetailerContext): Promise<RetailerResult> {
 
         const priceEl = await page.$('.value.your-price span, [automation-id="itemPrice"]');
         if (priceEl) productPrice = (await priceEl.textContent())?.trim().replace(/[^0-9.]/g, "") ?? "";
+
+        if (!productImage) {
+          productImage = await page.$eval('meta[property="og:image"], img.product-image-main', el => el.getAttribute("content") || (el as HTMLImageElement).src || "").catch(() => "");
+        }
 
         // Check for member gate
         const memberGate = await page.$('a:has-text("Sign In"), button:has-text("Member Sign In")');
@@ -177,7 +182,7 @@ export async function runCostco(ctx: RetailerContext): Promise<RetailerResult> {
 
     const orderNumber = `CST-${Date.now()}`;
     log("SUCCESS", `[${RETAILER}] Order placed! ${productName}${productPrice ? " @ $" + productPrice : ""}`);
-    return { success: true, productName, productImage: "", price: productPrice || null, orderNumber, errorMessage: "" };
+    return { success: true, productName, productImage, price: productPrice || null, orderNumber, errorMessage: "" };
   } catch (err) {
     return fail(String(err));
   } finally {

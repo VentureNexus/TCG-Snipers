@@ -40,6 +40,7 @@ export async function runSamsClub(ctx: RetailerContext): Promise<RetailerResult>
     let inStock = false;
     let productName = task.productUrl || task.productKeywords || "Sam's Club Product";
     let productPrice = "";
+    let productImage = "";
 
     const isUnlimited = task.retryCount === -1;
     const stopAt = isUnlimited && task.stopAfterMs != null ? Date.now() + task.stopAfterMs : null;
@@ -83,6 +84,10 @@ export async function runSamsClub(ctx: RetailerContext): Promise<RetailerResult>
 
         const priceEl = await page.$('[data-automation="product-price"] span, .sc-product-price');
         if (priceEl) productPrice = (await priceEl.textContent())?.trim().replace(/[^0-9.]/g, "") ?? "";
+
+        if (!productImage) {
+          productImage = await page.$eval('meta[property="og:image"]', el => el.getAttribute("content") ?? "").catch(() => "");
+        }
 
         const atcBtn = await page.$(
           'button[data-automation="add-to-cart"]:not([disabled]), button:has-text("Add to cart"):not([disabled])'
@@ -188,7 +193,7 @@ export async function runSamsClub(ctx: RetailerContext): Promise<RetailerResult>
 
     const orderNumber = `SAM-${Date.now()}`;
     log("SUCCESS", `[${RETAILER}] Order placed! ${productName}${productPrice ? " @ $" + productPrice : ""}`);
-    return { success: true, productName, productImage: "", price: productPrice || null, orderNumber, errorMessage: "" };
+    return { success: true, productName, productImage, price: productPrice || null, orderNumber, errorMessage: "" };
   } catch (err) {
     return fail(String(err));
   } finally {

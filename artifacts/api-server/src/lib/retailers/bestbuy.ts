@@ -32,6 +32,7 @@ export async function runBestBuy(ctx: RetailerContext): Promise<RetailerResult> 
     let inStock = false;
     let productName = task.productUrl || task.productKeywords || "Best Buy Product";
     let productPrice = "";
+    let productImage = "";
 
     const isUnlimited = task.retryCount === -1;
     const stopAt = isUnlimited && task.stopAfterMs != null ? Date.now() + task.stopAfterMs : null;
@@ -59,6 +60,10 @@ export async function runBestBuy(ctx: RetailerContext): Promise<RetailerResult> 
 
         const priceEl = await page.$('[aria-label*="current price"], .priceView-hero-price span');
         if (priceEl) productPrice = (await priceEl.textContent())?.trim().replace(/[^0-9.]/g, "") ?? "";
+
+        if (!productImage) {
+          productImage = await page.$eval('meta[property="og:image"]', el => el.getAttribute("content") ?? "").catch(() => "");
+        }
 
         // Best Buy: check for "Add to Cart" vs "Sold Out" button
         const atcBtn = await page.$('button.add-to-cart-button:not([disabled]):not(.btn-disabled)');
@@ -169,7 +174,7 @@ export async function runBestBuy(ctx: RetailerContext): Promise<RetailerResult> 
 
     const orderNumber = `BBY-${Date.now()}`;
     log("SUCCESS", `[${RETAILER}] Order placed! ${productName}${productPrice ? " @ $" + productPrice : ""}`);
-    return { success: true, productName, productImage: "", price: productPrice || null, orderNumber, errorMessage: "" };
+    return { success: true, productName, productImage, price: productPrice || null, orderNumber, errorMessage: "" };
   } catch (err) {
     return fail(String(err));
   } finally {

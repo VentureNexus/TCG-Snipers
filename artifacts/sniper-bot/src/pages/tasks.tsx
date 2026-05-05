@@ -1,4 +1,4 @@
-import { Fragment, useState, useEffect, useRef, useCallback } from "react";
+import { Fragment, useState, useEffect, useRef, useCallback, useMemo } from "react";
 import {
   useListTasks,
   useStartAllTasks,
@@ -16,6 +16,7 @@ import {
 } from "@workspace/api-client-react";
 import type { Task, Profile, SupportedRetailer, BulkActionResult } from "@workspace/api-client-react";
 import { isProfileIncomplete } from "./profiles";
+import { getApiBase } from "@/lib/api-base";
 import { Button } from "@/components/ui/button";
 import {
   Play,
@@ -211,6 +212,33 @@ function TimeLimitBadge({ task, isRunning }: { task: Task; isRunning: boolean })
   }
 
   return null;
+}
+
+function ProductThumbnail({ url }: { url: string }) {
+  const [imageUrl, setImageUrl] = useState<string>("");
+
+  useEffect(() => {
+    if (!url || !/^https?:\/\//.test(url)) return;
+    let cancelled = false;
+    const endpoint = `${getApiBase()}/api/og-image?url=${encodeURIComponent(url)}`;
+    fetch(endpoint)
+      .then((r) => r.json())
+      .then((data: { imageUrl: string }) => {
+        if (!cancelled && data.imageUrl) setImageUrl(data.imageUrl);
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [url]);
+
+  if (!imageUrl) return null;
+  return (
+    <img
+      src={imageUrl}
+      alt=""
+      className="w-8 h-8 rounded object-cover bg-muted shrink-0"
+      onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+    />
+  );
 }
 
 const STATUS_CONFIG: Record<string, { label: string; cls: string; dot?: string }> = {
@@ -983,11 +1011,16 @@ export default function TasksPage() {
                       </td>
                       <td className="px-4 py-3 font-mono text-xs text-muted-foreground">#{task.id}</td>
                       <td className="px-4 py-3"><RetailerBadge retailer={task.retailer} /></td>
-                      <td className="px-4 py-3 font-mono text-xs max-w-[200px] text-primary/80" title={task.productUrl ?? task.productKeywords ?? ""}>
-                        <div className="truncate">{task.productUrl || task.productKeywords || "-"}</div>
-                        {task.maxPrice != null && (
-                          <div className="text-amber-400/80 font-mono text-[10px] mt-0.5" data-testid={`max-price-${task.id}`}>≤ ${(task.maxPrice / 100).toFixed(2)}</div>
-                        )}
+                      <td className="px-4 py-3 max-w-[220px]" title={task.productUrl ?? task.productKeywords ?? ""}>
+                        <div className="flex items-center gap-2">
+                          {task.productUrl && <ProductThumbnail url={task.productUrl} />}
+                          <div className="min-w-0">
+                            <div className="truncate font-mono text-xs text-primary/80">{task.productUrl || task.productKeywords || "-"}</div>
+                            {task.maxPrice != null && (
+                              <div className="text-amber-400/80 font-mono text-[10px] mt-0.5" data-testid={`max-price-${task.id}`}>≤ ${(task.maxPrice / 100).toFixed(2)}</div>
+                            )}
+                          </div>
+                        </div>
                       </td>
                       <td className="px-4 py-3 text-muted-foreground">
                         {(() => {

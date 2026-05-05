@@ -64,6 +64,7 @@ export async function runTarget(ctx: RetailerContext): Promise<RetailerResult> {
     let inStock = false;
     let productName = task.productUrl || task.productKeywords || "Target Product";
     let productPrice = "";
+    let productImage = "";
 
     const isUnlimited = task.retryCount === -1;
     const stopAt = isUnlimited && task.stopAfterMs != null ? Date.now() + task.stopAfterMs : null;
@@ -91,6 +92,10 @@ export async function runTarget(ctx: RetailerContext): Promise<RetailerResult> {
 
         const priceEl = await page.$('[data-test="product-price"]');
         if (priceEl) productPrice = (await priceEl.textContent())?.trim().replace(/[^0-9.]/g, "") ?? "";
+
+        if (!productImage) {
+          productImage = await page.$eval('meta[property="og:image"]', el => el.getAttribute("content") ?? "").catch(() => "");
+        }
 
         log("INFO", `[${RETAILER}] Checking availability: ${productName}`);
         inStock = await waitForAddToCart(page, 5000, token);
@@ -262,7 +267,7 @@ export async function runTarget(ctx: RetailerContext): Promise<RetailerResult> {
     const orderNumber = orderNumberMatch ? orderNumberMatch[0] : `TGT-${Date.now()}`;
 
     log("SUCCESS", `[${RETAILER}] Order placed! Order #${orderNumber} — ${productName}${productPrice ? " @ $" + productPrice : ""}`);
-    return { success: true, productName, productImage: "", price: productPrice || null, orderNumber, errorMessage: "" };
+    return { success: true, productName, productImage, price: productPrice || null, orderNumber, errorMessage: "" };
   } catch (err) {
     return fail(String(err));
   } finally {
