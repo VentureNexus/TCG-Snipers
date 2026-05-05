@@ -3,6 +3,14 @@ import { Link, useLocation } from "wouter";
 import { Home, ListChecks, Layers, User, Globe, BarChart2, Settings, Menu, HelpCircle, Palette } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/lib/theme";
+import { useUnsavedChanges } from "@/lib/unsaved-changes";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 
 const STORAGE_KEY = "sidebar-collapsed";
 
@@ -32,9 +40,11 @@ function getInitialCollapsed(): boolean {
 }
 
 export function Sidebar() {
-  const [location] = useLocation();
+  const [location, navigate] = useLocation();
   const [collapsed, setCollapsed] = useState<boolean>(getInitialCollapsed);
   const { theme } = useTheme();
+  const { isDirty } = useUnsavedChanges();
+  const [pendingHref, setPendingHref] = useState<string | null>(null);
 
   const navItems = [
     { href: "/", label: "Dashboard", icon: Home },
@@ -59,7 +69,7 @@ export function Sidebar() {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (!e.key) return; // guard against synthetic events with no key value
+      if (!e.key) return;
       if (e.key.toLowerCase() === "b" && (e.ctrlKey || e.metaKey)) {
         const tag = (e.target as HTMLElement)?.tagName;
         if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
@@ -71,43 +81,88 @@ export function Sidebar() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
+  const handleNavClick = (e: React.MouseEvent, href: string) => {
+    if (isDirty && location !== href) {
+      e.preventDefault();
+      setPendingHref(href);
+    }
+  };
+
+  const handleConfirmLeave = () => {
+    if (pendingHref) {
+      navigate(pendingHref);
+    }
+    setPendingHref(null);
+  };
+
+  const handleCancelLeave = () => {
+    setPendingHref(null);
+  };
+
   return (
-    <div className={`flex flex-col h-full bg-sidebar border-r border-sidebar-border transition-all duration-200 ${collapsed ? 'w-16' : 'w-64'}`}>
-      <div className="flex items-center justify-center border-b border-sidebar-border h-16">
-        <img
-          src={theme.logo}
-          alt="TCG Snipers"
-          className="h-full w-auto object-contain"
-          style={{ aspectRatio: "832 / 1248" }}
-          data-testid="img-sidebar-logo"
-        />
-      </div>
-      
-      <div className="p-2 border-b border-sidebar-border flex justify-center">
-        <Button variant="ghost" size="icon" onClick={toggle} data-testid="button-toggle-sidebar" className="w-full" title={collapsed ? "Expand sidebar (Ctrl+B / Cmd+B)" : "Collapse sidebar (Ctrl+B / Cmd+B)"}>
-          <Menu className="w-4 h-4" />
-        </Button>
+    <>
+      <div className={`flex flex-col h-full bg-sidebar border-r border-sidebar-border transition-all duration-200 ${collapsed ? 'w-16' : 'w-64'}`}>
+        <div className="flex items-center justify-center border-b border-sidebar-border h-16">
+          <img
+            src={theme.logo}
+            alt="TCG Snipers"
+            className="h-full w-auto object-contain"
+            style={{ aspectRatio: "832 / 1248" }}
+            data-testid="img-sidebar-logo"
+          />
+        </div>
+        
+        <div className="p-2 border-b border-sidebar-border flex justify-center">
+          <Button variant="ghost" size="icon" onClick={toggle} data-testid="button-toggle-sidebar" className="w-full" title={collapsed ? "Expand sidebar (Ctrl+B / Cmd+B)" : "Collapse sidebar (Ctrl+B / Cmd+B)"}>
+            <Menu className="w-4 h-4" />
+          </Button>
+        </div>
+
+        <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
+          {navItems.map((item) => {
+            const isActive = location === item.href;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={(e) => handleNavClick(e, item.href)}
+                className={`flex items-center py-2 rounded-md transition-colors ${isActive ? 'bg-primary/10 text-primary' : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'} ${collapsed ? 'justify-center px-0 gap-0' : 'px-3 gap-3'}`}
+                data-testid={`link-sidebar-${item.label.toLowerCase().replace(' ', '-')}`}
+              >
+                <item.icon className="w-5 h-5 shrink-0" />
+                <span className={`text-sm font-medium whitespace-nowrap overflow-hidden transition-all duration-200 ${collapsed ? 'w-0 opacity-0' : 'w-auto opacity-100'}`}>{item.label}</span>
+              </Link>
+            );
+          })}
+        </nav>
+
+        <div className="p-4 border-t border-sidebar-border flex flex-col gap-2">
+          <Link href="/support" onClick={(e) => handleNavClick(e, "/support")} className={`flex items-center text-muted-foreground hover:text-foreground transition-colors ${collapsed ? 'justify-center px-0 gap-0' : 'px-3 gap-3'}`}>
+            <HelpCircle className="w-5 h-5" />
+            <span className={`text-sm whitespace-nowrap overflow-hidden transition-all duration-200 ${collapsed ? 'w-0 opacity-0' : 'w-auto opacity-100'}`}>Support</span>
+          </Link>
+          <AppVersion collapsed={collapsed} />
+        </div>
       </div>
 
-      <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
-        {navItems.map((item) => {
-          const isActive = location === item.href;
-          return (
-            <Link key={item.href} href={item.href} className={`flex items-center py-2 rounded-md transition-colors ${isActive ? 'bg-primary/10 text-primary' : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'} ${collapsed ? 'justify-center px-0 gap-0' : 'px-3 gap-3'}`} data-testid={`link-sidebar-${item.label.toLowerCase().replace(' ', '-')}`}>
-              <item.icon className="w-5 h-5 shrink-0" />
-              <span className={`text-sm font-medium whitespace-nowrap overflow-hidden transition-all duration-200 ${collapsed ? 'w-0 opacity-0' : 'w-auto opacity-100'}`}>{item.label}</span>
-            </Link>
-          );
-        })}
-      </nav>
-
-      <div className="p-4 border-t border-sidebar-border flex flex-col gap-2">
-        <Link href="/support" className={`flex items-center text-muted-foreground hover:text-foreground transition-colors ${collapsed ? 'justify-center px-0 gap-0' : 'px-3 gap-3'}`}>
-          <HelpCircle className="w-5 h-5" />
-          <span className={`text-sm whitespace-nowrap overflow-hidden transition-all duration-200 ${collapsed ? 'w-0 opacity-0' : 'w-auto opacity-100'}`}>Support</span>
-        </Link>
-        <AppVersion collapsed={collapsed} />
-      </div>
-    </div>
+      <Dialog open={pendingHref !== null} onOpenChange={(open) => { if (!open) handleCancelLeave(); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Unsaved Changes</DialogTitle>
+            <DialogDescription>
+              You have unsaved changes on the settings page. If you leave now, your changes will be lost.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" size="sm" onClick={handleCancelLeave}>
+              Stay and Save
+            </Button>
+            <Button variant="destructive" size="sm" onClick={handleConfirmLeave}>
+              Leave Without Saving
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,8 +9,9 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useGetSettings, useUpdateSettings, useListCheckoutResults, getGetSettingsQueryKey, getListCheckoutResultsQueryKey } from "@workspace/api-client-react";
 import { DiagnosticsPanel } from "@/components/DiagnosticsPanel";
 import { getApiBase } from "@/lib/api-base";
-import { Trash2, Download } from "lucide-react";
+import { Trash2, Download, AlertCircle } from "lucide-react";
 import { loadRamGuardSettings, saveRamGuardSettings, type RamGuardSettings } from "@/components/RamGuard";
+import { useUnsavedChanges } from "@/lib/unsaved-changes";
 
 const TASK_DEFAULTS_KEY = "task-defaults";
 
@@ -50,6 +51,19 @@ const DEFAULT_SETTINGS: SettingsForm = {
   monitorDelayMax: 800,
 };
 
+function deepEqual<T>(a: T, b: T): boolean {
+  return JSON.stringify(a) === JSON.stringify(b);
+}
+
+function UnsavedBadge() {
+  return (
+    <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-400">
+      <AlertCircle className="w-3 h-3" />
+      Unsaved changes
+    </span>
+  );
+}
+
 function DiscordIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" fill="currentColor">
@@ -61,14 +75,23 @@ function DiscordIcon() {
 export default function SettingsPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { setIsDirty } = useUnsavedChanges();
+
   const [settings, setSettings] = useState<SettingsForm>(DEFAULT_SETTINGS);
   const [formInitialized, setFormInitialized] = useState(false);
+  const engineBaseline = useRef<SettingsForm | null>(null);
+
   const [discordConnecting, setDiscordConnecting] = useState(false);
+
   const [taskDefaults, setTaskDefaults] = useState<TaskDefaults>(loadTaskDefaults);
+  const taskDefaultsBaseline = useRef<TaskDefaults>(loadTaskDefaults());
+
   const [clearConfirm, setClearConfirm] = useState(false);
   const [clearing, setClearing] = useState(false);
   const [exporting, setExporting] = useState(false);
+
   const [ramSettings, setRamSettings] = useState<RamGuardSettings>(loadRamGuardSettings);
+  const ramBaseline = useRef<RamGuardSettings>(loadRamGuardSettings());
   const [ramDisableConfirm, setRamDisableConfirm] = useState(false);
 
   const { data: settingsData, isLoading: loading, isError } = useGetSettings();
@@ -83,11 +106,13 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (settingsData && !formInitialized) {
-      setSettings({
+      const baseline: SettingsForm = {
         concurrency: settingsData.concurrency,
         monitorDelay: settingsData.monitorDelay,
         monitorDelayMax: settingsData.monitorDelayMax ?? 800,
-      });
+      };
+      setSettings(baseline);
+      engineBaseline.current = baseline;
       setFormInitialized(true);
     }
   }, [settingsData, formInitialized]);
@@ -97,6 +122,31 @@ export default function SettingsPage() {
       toast({ title: "Could not load settings", description: "Using defaults.", variant: "destructive" });
     }
   }, [isError]);
+
+  const isEngineDirty = useMemo(() => {
+    if (!engineBaseline.current) return false;
+    return !deepEqual(settings, engineBaseline.current);
+  }, [settings, formInitialized]);
+
+  const isDefaultsDirty = useMemo(() => {
+    return !deepEqual(taskDefaults, taskDefaultsBaseline.current);
+  }, [taskDefaults]);
+
+  const isRamDirty = useMemo(() => {
+    return !deepEqual(ramSettings, ramBaseline.current);
+  }, [ramSettings]);
+
+  const anyDirty = isEngineDirty || isDefaultsDirty || isRamDirty;
+
+  useEffect(() => {
+    setIsDirty(anyDirty);
+  }, [anyDirty, setIsDirty]);
+
+  useEffect(() => {
+    return () => {
+      setIsDirty(false);
+    };
+  }, [setIsDirty]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type } = e.target;
@@ -110,6 +160,7 @@ export default function SettingsPage() {
 
   const handleSaveDefaults = () => {
     saveTaskDefaults(taskDefaults);
+    taskDefaultsBaseline.current = { ...taskDefaults };
     toast({ title: "Task Defaults Saved", description: "New tasks will use these defaults." });
   };
 
@@ -127,6 +178,7 @@ export default function SettingsPage() {
       {
         onSuccess: (updatedSettings) => {
           queryClient.setQueryData(getGetSettingsQueryKey(), updatedSettings);
+          engineBaseline.current = { ...settings };
           toast({ title: "Settings Saved", description: "Your settings have been persisted to the server." });
         },
         onError: (err) => {
@@ -138,6 +190,13 @@ export default function SettingsPage() {
         },
       }
     );
+  };
+
+  const handleSaveRamSettings = () => {
+    saveRamGuardSettings(ramSettings);
+    window.dispatchEvent(new Event("ram-guard-settings-changed"));
+    ramBaseline.current = { ...ramSettings };
+    toast({ title: "RAM Guard Settings Saved" });
   };
 
   const handleDiscordConnect = async () => {
@@ -218,10 +277,7 @@ export default function SettingsPage() {
   };
 
   const handleRamSettingsChange = (patch: Partial<RamGuardSettings>) => {
-    const updated = { ...ramSettings, ...patch };
-    setRamSettings(updated);
-    saveRamGuardSettings(updated);
-    window.dispatchEvent(new Event("ram-guard-settings-changed"));
+    setRamSettings((prev) => ({ ...prev, ...patch }));
   };
 
   const handleClearHistory = async () => {
@@ -306,8 +362,13 @@ export default function SettingsPage() {
 
           <Card className="glass-card">
             <CardHeader>
-              <CardTitle>Engine Settings</CardTitle>
-              <CardDescription>Core performance and execution parameters.</CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Engine Settings</CardTitle>
+                  <CardDescription>Core performance and execution parameters.</CardDescription>
+                </div>
+                {isEngineDirty && <UnsavedBadge />}
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-6">
@@ -344,13 +405,29 @@ export default function SettingsPage() {
                   <p className="text-xs text-muted-foreground">Recommended: 200–800ms. Values under 150ms may trigger bot detection on some retailers.</p>
                 </div>
               </div>
+              <div className="flex justify-end">
+                <Button
+                  onClick={handleSave}
+                  disabled={saving || !isEngineDirty}
+                  size="sm"
+                  className={isEngineDirty ? "bg-primary text-primary-foreground" : ""}
+                  variant={isEngineDirty ? "default" : "outline"}
+                >
+                  {saving ? "Saving…" : "Save Engine Settings"}
+                </Button>
+              </div>
             </CardContent>
           </Card>
 
           <Card className="glass-card">
             <CardHeader>
-              <CardTitle>Task Defaults</CardTitle>
-              <CardDescription>Default values applied when creating a new task. Individual tasks can still override these.</CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Task Defaults</CardTitle>
+                  <CardDescription>Default values applied when creating a new task. Individual tasks can still override these.</CardDescription>
+                </div>
+                {isDefaultsDirty && <UnsavedBadge />}
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-3 gap-6">
@@ -370,15 +447,31 @@ export default function SettingsPage() {
                   <p className="text-xs text-muted-foreground">Stop monitoring after this many minutes. Set 0 to run indefinitely.</p>
                 </div>
               </div>
+              <div className="flex justify-end">
+                <Button
+                  variant={isDefaultsDirty ? "default" : "outline"}
+                  size="sm"
+                  onClick={handleSaveDefaults}
+                  disabled={!isDefaultsDirty}
+                  className={isDefaultsDirty ? "bg-primary text-primary-foreground" : ""}
+                >
+                  Save Task Defaults
+                </Button>
+              </div>
             </CardContent>
           </Card>
 
           <Card className="glass-card">
             <CardHeader>
-              <CardTitle>RAM Guard</CardTitle>
-              <CardDescription>
-                Alert when system memory usage exceeds a threshold. Optionally auto-stop low-priority tasks to free up RAM.
-              </CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>RAM Guard</CardTitle>
+                  <CardDescription>
+                    Alert when system memory usage exceeds a threshold. Optionally auto-stop low-priority tasks to free up RAM.
+                  </CardDescription>
+                </div>
+                {isRamDirty && <UnsavedBadge />}
+              </div>
             </CardHeader>
             <CardContent className="space-y-5">
               <div className="flex items-center justify-between">
@@ -471,6 +564,18 @@ export default function SettingsPage() {
                   <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${ramSettings.autoStop ? "translate-x-6" : "translate-x-1"}`} />
                 </button>
               </div>
+
+              <div className="flex justify-end">
+                <Button
+                  variant={isRamDirty ? "default" : "outline"}
+                  size="sm"
+                  onClick={handleSaveRamSettings}
+                  disabled={!isRamDirty}
+                  className={isRamDirty ? "bg-primary text-primary-foreground" : ""}
+                >
+                  Save RAM Guard Settings
+                </Button>
+              </div>
             </CardContent>
           </Card>
 
@@ -505,12 +610,6 @@ export default function SettingsPage() {
               </div>
             </CardContent>
           </Card>
-
-          <div className="flex justify-end">
-            <Button onClick={handleSave} disabled={saving} size="lg" className="px-8">
-              {saving ? "Saving…" : "Save Settings"}
-            </Button>
-          </div>
         </>
       )}
     </div>

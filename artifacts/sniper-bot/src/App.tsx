@@ -9,6 +9,7 @@ import { ThemeProvider } from "@/lib/theme";
 import { LicenseGate } from "@/components/LicenseGate";
 import { UpdateBanner } from "@/components/UpdateBanner";
 import { DbErrorBanner } from "@/components/DbErrorBanner";
+import { UnsavedChangesProvider } from "@/lib/unsaved-changes";
 
 import DashboardPage from "@/pages/dashboard";
 import TasksPage from "@/pages/tasks";
@@ -44,17 +45,19 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <TooltipProvider>
-          <DbErrorBanner />
-          <UpdateBanner />
-          <LicenseGate>
-            <WouterRouter
-              base={import.meta.env.BASE_URL.replace(/\.?\/$/, "")}
-              hook={window.location.protocol === "file:" ? useHashLocation : undefined}
-            >
-              <Router />
-            </WouterRouter>
-          </LicenseGate>
-          <Toaster />
+          <UnsavedChangesProvider>
+            <DbErrorBanner />
+            <UpdateBanner />
+            <LicenseGate>
+              <WouterRouter
+                base={import.meta.env.BASE_URL.replace(/\.?\/$/, "")}
+                hook={window.location.protocol === "file:" ? useHashLocation : undefined}
+              >
+                <Router />
+              </WouterRouter>
+            </LicenseGate>
+            <Toaster />
+          </UnsavedChangesProvider>
         </TooltipProvider>
       </ThemeProvider>
     </QueryClientProvider>
