@@ -73,7 +73,7 @@ export function Sidebar() {
 
   return (
     <div className={`flex flex-col h-full bg-sidebar border-r border-sidebar-border transition-all duration-200 ${collapsed ? 'w-16' : 'w-64'}`}>
-      <div className="flex items-center justify-center border-b border-sidebar-border h-14">
+      <div className="flex items-center justify-center border-b border-sidebar-border h-16">
         <img
           src={theme.logo}
           alt="TCG Snipers"
