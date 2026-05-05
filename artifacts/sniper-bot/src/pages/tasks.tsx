@@ -1062,12 +1062,10 @@ export default function TasksPage() {
                         {(() => {
                           const p = (TASK_PRIORITIES.includes(task.priority as TaskPriority) ? task.priority : "normal") as TaskPriority;
                           const cfg = PRIORITY_CONFIG[p];
-                          return p !== "normal" ? (
+                          return (
                             <span className={`inline-flex items-center text-[10px] font-medium px-1.5 py-0.5 rounded border ${cfg.cls}`} data-testid={`priority-badge-${task.id}`}>
                               {cfg.label}
                             </span>
-                          ) : (
-                            <span className="text-xs text-muted-foreground/50" data-testid={`priority-badge-${task.id}`}>—</span>
                           );
                         })()}
                       </td>
