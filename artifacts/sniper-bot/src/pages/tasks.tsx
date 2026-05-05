@@ -76,13 +76,13 @@ import { Checkbox } from "@/components/ui/checkbox";
 
 const NO_PROXY_SENTINEL = "__none__";
 
-const TASK_PRIORITIES = ["high", "normal", "low"] as const;
+const TASK_PRIORITIES = [1, 2, 3] as const;
 type TaskPriority = (typeof TASK_PRIORITIES)[number];
 
 const PRIORITY_CONFIG: Record<TaskPriority, { label: string; cls: string }> = {
-  high:   { label: "High",   cls: "text-red-400 bg-red-400/10 border-red-400/20" },
-  normal: { label: "Normal", cls: "text-muted-foreground bg-muted/30 border-border/40" },
-  low:    { label: "Low",    cls: "text-sky-400 bg-sky-400/10 border-sky-400/20" },
+  1: { label: "High",   cls: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20" },
+  2: { label: "Normal", cls: "text-muted-foreground bg-muted/30 border-border/40" },
+  3: { label: "Low",    cls: "text-red-400 bg-red-500/10 border-red-500/20" },
 };
 
 const taskSchema = z.object({
@@ -92,7 +92,7 @@ const taskSchema = z.object({
   profileId: z.coerce.number().min(1, "Required"),
   proxyId: z.string().optional(),
   groupId: z.string().optional(),
-  priority: z.enum(TASK_PRIORITIES).default("normal"),
+  priority: z.coerce.number().int().default(2),
   quantity: z.coerce.number().min(1).default(1),
   monitorDelay: z.coerce.number().min(1).default(200),
   monitorDelayMax: z.coerce.number().min(1).default(800),
@@ -117,7 +117,7 @@ function formValuesToPayload(values: TaskFormValues) {
     groupId: values.groupId && values.groupId !== "0"
       ? Number(values.groupId)
       : undefined,
-    priority: values.priority ?? "normal",
+    priority: values.priority ?? 2,
     quantity: values.quantity,
     monitorDelay: values.monitorDelay,
     monitorDelayMax: values.monitorDelayMax,
@@ -140,7 +140,7 @@ function taskToFormValues(task: Task): TaskFormValues {
     profileId: task.profileId ?? 0,
     proxyId: task.proxyId != null ? String(task.proxyId) : NO_PROXY_SENTINEL,
     groupId: task.groupId != null ? String(task.groupId) : "0",
-    priority: (TASK_PRIORITIES.includes(task.priority as TaskPriority) ? task.priority : "normal") as TaskPriority,
+    priority: (TASK_PRIORITIES.includes(task.priority as TaskPriority) ? task.priority : 2) as TaskPriority,
     quantity: task.quantity,
     monitorDelay: task.monitorDelay,
     monitorDelayMax: task.monitorDelayMax ?? 800,
@@ -502,7 +502,7 @@ function TaskFormFields({
         render={({ field }) => (
           <FormItem>
             <FormLabel>Priority</FormLabel>
-            <Select onValueChange={field.onChange} value={field.value ?? "normal"}>
+            <Select onValueChange={(v) => field.onChange(Number(v))} value={String(field.value ?? 2)}>
               <FormControl>
                 <SelectTrigger data-testid="select-priority">
                   <SelectValue placeholder="Normal" />
@@ -510,7 +510,7 @@ function TaskFormFields({
               </FormControl>
               <SelectContent>
                 {TASK_PRIORITIES.map((p) => (
-                  <SelectItem key={p} value={p}>
+                  <SelectItem key={p} value={String(p)}>
                     <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-1.5 py-0.5 rounded border ${PRIORITY_CONFIG[p].cls}`}>
                       {PRIORITY_CONFIG[p].label}
                     </span>
@@ -1060,7 +1060,10 @@ export default function TasksPage() {
                       </td>
                       <td className="px-4 py-3">
                         {(() => {
-                          const p = (TASK_PRIORITIES.includes(task.priority as TaskPriority) ? task.priority : "normal") as TaskPriority;
+                          const raw = typeof task.priority === "string"
+                            ? ({ high: 1, normal: 2, low: 3 } as Record<string, number>)[task.priority] ?? 2
+                            : task.priority;
+                          const p = (TASK_PRIORITIES.includes(raw as TaskPriority) ? raw : 2) as TaskPriority;
                           const cfg = PRIORITY_CONFIG[p];
                           return (
                             <span className={`inline-flex items-center text-[10px] font-medium px-1.5 py-0.5 rounded border ${cfg.cls}`} data-testid={`priority-badge-${task.id}`}>

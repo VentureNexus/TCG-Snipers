@@ -18,7 +18,7 @@ export const tasksTable = pgTable("tasks", {
   maxPrice: integer("max_price"),
   stopAfterMs: integer("stop_after_ms"),
   stopAtTime: text("stop_at_time"),
-  priority: text("priority").notNull().default("normal"),
+  priority: integer("priority").notNull().default(2),
   status: text("status").notNull().default("idle"),
   startedAt: timestamp("started_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

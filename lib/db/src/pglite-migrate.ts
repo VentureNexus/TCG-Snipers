@@ -45,8 +45,16 @@ export async function runPgliteMigrations(client: PGlite): Promise<void> {
     ALTER TABLE tasks ADD COLUMN IF NOT EXISTS started_at TIMESTAMPTZ;
   `).catch(() => { /* table may not exist yet — CREATE below will include it */ });
 
+  // Convert TEXT priority to INTEGER if needed (upgrade path from string-based priority)
   await client.exec(`
-    ALTER TABLE tasks ADD COLUMN IF NOT EXISTS priority TEXT NOT NULL DEFAULT 'normal';
+    ALTER TABLE tasks ALTER COLUMN priority TYPE INTEGER
+    USING CASE priority WHEN 'high' THEN 1 WHEN 'low' THEN 3 ELSE 2 END;
+  `).catch(() => { /* already INTEGER or column doesn't exist */ });
+  await client.exec(`
+    ALTER TABLE tasks ALTER COLUMN priority SET DEFAULT 2;
+  `).catch(() => {});
+  await client.exec(`
+    ALTER TABLE tasks ADD COLUMN IF NOT EXISTS priority INTEGER NOT NULL DEFAULT 2;
   `).catch(() => { /* table may not exist yet — CREATE below will include it */ });
 
   await client.exec(`
@@ -136,7 +144,7 @@ export async function runPgliteMigrations(client: PGlite): Promise<void> {
       max_price INTEGER,
       stop_after_ms INTEGER,
       stop_at_time TEXT,
-      priority TEXT NOT NULL DEFAULT 'normal',
+      priority INTEGER NOT NULL DEFAULT 2,
       status TEXT NOT NULL DEFAULT 'idle',
       started_at TIMESTAMPTZ,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),

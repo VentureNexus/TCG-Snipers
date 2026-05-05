@@ -606,7 +606,7 @@ export const ListTasksResponseItem = zod.object({
   maxPrice: zod.number().nullish(),
   stopAfterMs: zod.number().nullish(),
   stopAtTime: zod.string().nullish(),
-  priority: zod.string(),
+  priority: zod.number(),
   status: zod.string(),
   createdAt: zod.string(),
   updatedAt: zod.string(),
@@ -638,7 +638,7 @@ export const CreateTaskBody = zod.object({
   maxPrice: zod.number().int().min(0).optional(),
   stopAfterMs: zod.number().int().min(0).nullable().optional(),
   stopAtTime: zod.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/).nullable().optional(),
-  priority: zod.enum(["high", "normal", "low"]).optional(),
+  priority: zod.number().int().min(1).max(3).optional(),
 });
 
 /**
@@ -664,7 +664,7 @@ export const GetTaskResponse = zod.object({
   maxPrice: zod.number().nullish(),
   stopAfterMs: zod.number().nullish(),
   stopAtTime: zod.string().nullish(),
-  priority: zod.string(),
+  priority: zod.number(),
   status: zod.string(),
   createdAt: zod.string(),
   updatedAt: zod.string(),
@@ -694,7 +694,7 @@ export const UpdateTaskBody = zod.object({
   maxPrice: zod.number().int().min(0).nullable().optional(),
   stopAfterMs: zod.number().int().min(0).nullable().optional(),
   stopAtTime: zod.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/).nullable().optional(),
-  priority: zod.enum(["high", "normal", "low"]).optional(),
+  priority: zod.number().int().min(1).max(3).optional(),
   status: zod.string().optional(),
 });
 
@@ -714,7 +714,7 @@ export const UpdateTaskResponse = zod.object({
   maxPrice: zod.number().nullish(),
   stopAfterMs: zod.number().nullish(),
   stopAtTime: zod.string().nullish(),
-  priority: zod.string(),
+  priority: zod.number(),
   status: zod.string(),
   createdAt: zod.string(),
   updatedAt: zod.string(),
@@ -750,7 +750,7 @@ export const StartTaskResponse = zod.object({
   maxPrice: zod.number().nullish(),
   stopAfterMs: zod.number().nullish(),
   stopAtTime: zod.string().nullish(),
-  priority: zod.string(),
+  priority: zod.number(),
   status: zod.string(),
   createdAt: zod.string(),
   updatedAt: zod.string(),
@@ -779,7 +779,7 @@ export const StopTaskResponse = zod.object({
   maxPrice: zod.number().nullish(),
   stopAfterMs: zod.number().nullish(),
   stopAtTime: zod.string().nullish(),
-  priority: zod.string(),
+  priority: zod.number(),
   status: zod.string(),
   createdAt: zod.string(),
   updatedAt: zod.string(),

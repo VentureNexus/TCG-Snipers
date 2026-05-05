@@ -42,13 +42,14 @@ export function saveRamGuardSettings(s: RamGuardSettings) {
 }
 
 const RUNNING_STATUSES = new Set(["monitoring", "adding_to_cart", "checking_out"]);
-const PRIORITY_SORT: Record<string, number> = { low: 0, normal: 1, high: 2 };
+// Sort: 3=Low first (0) → 2=Normal (1) → 1=High last (2); never auto-stop High
+const PRIORITY_SORT: Record<number, number> = { 3: 0, 2: 1, 1: 2 };
 
-function PriorityBadge({ priority }: { priority: string }) {
-  if (priority === "high")
-    return <span className="text-[10px] font-medium text-red-400 bg-red-500/10 border border-red-500/20 rounded px-1.5 py-0.5">High</span>;
-  if (priority === "low")
-    return <span className="text-[10px] font-medium text-sky-400 bg-sky-500/10 border border-sky-500/20 rounded px-1.5 py-0.5">Low</span>;
+function PriorityBadge({ priority }: { priority: number }) {
+  if (priority === 1)
+    return <span className="text-[10px] font-medium text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded px-1.5 py-0.5">High</span>;
+  if (priority === 3)
+    return <span className="text-[10px] font-medium text-red-400 bg-red-500/10 border border-red-500/20 rounded px-1.5 py-0.5">Low</span>;
   return <span className="text-[10px] font-medium text-muted-foreground bg-muted/60 border border-border rounded px-1.5 py-0.5">Normal</span>;
 }
 
@@ -82,7 +83,7 @@ export function RamGuard() {
       autoStopRunningRef.current = true;
 
       const snapshot = [...tasks]
-        .filter((t) => RUNNING_STATUSES.has(t.status) && t.priority !== "high")
+        .filter((t) => RUNNING_STATUSES.has(t.status) && t.priority !== 1)
         .sort((a, b) => (PRIORITY_SORT[a.priority] ?? 1) - (PRIORITY_SORT[b.priority] ?? 1));
 
       for (const t of snapshot) {
@@ -121,6 +122,7 @@ export function RamGuard() {
       }
     } else if (ramPct < threshold - HYSTERESIS_PCT) {
       alertFiredRef.current = false;
+      setDialogOpen(false);
     }
   }, [current.ramPercent, settings, isElectron, runAutoStop]);
 
@@ -151,7 +153,7 @@ export function RamGuard() {
             RAM is at{" "}
             <span className="text-primary font-semibold">{Math.round(ramPct)}%</span>{" "}
             ({usedGb} / {totalGb} GB) — above your {settings.threshold}% threshold.
-            Consider stopping some tasks to free up memory.
+            Consider stopping some tasks or closing background applications.
           </DialogDescription>
         </DialogHeader>
 
@@ -170,12 +172,17 @@ export function RamGuard() {
                   size="sm"
                   variant="destructive"
                   className="shrink-0 h-7 text-xs"
-                  onClick={() =>
+                  onClick={() => {
                     stopTask.mutate(
                       { id: t.id },
-                      { onSuccess: () => queryClient.invalidateQueries({ queryKey: getListTasksQueryKey() }) },
-                    )
-                  }
+                      {
+                        onSuccess: () => {
+                          queryClient.invalidateQueries({ queryKey: getListTasksQueryKey() });
+                          handleClose();
+                        },
+                      },
+                    );
+                  }}
                 >
                   Stop
                 </Button>

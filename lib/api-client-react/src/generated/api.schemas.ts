@@ -257,7 +257,7 @@ export interface Task {
   stopAfterMs?: number | null;
   /** @nullable */
   stopAtTime?: string | null;
-  priority: string;
+  priority: number;
   status: string;
   /** @nullable */
   startedAt?: string | null;
@@ -322,7 +322,7 @@ export interface UpdateTaskBody {
   maxPrice?: number | null;
   stopAfterMs?: number | null;
   stopAtTime?: string | null;
-  priority?: string;
+  priority?: number;
   status?: string;
 }
 
