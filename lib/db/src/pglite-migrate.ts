@@ -46,6 +46,10 @@ export async function runPgliteMigrations(client: PGlite): Promise<void> {
   `).catch(() => { /* table may not exist yet — CREATE below will include it */ });
 
   await client.exec(`
+    ALTER TABLE tasks ADD COLUMN IF NOT EXISTS priority TEXT NOT NULL DEFAULT 'normal';
+  `).catch(() => { /* table may not exist yet — CREATE below will include it */ });
+
+  await client.exec(`
     CREATE TABLE IF NOT EXISTS profiles (
       id SERIAL PRIMARY KEY,
       name TEXT NOT NULL,
@@ -132,6 +136,7 @@ export async function runPgliteMigrations(client: PGlite): Promise<void> {
       max_price INTEGER,
       stop_after_ms INTEGER,
       stop_at_time TEXT,
+      priority TEXT NOT NULL DEFAULT 'normal',
       status TEXT NOT NULL DEFAULT 'idle',
       started_at TIMESTAMPTZ,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),

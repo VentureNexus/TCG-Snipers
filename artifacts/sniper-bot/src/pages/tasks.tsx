@@ -76,6 +76,15 @@ import { Checkbox } from "@/components/ui/checkbox";
 
 const NO_PROXY_SENTINEL = "__none__";
 
+const TASK_PRIORITIES = ["high", "normal", "low"] as const;
+type TaskPriority = (typeof TASK_PRIORITIES)[number];
+
+const PRIORITY_CONFIG: Record<TaskPriority, { label: string; cls: string }> = {
+  high:   { label: "High",   cls: "text-red-400 bg-red-400/10 border-red-400/20" },
+  normal: { label: "Normal", cls: "text-muted-foreground bg-muted/30 border-border/40" },
+  low:    { label: "Low",    cls: "text-sky-400 bg-sky-400/10 border-sky-400/20" },
+};
+
 const taskSchema = z.object({
   retailer: z.enum(SUPPORTED_RETAILERS),
   productUrl: z.string().optional(),
@@ -83,6 +92,7 @@ const taskSchema = z.object({
   profileId: z.coerce.number().min(1, "Required"),
   proxyId: z.string().optional(),
   groupId: z.string().optional(),
+  priority: z.enum(TASK_PRIORITIES).default("normal"),
   quantity: z.coerce.number().min(1).default(1),
   monitorDelay: z.coerce.number().min(1).default(200),
   monitorDelayMax: z.coerce.number().min(1).default(800),
@@ -107,6 +117,7 @@ function formValuesToPayload(values: TaskFormValues) {
     groupId: values.groupId && values.groupId !== "0"
       ? Number(values.groupId)
       : undefined,
+    priority: values.priority ?? "normal",
     quantity: values.quantity,
     monitorDelay: values.monitorDelay,
     monitorDelayMax: values.monitorDelayMax,
@@ -129,6 +140,7 @@ function taskToFormValues(task: Task): TaskFormValues {
     profileId: task.profileId ?? 0,
     proxyId: task.proxyId != null ? String(task.proxyId) : NO_PROXY_SENTINEL,
     groupId: task.groupId != null ? String(task.groupId) : "0",
+    priority: (TASK_PRIORITIES.includes(task.priority as TaskPriority) ? task.priority : "normal") as TaskPriority,
     quantity: task.quantity,
     monitorDelay: task.monitorDelay,
     monitorDelayMax: task.monitorDelayMax ?? 800,
@@ -479,6 +491,34 @@ function TaskFormFields({
             <FormControl>
               <Input placeholder="+ps5, +console" data-testid="input-keywords" {...field} />
             </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <FormField
+        control={form.control}
+        name="priority"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Priority</FormLabel>
+            <Select onValueChange={field.onChange} value={field.value ?? "normal"}>
+              <FormControl>
+                <SelectTrigger data-testid="select-priority">
+                  <SelectValue placeholder="Normal" />
+                </SelectTrigger>
+              </FormControl>
+              <SelectContent>
+                {TASK_PRIORITIES.map((p) => (
+                  <SelectItem key={p} value={p}>
+                    <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-1.5 py-0.5 rounded border ${PRIORITY_CONFIG[p].cls}`}>
+                      {PRIORITY_CONFIG[p].label}
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">Used to determine which tasks are stopped first when RAM guard triggers auto-stop.</p>
             <FormMessage />
           </FormItem>
         )}
@@ -953,6 +993,7 @@ export default function TasksPage() {
               <th className="px-4 py-3 font-medium">Retailer</th>
               <th className="px-4 py-3 font-medium">Product / Keywords</th>
               <th className="px-4 py-3 font-medium">Profile</th>
+              <th className="px-4 py-3 font-medium">Priority</th>
               <th className="px-4 py-3 font-medium">Retries</th>
               <th className="px-4 py-3 font-medium">Status</th>
               <th className="px-4 py-3 font-medium text-right">Actions</th>
@@ -961,7 +1002,7 @@ export default function TasksPage() {
           <tbody>
             {tasks.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-4 py-12 text-center text-muted-foreground">
+                <td colSpan={9} className="px-4 py-12 text-center text-muted-foreground">
                   <div className="flex flex-col items-center gap-2">
                     <ListChecks className="w-8 h-8 opacity-20" />
                     <p>No tasks found. Create your first task to start sniping.</p>
@@ -1014,6 +1055,19 @@ export default function TasksPage() {
                                 </Tooltip>
                               )}
                             </div>
+                          );
+                        })()}
+                      </td>
+                      <td className="px-4 py-3">
+                        {(() => {
+                          const p = (TASK_PRIORITIES.includes(task.priority as TaskPriority) ? task.priority : "normal") as TaskPriority;
+                          const cfg = PRIORITY_CONFIG[p];
+                          return p !== "normal" ? (
+                            <span className={`inline-flex items-center text-[10px] font-medium px-1.5 py-0.5 rounded border ${cfg.cls}`} data-testid={`priority-badge-${task.id}`}>
+                              {cfg.label}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-muted-foreground/50" data-testid={`priority-badge-${task.id}`}>—</span>
                           );
                         })()}
                       </td>

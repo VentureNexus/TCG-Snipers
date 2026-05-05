@@ -48,6 +48,9 @@ This is a **pnpm monorepo** with the following packages:
 - **Task worker** — Stubbed async automation engine in `artifacts/api-server/src/lib/taskWorker.ts`. Simulates: monitoring → adding_to_cart → checking_out → success (80%) / failed (20%) with realistic log sequences. Cancellable via token map.
 - **Polling** — TopBar polls tasks + analytics every 3 seconds so Active count and Checkout counter update automatically.
 - **Credit card encryption** — AES-256-GCM via `artifacts/api-server/src/lib/crypto.ts`. Only `lastFour` and `cardType` ever returned by API
+- **Task priority** — Tasks have a `priority` field (high/normal/low, default normal). Stored in DB, shown as a badge in the task table, selectable in create/edit dialog.
+- **RAM Guard** — `RamGuard` component mounted in `AppLayout` above main content. Watches `useSystemMetrics` (Electron-only), fires an orange alert banner when RAM % ≥ user-configured threshold (default 80%). Configurable in Settings → RAM Guard card. Auto-stop option stops Low then Normal priority tasks when threshold is crossed; High-priority tasks are never auto-stopped. Dismissing snoozes for 5 min; re-fires after RAM drops 5% below threshold.
+- **RAM Guard settings** — Stored in `localStorage` under key `ram-guard-settings`. Utilities in `RamGuard.tsx`: `loadRamGuardSettings`, `saveRamGuardSettings`. Settings page dispatches `ram-guard-settings-changed` custom event to sync live.
 - **Zod validation on input only** — Request bodies validated with Zod schemas; DB responses returned as plain JSON (dates serialize automatically)
 - **Retailer badges** — Color-coded: Target (red), Amazon (orange), Best Buy (blue), Costco (sky), Pokémon Center (yellow)
 
