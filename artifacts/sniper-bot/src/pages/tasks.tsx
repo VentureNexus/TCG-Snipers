@@ -63,6 +63,11 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useTaskLogs, type TaskLogEntry } from "@/hooks/useTaskLogs";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const NO_PROXY_SENTINEL = "__none__";
 
@@ -665,7 +670,22 @@ export default function TasksPage() {
                         )}
                       </td>
                       <td className="px-4 py-3 text-muted-foreground">
-                        {profiles.find((p) => p.id === task.profileId)?.name ?? "Unknown"}
+                        {(() => {
+                          const profile = profiles.find((p) => p.id === task.profileId);
+                          return (
+                            <div className="flex items-center gap-1.5">
+                              <span>{profile?.name ?? "Unknown"}</span>
+                              {profile && isProfileIncomplete(profile) && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <AlertTriangle className="w-3.5 h-3.5 text-yellow-400 shrink-0" />
+                                  </TooltipTrigger>
+                                  <TooltipContent>Profile is missing shipping details</TooltipContent>
+                                </Tooltip>
+                              )}
+                            </div>
+                          );
+                        })()}
                       </td>
                       <td className="px-4 py-3">
                         <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs font-mono tracking-wide ${cfg.cls}`} data-testid={`status-task-${task.id}`}>
