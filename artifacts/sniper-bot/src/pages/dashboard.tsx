@@ -110,6 +110,7 @@ export default function DashboardPage() {
                       <ProductThumbnail
                         src={co.productImage}
                         fallbackUrl={(co as typeof co & { productUrl?: string }).productUrl}
+                        resultId={co.id}
                       />
                       <div>
                         <div className="font-medium text-sm truncate max-w-[120px]">{co.productName}</div>

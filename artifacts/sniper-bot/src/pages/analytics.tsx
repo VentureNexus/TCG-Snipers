@@ -191,6 +191,7 @@ export default function AnalyticsPage() {
                           <ProductThumbnail
                             src={co.productImage}
                             fallbackUrl={(co as typeof co & { productUrl?: string }).productUrl}
+                            resultId={co.id}
                             className="w-8 h-8 rounded object-cover bg-muted shrink-0"
                           />
                           <span className="truncate max-w-[200px]" title={co.productName}>{co.productName}</span>
