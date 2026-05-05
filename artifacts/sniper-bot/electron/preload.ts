@@ -122,6 +122,16 @@ const api = {
       channelName: string;
     }> => ipcRenderer.invoke("discord:oauthConnect"),
   },
+
+  /** System performance metrics — CPU and RAM usage. */
+  system: {
+    getMetrics: (): Promise<{
+      cpuPercent: number;
+      ramUsedBytes: number;
+      ramTotalBytes: number;
+      ramPercent: number;
+    }> => ipcRenderer.invoke("system:getMetrics"),
+  },
 };
 
 contextBridge.exposeInMainWorld("electronAPI", api);

@@ -44,6 +44,13 @@ export interface ElectronMetrics {
   startFailReason: string;
 }
 
+export interface SystemMetrics {
+  cpuPercent: number;
+  ramUsedBytes: number;
+  ramTotalBytes: number;
+  ramPercent: number;
+}
+
 declare global {
   // Build-time constant injected by Vite's `define` in vite.config.ts.
   // Equals the `version` field from package.json at the time of the build.
@@ -107,6 +114,10 @@ declare global {
           guildName: string;
           channelName: string;
         }>;
+      };
+      /** System performance metrics — CPU and RAM usage. */
+      system: {
+        getMetrics: () => Promise<SystemMetrics>;
       };
     };
   }

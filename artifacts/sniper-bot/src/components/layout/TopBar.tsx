@@ -7,6 +7,7 @@ import {
   getListTasksQueryKey,
   getGetAnalyticsSummaryQueryKey,
 } from "@workspace/api-client-react";
+import { useSystemMetrics } from "@/hooks/useSystemMetrics";
 
 const APP_NAME = "TCG SNIPERS";
 
@@ -31,10 +32,16 @@ function formatUptime(seconds: number): string {
   return `${String(m).padStart(2, "0")}m ${String(s).padStart(2, "0")}s`;
 }
 
-function formatSpent(value: string | number | undefined): string {
-  const n = parseFloat(String(value ?? "0"));
-  if (isNaN(n)) return "$0.00";
-  return "$" + n.toFixed(2);
+function metricColorClass(value: number): string {
+  if (value >= 80) return "text-red-400";
+  if (value >= 60) return "text-yellow-400";
+  return "text-emerald-400";
+}
+
+function metricDotClass(value: number): string {
+  if (value >= 80) return "bg-red-400";
+  if (value >= 60) return "bg-yellow-400";
+  return "bg-emerald-400";
 }
 
 const SESSION_START = Date.now();
@@ -43,7 +50,6 @@ export function TopBar() {
   const [location] = useLocation();
   const [time, setTime] = useState(new Date());
   const [uptimeSeconds, setUptimeSeconds] = useState(0);
-  const [appVersion, setAppVersion] = useState<string>("");
 
   const { data: tasks = [] } = useListTasks(undefined, {
     query: { refetchInterval: 3000, queryKey: getListTasksQueryKey() },
@@ -53,21 +59,12 @@ export function TopBar() {
     query: { refetchInterval: 3000, queryKey: getGetAnalyticsSummaryQueryKey() },
   });
 
+  const { current: sysMetrics } = useSystemMetrics();
+  const isElectron = typeof window !== "undefined" && !!window.electronAPI?.system;
+
   const activeTasksCount = tasks.filter(
     (t) => !["idle", "stopped", "failed", "success"].includes(t.status),
   ).length;
-
-  useEffect(() => {
-    if (window.electronAPI?.getVersion) {
-      window.electronAPI.getVersion()
-        .then((v) => setAppVersion(`v${v}`))
-        .catch(() => setAppVersion(`v${__APP_VERSION__}`));
-    } else {
-      // In the browser dev preview window.electronAPI is absent — fall back
-      // to the version baked in at Vite build time.
-      setAppVersion(`v${__APP_VERSION__}`);
-    }
-  }, []);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -82,8 +79,6 @@ export function TopBar() {
   return (
     <header className="h-14 bg-background border-b border-border flex items-center justify-between px-6 shrink-0">
       <div className="flex items-center gap-3">
-        <span className="text-muted-foreground/50 text-xs font-mono">{appVersion}</span>
-        <span className="w-px h-4 bg-border" />
         <h1 className="text-sm font-semibold tracking-tight">{pageTitle}</h1>
       </div>
 
@@ -110,26 +105,33 @@ export function TopBar() {
             </span>
           </div>
           <div className="w-px h-3 bg-border" />
-          <div className="flex items-center gap-1.5" data-testid="stat-spent">
-            <span className="text-muted-foreground">Spent:</span>
-            <span className="font-mono font-bold text-amber-400">
-              {formatSpent(summary?.totalSpent)}
-            </span>
-          </div>
-          <div className="w-px h-3 bg-border" />
-          <div className="flex items-center gap-1.5" data-testid="stat-saved">
-            <span className="text-muted-foreground">Saved:</span>
-            <span className="font-mono font-bold text-amber-400">
-              {formatSpent(summary?.totalSaved)}
-            </span>
-          </div>
-          <div className="w-px h-3 bg-border" />
           <div className="flex items-center gap-1.5" data-testid="stat-uptime">
             <span className="text-muted-foreground">Uptime:</span>
             <span className="font-mono text-primary tabular-nums">
               {formatUptime(uptimeSeconds)}
             </span>
           </div>
+
+          {isElectron && (
+            <>
+              <div className="w-px h-3 bg-border" />
+              <div className="flex items-center gap-1.5" data-testid="stat-cpu">
+                <span className={`w-1.5 h-1.5 rounded-full ${metricDotClass(sysMetrics.cpuPercent)}`} />
+                <span className="text-muted-foreground">CPU:</span>
+                <span className={`font-mono font-bold tabular-nums ${metricColorClass(sysMetrics.cpuPercent)}`}>
+                  {sysMetrics.cpuPercent}%
+                </span>
+              </div>
+              <div className="w-px h-3 bg-border" />
+              <div className="flex items-center gap-1.5" data-testid="stat-ram">
+                <span className={`w-1.5 h-1.5 rounded-full ${metricDotClass(sysMetrics.ramPercent)}`} />
+                <span className="text-muted-foreground">RAM:</span>
+                <span className={`font-mono font-bold tabular-nums ${metricColorClass(sysMetrics.ramPercent)}`}>
+                  {sysMetrics.ramPercent}%
+                </span>
+              </div>
+            </>
+          )}
         </div>
 
         <div

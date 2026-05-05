@@ -35,6 +35,7 @@ import {
   Info,
 } from "lucide-react";
 import { RetailerBadge } from "@/components/shared/RetailerBadge";
+import { SystemPerformanceGraph } from "@/components/shared/SystemPerformanceGraph";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   Dialog,
@@ -935,6 +936,8 @@ export default function TasksPage() {
           </DialogContent>
         </Dialog>
       </div>
+
+      <SystemPerformanceGraph />
 
       <div className="border border-border/50 rounded-lg overflow-hidden bg-card/50 glass-card">
         <table className="w-full text-sm text-left">

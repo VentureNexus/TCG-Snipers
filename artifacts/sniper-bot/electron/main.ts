@@ -1,6 +1,7 @@
 import { app, BrowserWindow, shell, ipcMain, dialog, safeStorage } from "electron";
 import http from "http";
 import crypto from "crypto";
+import os from "os";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
@@ -30,6 +31,32 @@ const isDev = process.env.NODE_ENV === "development" || !app.isPackaged;
 
 // In dev the Vite dev-server listens on whatever PORT the platform assigns.
 const RENDERER_PORT = Number(process.env.PORT ?? 5173);
+
+// ── CPU usage polling ─────────────────────────────────────────────────────────
+let cpuPercent = 0;
+let prevCpuSnapshot: { idle: number; total: number } | null = null;
+
+function takeCpuSnapshot(): { idle: number; total: number } {
+  const cpus = os.cpus();
+  let idle = 0;
+  let total = 0;
+  for (const cpu of cpus) {
+    for (const val of Object.values(cpu.times)) total += val;
+    idle += cpu.times.idle;
+  }
+  return { idle, total };
+}
+
+const cpuPoller = setInterval(() => {
+  const curr = takeCpuSnapshot();
+  if (prevCpuSnapshot) {
+    const idleDelta = curr.idle - prevCpuSnapshot.idle;
+    const totalDelta = curr.total - prevCpuSnapshot.total;
+    cpuPercent = totalDelta > 0 ? Math.round((1 - idleDelta / totalDelta) * 100) : 0;
+  }
+  prevCpuSnapshot = curr;
+}, 1000);
+cpuPoller.unref();
 
 let mainWindow: BrowserWindow | null = null;
 let apiServer: http.Server | null = null;
@@ -633,6 +660,19 @@ ipcMain.handle("api:getMetrics", () => ({
   startOk: apiStartOk,
   startFailReason: apiStartFailReason,
 }));
+
+// ── System metrics IPC ───────────────────────────────────────────────────────
+ipcMain.handle("system:getMetrics", () => {
+  const totalMem = os.totalmem();
+  const freeMem = os.freemem();
+  const usedMem = totalMem - freeMem;
+  return {
+    cpuPercent,
+    ramUsedBytes: usedMem,
+    ramTotalBytes: totalMem,
+    ramPercent: Math.round((usedMem / totalMem) * 100),
+  };
+});
 
 // ── Update IPC ───────────────────────────────────────────────────────────────
 ipcMain.handle("update:check", async () => {
