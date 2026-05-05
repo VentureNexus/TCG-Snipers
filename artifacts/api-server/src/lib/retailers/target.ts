@@ -215,10 +215,13 @@ export async function runTarget(ctx: RetailerContext): Promise<RetailerResult> {
     }
 
     const otpTrigger = await page.$('input[aria-label*="verification"], input[placeholder*="code"], input[placeholder*="Code"]');
-    if (otpTrigger && profile?.imapHost) {
+    const targetImapConfig = profile?.imapHost
+      ? { host: profile.imapHost, port: parseInt(profile.imapPort, 10), user: profile.imapUser, password: profile.imapPassword }
+      : ctx.globalImapConfig;
+    if (otpTrigger && targetImapConfig) {
       log("INFO", `[${RETAILER}] OTP/verification prompt detected — polling IMAP for code (30s timeout)...`);
       const code = await imapFetchCode(
-        { host: profile.imapHost, port: parseInt(profile.imapPort, 10), user: profile.imapUser, password: profile.imapPassword },
+        targetImapConfig,
         /target|verification/i,
         30000,
       );

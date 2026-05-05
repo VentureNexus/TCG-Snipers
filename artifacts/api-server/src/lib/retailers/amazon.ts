@@ -103,10 +103,13 @@ export async function runAmazon(ctx: RetailerContext): Promise<RetailerResult> {
       if (token.cancelled) return fail("Task cancelled");
 
       const otpCheck = await page.$('input[name="otpCode"], #auth-mfa-otpcode');
-      if (otpCheck && profile.imapHost) {
+      const amazonImapConfig = profile.imapHost
+        ? { host: profile.imapHost, port: parseInt(profile.imapPort, 10), user: profile.imapUser, password: profile.imapPassword }
+        : ctx.globalImapConfig;
+      if (otpCheck && amazonImapConfig) {
         log("INFO", `[${RETAILER}] OTP prompt — fetching code from IMAP...`);
         const code = await imapFetchCode(
-          { host: profile.imapHost, port: parseInt(profile.imapPort, 10), user: profile.imapUser, password: profile.imapPassword },
+          amazonImapConfig,
           /amazon|otp|sign.?in/i,
           30000,
         );
