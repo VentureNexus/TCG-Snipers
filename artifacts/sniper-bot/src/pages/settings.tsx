@@ -72,6 +72,7 @@ export default function SettingsPage() {
   const [settings, setSettings] = useState<SettingsForm>(DEFAULT_SETTINGS);
   const [formInitialized, setFormInitialized] = useState(false);
   const engineBaseline = useRef<SettingsForm | null>(null);
+  const [savedTick, setSavedTick] = useState(0);
 
   const [discordConnecting, setDiscordConnecting] = useState(false);
 
@@ -118,15 +119,18 @@ export default function SettingsPage() {
   const isEngineDirty = useMemo(() => {
     if (!engineBaseline.current) return false;
     return !deepEqual(settings, engineBaseline.current);
-  }, [settings, formInitialized]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settings, formInitialized, savedTick]);
 
   const isDefaultsDirty = useMemo(() => {
     return !deepEqual(taskDefaults, taskDefaultsBaseline.current);
-  }, [taskDefaults]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [taskDefaults, savedTick]);
 
   const isRamDirty = useMemo(() => {
     return !deepEqual(ramSettings, ramBaseline.current);
-  }, [ramSettings]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ramSettings, savedTick]);
 
   const anyDirty = isEngineDirty || isDefaultsDirty || isRamDirty;
 
@@ -153,6 +157,7 @@ export default function SettingsPage() {
   const handleSaveDefaults = () => {
     saveTaskDefaults(taskDefaults);
     taskDefaultsBaseline.current = { ...taskDefaults };
+    setSavedTick(t => t + 1);
     toast({ title: "Task Defaults Saved", description: "New tasks will use these defaults." });
   };
 
@@ -177,6 +182,7 @@ export default function SettingsPage() {
             recommendedMax: updatedSettings.recommendedMax ?? prev?.recommendedMax,
           });
           engineBaseline.current = { ...settings };
+          setSavedTick(t => t + 1);
           toast({ title: "Settings Saved", description: "Your settings have been persisted to the server." });
         },
         onError: (err) => {
@@ -194,6 +200,7 @@ export default function SettingsPage() {
     saveRamGuardSettings(ramSettings);
     window.dispatchEvent(new Event("ram-guard-settings-changed"));
     ramBaseline.current = { ...ramSettings };
+    setSavedTick(t => t + 1);
     toast({ title: "RAM Guard Settings Saved" });
   };
 
@@ -212,6 +219,7 @@ export default function SettingsPage() {
             recommendedMax: updatedSettings.recommendedMax ?? prev?.recommendedMax,
           });
           engineBaseline.current = { ...settings };
+          setSavedTick(t => t + 1);
           toast({ title: "Settings Saved", description: "Your settings have been persisted to the server." });
         } catch (err) {
           toast({

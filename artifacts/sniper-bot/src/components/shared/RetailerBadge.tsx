@@ -16,6 +16,8 @@ export function RetailerBadge({ retailer }: { retailer: string }) {
       case "sam's club":
       case "samsclub":
         return { bg: "bg-blue-600/10", text: "text-blue-400", border: "border-blue-600/20", icon: <ShoppingBag className="w-3 h-3" /> };
+      case "walmart":
+        return { bg: "bg-blue-400/10", text: "text-blue-300", border: "border-blue-400/20", icon: <ShoppingCart className="w-3 h-3" /> };
       case "pokemon center":
       case "pokemon":
         return { bg: "bg-yellow-500/10", text: "text-yellow-400", border: "border-yellow-500/20", icon: <Star className="w-3 h-3" /> };

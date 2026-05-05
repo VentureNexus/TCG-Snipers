@@ -256,6 +256,7 @@ export declare const CreateTaskBodyRetailer: {
     readonly Costco: "Costco";
     readonly Pokemon_Center: "Pokemon Center";
     readonly Sams_Club: "Sam's Club";
+    readonly Walmart: "Walmart";
 };
 export interface CreateTaskBody {
     groupId?: number;
@@ -282,6 +283,7 @@ export declare const UpdateTaskBodyRetailer: {
     readonly Costco: "Costco";
     readonly Pokemon_Center: "Pokemon Center";
     readonly Sams_Club: "Sam's Club";
+    readonly Walmart: "Walmart";
 };
 export interface UpdateTaskBody {
     groupId?: number;

@@ -278,6 +278,7 @@ export const CreateTaskBodyRetailer = {
   Costco: "Costco",
   Pokemon_Center: "Pokemon Center",
   Sams_Club: "Sam's Club",
+  Walmart: "Walmart",
 } as const;
 
 export interface CreateTaskBody {
@@ -308,6 +309,7 @@ export const UpdateTaskBodyRetailer = {
   Costco: "Costco",
   Pokemon_Center: "Pokemon Center",
   Sams_Club: "Sam's Club",
+  Walmart: "Walmart",
 } as const;
 
 export interface UpdateTaskBody {
