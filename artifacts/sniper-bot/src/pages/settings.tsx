@@ -177,7 +177,13 @@ export default function SettingsPage() {
       { data: settings },
       {
         onSuccess: (updatedSettings) => {
-          queryClient.setQueryData(getGetSettingsQueryKey(), updatedSettings);
+          const prev = queryClient.getQueryData<typeof settingsData>(getGetSettingsQueryKey());
+          queryClient.setQueryData(getGetSettingsQueryKey(), {
+            ...updatedSettings,
+            systemCores: updatedSettings.systemCores ?? prev?.systemCores,
+            recommendedMin: updatedSettings.recommendedMin ?? prev?.recommendedMin,
+            recommendedMax: updatedSettings.recommendedMax ?? prev?.recommendedMax,
+          });
           engineBaseline.current = { ...settings };
           toast({ title: "Settings Saved", description: "Your settings have been persisted to the server." });
         },
@@ -208,7 +214,13 @@ export default function SettingsPage() {
         { data: { webhookUrl: result.webhookUrl, discordGuildName: result.guildName, discordChannelName: result.channelName } },
         {
           onSuccess: (updated) => {
-            queryClient.setQueryData(getGetSettingsQueryKey(), updated);
+            const prev = queryClient.getQueryData<typeof settingsData>(getGetSettingsQueryKey());
+            queryClient.setQueryData(getGetSettingsQueryKey(), {
+              ...updated,
+              systemCores: updated.systemCores ?? prev?.systemCores,
+              recommendedMin: updated.recommendedMin ?? prev?.recommendedMin,
+              recommendedMax: updated.recommendedMax ?? prev?.recommendedMax,
+            });
             toast({ title: "Discord connected", description: `Notifications will be sent to #${result.channelName} in ${result.guildName}.` });
           },
           onError: (err) => {
@@ -236,7 +248,13 @@ export default function SettingsPage() {
       { data: { webhookUrl: "", discordGuildName: null, discordChannelName: null } },
       {
         onSuccess: (updated) => {
-          queryClient.setQueryData(getGetSettingsQueryKey(), updated);
+          const prev = queryClient.getQueryData<typeof settingsData>(getGetSettingsQueryKey());
+          queryClient.setQueryData(getGetSettingsQueryKey(), {
+            ...updated,
+            systemCores: updated.systemCores ?? prev?.systemCores,
+            recommendedMin: updated.recommendedMin ?? prev?.recommendedMin,
+            recommendedMax: updated.recommendedMax ?? prev?.recommendedMax,
+          });
           toast({ title: "Discord disconnected" });
         },
         onError: (err) => {
