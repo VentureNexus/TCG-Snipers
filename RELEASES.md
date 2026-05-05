@@ -2,12 +2,28 @@
 
 ## How to publish a release
 
-Use the `scripts/publish-release.sh` script:
+The preferred one-command flow (bumps version, collects changelog, updates this file, tags, and pushes):
 
 ```bash
-# 1. Bump version in artifacts/sniper-bot/package.json, commit it
-# 2. Run the release script — it tags HEAD and pushes, triggering the build
-./scripts/publish-release.sh 1.0.22
+./scripts/release.sh 1.0.23
+```
+
+Alternatively, if you have already bumped and committed the version manually:
+
+```bash
+./scripts/publish-release.sh 1.0.23
+```
+
+Both scripts will:
+1. Prompt you for changelog entries (one per line)
+2. Prepend a new entry to this file with the date, asset table, and your changelog
+3. Commit the changes, create an annotated tag, and push to trigger the build
+
+After the GitHub Actions build finishes and the release is published, fill in the
+actual file sizes by running:
+
+```bash
+./scripts/update-release-sizes.sh 1.0.23
 ```
 
 The `release.yml` workflow triggers on `push` to `refs/tags/v*`, builds Windows x64
@@ -23,17 +39,32 @@ and macOS arm64 installers, and publishes them to GitHub Releases via
 
 **GitHub Release:** https://github.com/VentureNexus/TCG-Snipers/releases/tag/v1.0.22
 
-### Assets
+### Assets (9 files)
 
 | File | Size |
 |---|---|
-| [TCGSnipers-Setup-1.0.22.exe](https://github.com/VentureNexus/TCG-Snipers/releases/download/v1.0.22/TCGSnipers-Setup-1.0.22.exe) | — |
-| [TCGSnipers-1.0.22-arm64.dmg](https://github.com/VentureNexus/TCG-Snipers/releases/download/v1.0.22/TCGSnipers-1.0.22-arm64.dmg) | — |
+| [TCGSnipers-1.0.22-x64-win.exe](https://github.com/VentureNexus/TCG-Snipers/releases/download/v1.0.22/TCGSnipers-1.0.22-x64-win.exe) | 87.0 MB |
+| TCGSnipers-1.0.22-x64-win.exe.blockmap | 0.09 MB |
+| TCGSnipers-1.0.22-x64-win.zip | 116.8 MB |
+| [TCGSnipers-1.0.22-arm64.dmg](https://github.com/VentureNexus/TCG-Snipers/releases/download/v1.0.22/TCGSnipers-1.0.22-arm64.dmg) | 104.4 MB |
+| TCGSnipers-1.0.22-arm64.dmg.blockmap | 0.11 MB |
+| TCGSnipers-1.0.22-arm64.zip | 100.3 MB |
+| TCGSnipers-1.0.22-arm64.zip.blockmap | 0.10 MB |
 | latest.yml (Windows auto-update) | — |
 | latest-mac.yml (macOS auto-update) | — |
 
 ### Changes
-- Bump to v1.0.22
+- Add Sam's Club as a supported retailer for sniping
+- Add Sam's Club membership fields to user profiles
+- Add secure storage for sensitive payment information
+- Add max price (before tax) field to task creation
+- Improve price checking logic; add ability to clear saved price
+- Block incomplete profiles from being assigned to new tasks
+- Show warning icon on task rows when the assigned profile is incomplete
+- Show a banner when the database stops responding mid-session
+- Add info tooltips to task form fields
+- Add Unlimited retries option to task form
+- Add one-command release script (`scripts/release.sh`)
 
 ---
 
