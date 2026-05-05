@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import { useSystemMetrics } from "@/hooks/useSystemMetrics";
 import { useListTasks, useStopTask, getListTasksQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Button } from "@/components/ui/button";
 import { X, MemoryStick } from "lucide-react";
 
 const RAM_SETTINGS_KEY = "ram-guard-settings";
@@ -106,36 +105,32 @@ export function RamGuard() {
     <div
       role="alert"
       data-testid="ram-guard-banner"
-      className="flex flex-col gap-1 px-4 py-2.5 text-sm border-b bg-orange-500/10 border-orange-500/40 text-foreground"
+      className="flex items-center gap-3 px-4 py-2.5 text-sm border-b bg-primary/10 border-primary/30 text-foreground"
     >
-      <div className="flex items-center gap-3">
-        <MemoryStick className="w-4 h-4 text-orange-400 shrink-0" />
-        <span className="font-semibold text-orange-400">High RAM usage</span>
-        <span className="text-muted-foreground">
-          {Math.round(ramPct)}% used ({usedGb} / {totalGb} GB) — threshold: {settings.threshold}%
+      <MemoryStick className="w-4 h-4 text-primary shrink-0" />
+      <span className="font-semibold text-primary">High RAM usage</span>
+      <span className="text-muted-foreground">
+        {Math.round(ramPct)}% used ({usedGb} / {totalGb} GB) — threshold: {settings.threshold}%
+      </span>
+      {wasAutoStopped && (
+        <span className="text-xs text-primary/80 bg-primary/10 border border-primary/20 rounded px-2 py-0.5">
+          Auto-stopped {autoStoppedIdsRef.current.length} task{autoStoppedIdsRef.current.length !== 1 ? "s" : ""}
         </span>
-        {wasAutoStopped && (
-          <span className="text-xs text-orange-300 bg-orange-400/10 border border-orange-400/20 rounded px-2 py-0.5">
-            Auto-stopped {autoStoppedIdsRef.current.length} task{autoStoppedIdsRef.current.length !== 1 ? "s" : ""}
-          </span>
-        )}
-        {!wasAutoStopped && runningTasks.length > 0 && (
-          <span className="text-xs text-muted-foreground">
-            {runningTasks.length} task{runningTasks.length !== 1 ? "s" : ""} running
-          </span>
-        )}
-        <div className="ml-auto flex items-center gap-2 shrink-0">
-          <button
-            type="button"
-            onClick={handleDismiss}
-            className="text-orange-400/70 hover:text-orange-400 transition p-0.5 rounded"
-            aria-label="Dismiss for 5 minutes"
-            title="Dismiss for 5 minutes"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-      </div>
+      )}
+      {!wasAutoStopped && runningTasks.length > 0 && (
+        <span className="text-xs text-muted-foreground">
+          {runningTasks.length} task{runningTasks.length !== 1 ? "s" : ""} running
+        </span>
+      )}
+      <button
+        type="button"
+        onClick={handleDismiss}
+        className="ml-auto text-primary/60 hover:text-primary transition p-0.5 rounded"
+        aria-label="Dismiss for 5 minutes"
+        title="Dismiss for 5 minutes"
+      >
+        <X className="h-4 w-4" />
+      </button>
     </div>
   );
 }
