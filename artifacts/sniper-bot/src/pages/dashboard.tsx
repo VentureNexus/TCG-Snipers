@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 
 export default function DashboardPage() {
   const { data: summary } = useGetAnalyticsSummary();
-  const { data: checkouts = [] } = useListCheckoutResults({ limit: 10 });
+  const { data: checkouts = [] } = useListCheckoutResults({ limit: 10, success: true });
   const [period, setPeriod] = useState<"day" | "week" | "month" | "year">("week");
   const { data: chartData = [] } = useGetCheckoutsOverTime({ period });
 

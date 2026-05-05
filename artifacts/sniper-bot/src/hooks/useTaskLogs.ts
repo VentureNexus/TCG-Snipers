@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { getApiBase } from "@/lib/api-base";
 
 export type LogLevel = "INFO" | "SUCCESS" | "WARN" | "ERROR";
 
@@ -27,6 +28,19 @@ export interface UseTaskLogsResult {
 const MAX_BACKOFF_MS = 30_000;
 const BASE_BACKOFF_MS = 500;
 
+function buildWsUrl(): string {
+  const apiBase = getApiBase();
+  if (apiBase.startsWith("http")) {
+    // Electron: api-server URL is absolute — convert http(s) → ws(s)
+    return apiBase.replace(/^http/, "ws") + "/ws";
+  }
+  // Web (Replit dev): apiBase is a path prefix like "/sniper-bot"
+  // Include the prefix so Replit's path-based proxy routes it correctly to
+  // the Vite dev server, which then proxies /ws → api-server WebSocket.
+  const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+  return `${protocol}//${window.location.host}${apiBase}/ws`;
+}
+
 export function useTaskLogs(taskId: number, enabled: boolean, initialStatus?: string | null): UseTaskLogsResult {
   const [logs, setLogs] = useState<TaskLogEntry[]>([]);
   const [liveStatus, setLiveStatus] = useState<string | null>(initialStatus ?? null);
@@ -42,8 +56,7 @@ export function useTaskLogs(taskId: number, enabled: boolean, initialStatus?: st
   const connect = useCallback(() => {
     if (destroyedRef.current) return;
 
-    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const wsUrl = `${protocol}//${window.location.host}/ws`;
+    const wsUrl = buildWsUrl();
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
 
