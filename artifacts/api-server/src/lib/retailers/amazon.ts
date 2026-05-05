@@ -1,4 +1,4 @@
-import type { Browser } from "playwright";
+import type { Browser } from "playwright-core";
 import { createBrowser, createStealthContext, humanDelay, humanType } from "../browser";
 import { imapFetchCode } from "../imap";
 import type { RetailerContext, RetailerResult } from "./types";

@@ -80,7 +80,6 @@ const sharedExternals = [
   "wrangler",
   "zeromq",
   "zeromq-prebuilt",
-  "playwright",
   "puppeteer",
   "puppeteer-core",
 ];

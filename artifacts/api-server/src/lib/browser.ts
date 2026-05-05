@@ -23,9 +23,9 @@ export interface ProxyConfig {
   password?: string;
 }
 
-export type Browser = import("playwright").Browser;
-export type BrowserContext = import("playwright").BrowserContext;
-export type Page = import("playwright").Page;
+export type Browser = import("playwright-core").Browser;
+export type BrowserContext = import("playwright-core").BrowserContext;
+export type Page = import("playwright-core").Page;
 
 export function pickUserAgent(): string {
   return USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)];
@@ -61,7 +61,7 @@ const STEALTH_SCRIPT = `
 `;
 
 async function getChromium() {
-  const pw = await import("playwright");
+  const pw = await import("playwright-core");
   return pw.chromium;
 }
 

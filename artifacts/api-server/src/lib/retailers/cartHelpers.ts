@@ -1,4 +1,4 @@
-import type { Page } from "playwright";
+import type { Page } from "playwright-core";
 
 /**
  * After an item has been added to cart, attempt to set the quantity to
