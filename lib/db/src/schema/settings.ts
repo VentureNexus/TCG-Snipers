@@ -11,6 +11,10 @@ export const settingsTable = pgTable("settings", {
   imapPort: text("imap_port").notNull().default("993"),
   imapEmail: text("imap_email").notNull().default(""),
   imapPassword: text("imap_password").notNull().default(""),
+  googleEmail: text("google_email"),
+  googleAccessToken: text("google_access_token"),
+  googleRefreshToken: text("google_refresh_token"),
+  googleTokenExpiry: text("google_token_expiry"),
 });
 
 export const insertSettingsSchema = createInsertSchema(settingsTable).omit({ id: true });

@@ -309,6 +309,126 @@ ipcMain.handle("license:clear", () => {
 });
 ipcMain.handle("app:openExternal", (_e, url: string) => shell.openExternal(url));
 
+// ── Google OAuth IPC ──────────────────────────────────────────────────────────
+ipcMain.handle("google:oauthSignIn", async (): Promise<{
+  email: string;
+  accessToken: string;
+  refreshToken: string;
+  expiresAt: string;
+}> => {
+  const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
+  if (!clientId || !clientSecret) {
+    throw new Error("Google OAuth is not configured. Please contact support.");
+  }
+
+  const codeVerifier = crypto.randomBytes(64).toString("base64url");
+  const codeChallenge = crypto.createHash("sha256").update(codeVerifier).digest("base64url");
+
+  let oauthPort = 0;
+
+  const { authCode, redirectUri } = await new Promise<{ authCode: string; redirectUri: string }>((resolve, reject) => {
+    let settled = false;
+    const settle = (fn: () => void) => { if (!settled) { settled = true; fn(); } };
+
+    const timeoutId = setTimeout(() => {
+      cbServer.close();
+      settle(() => reject(new Error("Google sign-in timed out — please try again")));
+    }, 300_000);
+
+    const cbServer = http.createServer((req, res) => {
+      const reqUrl = new URL(req.url ?? "/", `http://127.0.0.1:${oauthPort}`);
+      const code = reqUrl.searchParams.get("code");
+      const error = reqUrl.searchParams.get("error");
+      res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+      res.end(
+        `<!doctype html><html><body style="font-family:sans-serif;text-align:center;padding-top:80px">` +
+        `<h2>&#x2705; Signed in! You can close this tab and return to TCG Snipers.</h2></body></html>`,
+      );
+      clearTimeout(timeoutId);
+      cbServer.close();
+      if (error) {
+        settle(() => reject(new Error(`Google sign-in was denied: ${error}`)));
+      } else if (code) {
+        settle(() => resolve({ authCode: code, redirectUri: `http://127.0.0.1:${oauthPort}/callback` }));
+      } else {
+        settle(() => reject(new Error("No authorization code received from Google")));
+      }
+    });
+
+    cbServer.listen(0, "127.0.0.1", () => {
+      oauthPort = (cbServer.address() as { port: number }).port;
+      const redir = `http://127.0.0.1:${oauthPort}/callback`;
+      const authUrl = new URL("https://accounts.google.com/o/oauth2/v2/auth");
+      authUrl.searchParams.set("client_id", clientId);
+      authUrl.searchParams.set("redirect_uri", redir);
+      authUrl.searchParams.set("response_type", "code");
+      authUrl.searchParams.set("scope", "email openid https://mail.google.com/");
+      authUrl.searchParams.set("access_type", "offline");
+      authUrl.searchParams.set("prompt", "consent");
+      authUrl.searchParams.set("code_challenge", codeChallenge);
+      authUrl.searchParams.set("code_challenge_method", "S256");
+      shell.openExternal(authUrl.toString());
+      writeLog("INFO", `[google:oauthSignIn] OAuth server listening on port ${oauthPort}`);
+    });
+
+    cbServer.on("error", (err) => {
+      clearTimeout(timeoutId);
+      settle(() => reject(err));
+    });
+  });
+
+  writeLog("INFO", "[google:oauthSignIn] Auth code received, exchanging for tokens…");
+
+  const tokenParams = new URLSearchParams({
+    code: authCode,
+    client_id: clientId,
+    client_secret: clientSecret,
+    redirect_uri: redirectUri,
+    grant_type: "authorization_code",
+    code_verifier: codeVerifier,
+  });
+
+  const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: tokenParams.toString(),
+  });
+
+  const tokenData = await tokenRes.json() as {
+    access_token?: string;
+    refresh_token?: string;
+    id_token?: string;
+    expires_in?: number;
+    error?: string;
+    error_description?: string;
+  };
+
+  if (!tokenRes.ok || !tokenData.access_token) {
+    throw new Error(
+      `Token exchange failed: ${tokenData.error_description ?? tokenData.error ?? "unknown error"}`,
+    );
+  }
+
+  let email = "";
+  if (tokenData.id_token) {
+    try {
+      const parts = tokenData.id_token.split(".");
+      const payload = JSON.parse(Buffer.from(parts[1], "base64url").toString("utf-8")) as { email?: string };
+      email = payload.email ?? "";
+    } catch (_) {}
+  }
+
+  writeLog("INFO", `[google:oauthSignIn] Tokens obtained for ${email}`);
+
+  return {
+    email,
+    accessToken: tokenData.access_token,
+    refreshToken: tokenData.refresh_token ?? "",
+    expiresAt: new Date(Date.now() + (tokenData.expires_in ?? 3600) * 1000).toISOString(),
+  };
+});
+
 // ── Diagnostics IPC ──────────────────────────────────────────────────────────
 ipcMain.handle("api:getLogs", () => {
   try {

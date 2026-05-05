@@ -2,7 +2,10 @@ export interface ImapConfig {
   host: string;
   port: number;
   user: string;
-  password: string;
+  /** Plain-password auth (non-Gmail or Gmail with App Password). */
+  password?: string;
+  /** XOAUTH2 access token (Gmail OAuth). Takes priority over password when set. */
+  accessToken?: string;
 }
 
 export async function imapFetchCode(
@@ -17,11 +20,15 @@ export async function imapFetchCode(
   const deadline = Date.now() + timeoutMs;
   const pollInterval = 3000;
 
+  const auth = config.accessToken
+    ? { user: config.user, accessToken: config.accessToken }
+    : { user: config.user, pass: config.password ?? "" };
+
   const client = new ImapFlow({
     host: config.host,
     port: config.port,
     secure: config.port === 993,
-    auth: { user: config.user, pass: config.password },
+    auth,
     logger: false,
   });
 

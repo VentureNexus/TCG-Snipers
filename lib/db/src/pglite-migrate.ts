@@ -11,6 +11,22 @@ export async function runPgliteMigrations(client: PGlite): Promise<void> {
   `).catch(() => { /* table may not exist yet — CREATE below will include it */ });
 
   await client.exec(`
+    ALTER TABLE settings ADD COLUMN IF NOT EXISTS google_email TEXT;
+  `).catch(() => { /* table may not exist yet — CREATE below will include it */ });
+
+  await client.exec(`
+    ALTER TABLE settings ADD COLUMN IF NOT EXISTS google_access_token TEXT;
+  `).catch(() => { /* table may not exist yet — CREATE below will include it */ });
+
+  await client.exec(`
+    ALTER TABLE settings ADD COLUMN IF NOT EXISTS google_refresh_token TEXT;
+  `).catch(() => { /* table may not exist yet — CREATE below will include it */ });
+
+  await client.exec(`
+    ALTER TABLE settings ADD COLUMN IF NOT EXISTS google_token_expiry TEXT;
+  `).catch(() => { /* table may not exist yet — CREATE below will include it */ });
+
+  await client.exec(`
     CREATE TABLE IF NOT EXISTS profiles (
       id SERIAL PRIMARY KEY,
       name TEXT NOT NULL,
@@ -121,7 +137,11 @@ export async function runPgliteMigrations(client: PGlite): Promise<void> {
       imap_host TEXT NOT NULL DEFAULT '',
       imap_port TEXT NOT NULL DEFAULT '993',
       imap_email TEXT NOT NULL DEFAULT '',
-      imap_password TEXT NOT NULL DEFAULT ''
+      imap_password TEXT NOT NULL DEFAULT '',
+      google_email TEXT,
+      google_access_token TEXT,
+      google_refresh_token TEXT,
+      google_token_expiry TEXT
     );
   `);
 }

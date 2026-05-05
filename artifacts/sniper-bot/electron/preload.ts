@@ -103,6 +103,16 @@ const api = {
       ipcRenderer.invoke("license:write", value),
     clear: (): Promise<{ ok: true }> => ipcRenderer.invoke("license:clear"),
   },
+
+  /** Google OAuth — opens the browser for Google sign-in and returns tokens. */
+  google: {
+    signIn: (): Promise<{
+      email: string;
+      accessToken: string;
+      refreshToken: string;
+      expiresAt: string;
+    }> => ipcRenderer.invoke("google:oauthSignIn"),
+  },
 };
 
 contextBridge.exposeInMainWorld("electronAPI", api);

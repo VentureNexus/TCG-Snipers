@@ -17,6 +17,10 @@ export interface Settings {
     imapPort: string;
     imapEmail: string;
     imapPassword: string;
+    googleEmail?: string | null;
+    googleAccessToken?: string | null;
+    googleRefreshToken?: string | null;
+    googleTokenExpiry?: string | null;
 }
 export interface UpdateSettingsBody {
     concurrency?: number;
@@ -26,6 +30,10 @@ export interface UpdateSettingsBody {
     imapPort?: string;
     imapEmail?: string;
     imapPassword?: string;
+    googleEmail?: string | null;
+    googleAccessToken?: string | null;
+    googleRefreshToken?: string | null;
+    googleTokenExpiry?: string | null;
 }
 export interface Profile {
     id: number;
