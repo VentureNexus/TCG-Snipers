@@ -64,7 +64,7 @@ import {
 } from "@/components/ui/form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useTaskLogs, type TaskLogEntry } from "@/hooks/useTaskLogs";
+import { useTaskLogs, type TaskLogEntry, type RetryProgress } from "@/hooks/useTaskLogs";
 import { useToast } from "@/hooks/use-toast";
 import {
   Tooltip,
@@ -248,9 +248,16 @@ const LOG_COLORS: Record<string, string> = {
 
 const RETRY_ACTIVE_STATUSES = new Set(["monitoring"]);
 
-function TaskRetryBadge({ taskId, enabled }: { taskId: number; enabled: boolean }) {
-  const { retryProgress, liveStatus } = useTaskLogs(taskId, enabled);
-  if (!enabled || !retryProgress || retryProgress.attempt <= 0) return null;
+function TaskRetryBadge({
+  taskId,
+  retryProgress,
+  liveStatus,
+}: {
+  taskId: number;
+  retryProgress: RetryProgress | null;
+  liveStatus: string | null;
+}) {
+  if (!retryProgress || retryProgress.attempt <= 0) return null;
   if (liveStatus && !RETRY_ACTIVE_STATUSES.has(liveStatus)) return null;
   return (
     <span
@@ -265,24 +272,26 @@ function TaskRetryBadge({ taskId, enabled }: { taskId: number; enabled: boolean 
 function LogPanel({
   taskId,
   enabled,
-  onStatusChange,
+  logs,
+  liveStatus,
+  retryProgress,
+  isReconnecting,
+  clear,
+  copyLogs,
 }: {
   taskId: number;
   enabled: boolean;
-  onStatusChange?: (s: string) => void;
+  logs: TaskLogEntry[];
+  liveStatus: string | null;
+  retryProgress: RetryProgress | null;
+  isReconnecting: boolean;
+  clear: () => void;
+  copyLogs: () => void;
 }) {
-  const { logs, liveStatus, retryProgress, isReconnecting, clear, copyLogs } = useTaskLogs(taskId, enabled);
   const bottomRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [isAtBottom, setIsAtBottom] = useState(true);
   const { toast } = useToast();
-
-  const onStatusChangeRef = useRef(onStatusChange);
-  useEffect(() => { onStatusChangeRef.current = onStatusChange; });
-
-  useEffect(() => {
-    if (liveStatus) onStatusChangeRef.current?.(liveStatus);
-  }, [liveStatus]);
 
   useEffect(() => {
     if (isAtBottom) {
@@ -373,6 +382,170 @@ function LogPanel({
   );
 }
 
+
+function TaskRow({
+  task,
+  isExpanded,
+  profiles,
+  onToggle,
+  onStatusChange,
+  onStart,
+  onStop,
+  onDelete,
+  onEdit,
+}: {
+  task: Task;
+  isExpanded: boolean;
+  profiles: Profile[];
+  onToggle: () => void;
+  onStatusChange: (s: string) => void;
+  onStart: () => void;
+  onStop: () => void;
+  onDelete: () => void;
+  onEdit: () => void;
+}) {
+  const baseIsRunning = !["idle", "stopped", "failed", "success"].includes(task.status);
+  const logsEnabled = baseIsRunning || isExpanded;
+  const { logs, liveStatus, retryProgress, isReconnecting, clear, copyLogs } = useTaskLogs(task.id, logsEnabled);
+
+  const onStatusChangeRef = useRef(onStatusChange);
+  useEffect(() => { onStatusChangeRef.current = onStatusChange; });
+  useEffect(() => {
+    if (liveStatus) onStatusChangeRef.current(liveStatus);
+  }, [liveStatus]);
+
+  const effectiveStatus = liveStatus ?? task.status;
+  const isRunning = !["idle", "stopped", "failed", "success"].includes(effectiveStatus);
+  const canStart = ["idle", "stopped", "failed"].includes(effectiveStatus);
+  const cfg = STATUS_CONFIG[effectiveStatus] ?? STATUS_CONFIG["idle"];
+
+  return (
+    <Fragment>
+      <tr
+        className={`border-b ${isExpanded ? "" : "border-border/50"} hover:bg-muted/20 transition-colors group cursor-pointer`}
+        onClick={onToggle}
+        data-testid={`row-task-${task.id}`}
+      >
+        <td className="px-3 py-3 text-muted-foreground/50">
+          {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+        </td>
+        <td className="px-4 py-3 font-mono text-xs text-muted-foreground">#{task.id}</td>
+        <td className="px-4 py-3"><RetailerBadge retailer={task.retailer} /></td>
+        <td className="px-4 py-3 max-w-[220px]" title={task.productUrl ?? task.productKeywords ?? ""}>
+          <div className="flex items-center gap-2">
+            {task.productUrl && <ProductThumbnail fallbackUrl={task.productUrl} className="w-8 h-8 rounded object-cover bg-muted shrink-0" />}
+            <div className="min-w-0">
+              <div className="truncate font-mono text-xs text-primary/80">{task.productUrl || task.productKeywords || "-"}</div>
+              {task.maxPrice != null && (
+                <div className="text-amber-400/80 font-mono text-[10px] mt-0.5" data-testid={`max-price-${task.id}`}>≤ ${(task.maxPrice / 100).toFixed(2)}</div>
+              )}
+            </div>
+          </div>
+        </td>
+        <td className="px-4 py-3 text-muted-foreground">
+          {(() => {
+            const profile = profiles.find((p) => p.id === task.profileId);
+            return (
+              <div className="flex items-center gap-1.5">
+                <span>{profile?.name ?? "Unknown"}</span>
+                {profile && isProfileIncomplete(profile) && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <AlertTriangle className="w-3.5 h-3.5 text-yellow-400 shrink-0" />
+                    </TooltipTrigger>
+                    <TooltipContent>Profile is missing shipping details</TooltipContent>
+                  </Tooltip>
+                )}
+              </div>
+            );
+          })()}
+        </td>
+        <td className="px-4 py-3">
+          {(() => {
+            const raw = typeof task.priority === "string"
+              ? ({ high: 1, normal: 2, low: 3 } as Record<string, number>)[task.priority] ?? 2
+              : task.priority;
+            const p = (TASK_PRIORITIES.includes(raw as TaskPriority) ? raw : 2) as TaskPriority;
+            const pcfg = PRIORITY_CONFIG[p];
+            return (
+              <span className={`inline-flex items-center text-[10px] font-medium px-1.5 py-0.5 rounded border ${pcfg.cls}`} data-testid={`priority-badge-${task.id}`}>
+                {pcfg.label}
+              </span>
+            );
+          })()}
+        </td>
+        <td className="px-4 py-3 font-mono text-xs text-muted-foreground" data-testid={`retries-task-${task.id}`}>
+          {task.retryCount === -1 ? "∞" : task.retryCount}
+        </td>
+        <td className="px-4 py-3">
+          <div className="flex flex-col items-start gap-1">
+            <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs font-mono tracking-wide ${cfg.cls}`} data-testid={`status-task-${task.id}`}>
+              {cfg.dot && <span className={`w-1.5 h-1.5 rounded-full bg-current ${cfg.dot}`} />}
+              {cfg.label}
+            </span>
+            <TimeLimitBadge task={task} isRunning={isRunning} />
+            <TaskRetryBadge taskId={task.id} retryProgress={retryProgress} liveStatus={liveStatus} />
+          </div>
+        </td>
+        <td className="px-4 py-3 text-right space-x-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+          {canStart ? (
+            <Button
+              variant="ghost" size="icon"
+              className="h-8 w-8 text-emerald-500 hover:text-emerald-400 hover:bg-emerald-500/10"
+              data-testid={`button-start-task-${task.id}`}
+              onClick={onStart}
+            >
+              <Play className="w-4 h-4 fill-current" />
+            </Button>
+          ) : (
+            <Button
+              variant="ghost" size="icon"
+              className="h-8 w-8 text-red-500 hover:text-red-400 hover:bg-red-500/10"
+              data-testid={`button-stop-task-${task.id}`}
+              onClick={onStop}
+            >
+              <StopCircle className="w-4 h-4" />
+            </Button>
+          )}
+          <Button
+            variant="ghost" size="icon"
+            className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10"
+            data-testid={`button-edit-task-${task.id}`}
+            onClick={onEdit}
+            disabled={isRunning}
+            title="Edit task"
+          >
+            <Pencil className="w-4 h-4" />
+          </Button>
+          <Button
+            variant="ghost" size="icon"
+            className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+            data-testid={`button-delete-task-${task.id}`}
+            onClick={onDelete}
+          >
+            <Trash2 className="w-4 h-4" />
+          </Button>
+        </td>
+      </tr>
+      {isExpanded && (
+        <tr className="border-b border-border/50">
+          <td colSpan={9} className="p-0">
+            <LogPanel
+              taskId={task.id}
+              enabled={logsEnabled}
+              logs={logs}
+              liveStatus={liveStatus}
+              retryProgress={retryProgress}
+              isReconnecting={isReconnecting}
+              clear={clear}
+              copyLogs={copyLogs}
+            />
+          </td>
+        </tr>
+      )}
+    </Fragment>
+  );
+}
 
 function TaskFormFields({
   form,
@@ -1014,135 +1187,27 @@ export default function TasksPage() {
               </tr>
             ) : (
               tasks.map((task) => {
-                const status = getStatus(task);
                 const isExpanded = expandedTaskId === task.id;
-                const isRunning = !["idle", "stopped", "failed", "success"].includes(status);
-                const canStart = ["idle", "stopped", "failed"].includes(status);
-                const cfg = STATUS_CONFIG[status] ?? STATUS_CONFIG["idle"];
-
                 return (
-                  <Fragment key={task.id}>
-                    <tr
-                      className={`border-b ${isExpanded ? "" : "border-border/50"} hover:bg-muted/20 transition-colors group cursor-pointer`}
-                      onClick={() => setExpandedTaskId(isExpanded ? null : task.id)}
-                      data-testid={`row-task-${task.id}`}
-                    >
-                      <td className="px-3 py-3 text-muted-foreground/50">
-                        {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                      </td>
-                      <td className="px-4 py-3 font-mono text-xs text-muted-foreground">#{task.id}</td>
-                      <td className="px-4 py-3"><RetailerBadge retailer={task.retailer} /></td>
-                      <td className="px-4 py-3 max-w-[220px]" title={task.productUrl ?? task.productKeywords ?? ""}>
-                        <div className="flex items-center gap-2">
-                          {task.productUrl && <ProductThumbnail fallbackUrl={task.productUrl} className="w-8 h-8 rounded object-cover bg-muted shrink-0" />}
-                          <div className="min-w-0">
-                            <div className="truncate font-mono text-xs text-primary/80">{task.productUrl || task.productKeywords || "-"}</div>
-                            {task.maxPrice != null && (
-                              <div className="text-amber-400/80 font-mono text-[10px] mt-0.5" data-testid={`max-price-${task.id}`}>≤ ${(task.maxPrice / 100).toFixed(2)}</div>
-                            )}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-muted-foreground">
-                        {(() => {
-                          const profile = profiles.find((p) => p.id === task.profileId);
-                          return (
-                            <div className="flex items-center gap-1.5">
-                              <span>{profile?.name ?? "Unknown"}</span>
-                              {profile && isProfileIncomplete(profile) && (
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <AlertTriangle className="w-3.5 h-3.5 text-yellow-400 shrink-0" />
-                                  </TooltipTrigger>
-                                  <TooltipContent>Profile is missing shipping details</TooltipContent>
-                                </Tooltip>
-                              )}
-                            </div>
-                          );
-                        })()}
-                      </td>
-                      <td className="px-4 py-3">
-                        {(() => {
-                          const raw = typeof task.priority === "string"
-                            ? ({ high: 1, normal: 2, low: 3 } as Record<string, number>)[task.priority] ?? 2
-                            : task.priority;
-                          const p = (TASK_PRIORITIES.includes(raw as TaskPriority) ? raw : 2) as TaskPriority;
-                          const cfg = PRIORITY_CONFIG[p];
-                          return (
-                            <span className={`inline-flex items-center text-[10px] font-medium px-1.5 py-0.5 rounded border ${cfg.cls}`} data-testid={`priority-badge-${task.id}`}>
-                              {cfg.label}
-                            </span>
-                          );
-                        })()}
-                      </td>
-                      <td className="px-4 py-3 font-mono text-xs text-muted-foreground" data-testid={`retries-task-${task.id}`}>
-                        {task.retryCount === -1 ? "∞" : task.retryCount}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex flex-col items-start gap-1">
-                          <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs font-mono tracking-wide ${cfg.cls}`} data-testid={`status-task-${task.id}`}>
-                            {cfg.dot && <span className={`w-1.5 h-1.5 rounded-full bg-current ${cfg.dot}`} />}
-                            {cfg.label}
-                          </span>
-                          <TimeLimitBadge task={task} isRunning={isRunning} />
-                          <TaskRetryBadge taskId={task.id} enabled={isRunning} />
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-right space-x-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
-                        {canStart ? (
-                          <Button
-                            variant="ghost" size="icon"
-                            className="h-8 w-8 text-emerald-500 hover:text-emerald-400 hover:bg-emerald-500/10"
-                            data-testid={`button-start-task-${task.id}`}
-                            onClick={() => {
-                              const profile = profiles.find((p) => p.id === task.profileId);
-                              if (!profile || !profile.shipFirstName || !profile.shipLastName || !profile.shipAddress1 || !profile.shipCity || !profile.shipState || !profile.shipZip) {
-                                toast({ title: "Profile incomplete", description: "This profile is missing required shipping fields. Edit the profile and fill in the shipping address before starting.", variant: "destructive" });
-                                return;
-                              }
-                              startTask.mutate({ id: task.id }, { onSuccess: () => { queryClient.invalidateQueries({ queryKey: getListTasksQueryKey() }); setExpandedTaskId(task.id); }, onError: (err: unknown) => toast({ title: "Failed to start task", description: err instanceof Error ? err.message : undefined, variant: "destructive" }) });
-                            }}
-                          >
-                            <Play className="w-4 h-4 fill-current" />
-                          </Button>
-                        ) : (
-                          <Button
-                            variant="ghost" size="icon"
-                            className="h-8 w-8 text-red-500 hover:text-red-400 hover:bg-red-500/10"
-                            data-testid={`button-stop-task-${task.id}`}
-                            onClick={() => stopTask.mutate({ id: task.id }, { onSuccess: () => { queryClient.invalidateQueries({ queryKey: getListTasksQueryKey() }); setLiveStatuses((prev) => ({ ...prev, [task.id]: "stopped" })); }, onError: (err: unknown) => toast({ title: "Failed to stop task", description: err instanceof Error ? err.message : undefined, variant: "destructive" }) })}
-                          >
-                            <StopCircle className="w-4 h-4" />
-                          </Button>
-                        )}
-                        <Button
-                          variant="ghost" size="icon"
-                          className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10"
-                          data-testid={`button-edit-task-${task.id}`}
-                          onClick={() => openEdit(task)}
-                          disabled={isRunning}
-                          title="Edit task"
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost" size="icon"
-                          className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                          data-testid={`button-delete-task-${task.id}`}
-                          onClick={() => deleteTask.mutate({ id: task.id }, { onSuccess: () => queryClient.invalidateQueries({ queryKey: getListTasksQueryKey() }), onError: (err: unknown) => toast({ title: "Failed to delete task", description: err instanceof Error ? err.message : undefined, variant: "destructive" }) })}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </td>
-                    </tr>
-                    {isExpanded && (
-                      <tr className="border-b border-border/50">
-                        <td colSpan={9} className="p-0">
-                          <LogPanel taskId={task.id} enabled={isRunning || isExpanded} onStatusChange={handleStatusChange(task.id)} />
-                        </td>
-                      </tr>
-                    )}
-                  </Fragment>
+                  <TaskRow
+                    key={task.id}
+                    task={task}
+                    isExpanded={isExpanded}
+                    profiles={profiles}
+                    onToggle={() => setExpandedTaskId(isExpanded ? null : task.id)}
+                    onStatusChange={handleStatusChange(task.id)}
+                    onStart={() => {
+                      const profile = profiles.find((p) => p.id === task.profileId);
+                      if (!profile || !profile.shipFirstName || !profile.shipLastName || !profile.shipAddress1 || !profile.shipCity || !profile.shipState || !profile.shipZip) {
+                        toast({ title: "Profile incomplete", description: "This profile is missing required shipping fields. Edit the profile and fill in the shipping address before starting.", variant: "destructive" });
+                        return;
+                      }
+                      startTask.mutate({ id: task.id }, { onSuccess: () => { queryClient.invalidateQueries({ queryKey: getListTasksQueryKey() }); setExpandedTaskId(task.id); }, onError: (err: unknown) => toast({ title: "Failed to start task", description: err instanceof Error ? err.message : undefined, variant: "destructive" }) });
+                    }}
+                    onStop={() => stopTask.mutate({ id: task.id }, { onSuccess: () => { queryClient.invalidateQueries({ queryKey: getListTasksQueryKey() }); setLiveStatuses((prev) => ({ ...prev, [task.id]: "stopped" })); }, onError: (err: unknown) => toast({ title: "Failed to stop task", description: err instanceof Error ? err.message : undefined, variant: "destructive" }) })}
+                    onDelete={() => deleteTask.mutate({ id: task.id }, { onSuccess: () => queryClient.invalidateQueries({ queryKey: getListTasksQueryKey() }), onError: (err: unknown) => toast({ title: "Failed to delete task", description: err instanceof Error ? err.message : undefined, variant: "destructive" }) })}
+                    onEdit={() => openEdit(task)}
+                  />
                 );
               })
             )}
