@@ -710,6 +710,7 @@ export default function TasksPage() {
               <th className="px-4 py-3 font-medium">Retailer</th>
               <th className="px-4 py-3 font-medium">Product / Keywords</th>
               <th className="px-4 py-3 font-medium">Profile</th>
+              <th className="px-4 py-3 font-medium">Retries</th>
               <th className="px-4 py-3 font-medium">Status</th>
               <th className="px-4 py-3 font-medium text-right">Actions</th>
             </tr>
@@ -717,7 +718,7 @@ export default function TasksPage() {
           <tbody>
             {tasks.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-4 py-12 text-center text-muted-foreground">
+                <td colSpan={8} className="px-4 py-12 text-center text-muted-foreground">
                   <div className="flex flex-col items-center gap-2">
                     <ListChecks className="w-8 h-8 opacity-20" />
                     <p>No tasks found. Create your first task to start sniping.</p>
@@ -767,6 +768,9 @@ export default function TasksPage() {
                             </div>
                           );
                         })()}
+                      </td>
+                      <td className="px-4 py-3 font-mono text-xs text-muted-foreground" data-testid={`retries-task-${task.id}`}>
+                        {task.retryCount === -1 ? "∞" : task.retryCount}
                       </td>
                       <td className="px-4 py-3">
                         <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs font-mono tracking-wide ${cfg.cls}`} data-testid={`status-task-${task.id}`}>
@@ -823,7 +827,7 @@ export default function TasksPage() {
                     </tr>
                     {isExpanded && (
                       <tr className="border-b border-border/50">
-                        <td colSpan={7} className="p-0">
+                        <td colSpan={8} className="p-0">
                           <LogPanel taskId={task.id} enabled={isRunning || isExpanded} onStatusChange={handleStatusChange(task.id)} />
                         </td>
                       </tr>
