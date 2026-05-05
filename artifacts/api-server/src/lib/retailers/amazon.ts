@@ -191,19 +191,44 @@ export async function runAmazon(ctx: RetailerContext): Promise<RetailerResult> {
       } catch (decryptErr) {
         log("WARN", `[${RETAILER}] Could not decrypt card: ${String(decryptErr)}`);
       }
+      // After filling payment, click Continue to advance to order review page
+      const paymentContinue = await page.$(
+        'input[name="ppw-widgetEvent:SetPaymentPlanSelectAction"], ' +
+        'input[name="continue-to-review"], ' +
+        'button:has-text("Use this payment method"), ' +
+        'button:has-text("Continue"), ' +
+        'input[value*="Use these"]',
+      );
+      if (paymentContinue) {
+        await paymentContinue.scrollIntoViewIfNeeded();
+        await page.evaluate(el => (el as unknown as { click(): void }).click(), paymentContinue);
+        await humanDelay(2000, 3000);
+      }
     } else if (!quickPlaceOrder) {
       log("WARN", `[${RETAILER}] No credit card provided — skipping payment step`);
     }
+    if (token.cancelled) return fail("Task cancelled");
 
     log("INFO", `[${RETAILER}] Submitting order...`);
     const placeOrderSelectors = [
       "input[name='placeYourOrder1']",
       "[data-action='place-order']",
+      "[data-feature-id='place-order-button'] input",
+      "#submitOrderButtonId",
       "span[id*='placeOrder'] input[type='submit']",
       "button:has-text('Place your order')",
       "button:has-text('Place Order')",
       "input[value*='Place your order']",
+      "input[aria-label*='Place your order']",
     ];
+    // Wait for the order review page to settle before querying
+    try {
+      await page.waitForSelector(
+        "input[name='placeYourOrder1'], [data-feature-id='place-order-button'] input, " +
+        "span[id*='placeOrder'] input, button:has-text('Place your order')",
+        { timeout: 10000 },
+      );
+    } catch (_) {}
     // Re-query (quickPlaceOrder ref may be stale after address/payment nav)
     const placeOrder = quickPlaceOrder ?? await smartFind(page, RETAILER, "place_order", placeOrderSelectors);
     if (!placeOrder) return fail("Place order button not found");

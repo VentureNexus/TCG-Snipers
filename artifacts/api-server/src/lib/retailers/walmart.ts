@@ -113,11 +113,21 @@ export async function runWalmart(ctx: RetailerContext): Promise<RetailerResult> 
 
     log("INFO", `[${RETAILER}] Proceeding to checkout...`);
     await setStatus("checking_out");
+    // Walmart's cart is React — the checkout button renders async after hydration.
+    // Wait up to 10s for any variant to appear before querying.
+    try {
+      await page.waitForSelector(
+        "[data-automation-id='cart-checkout-btn'], button:has-text('Continue to checkout'), button:has-text('Check out'), button:has-text('Checkout')",
+        { timeout: 10000 },
+      );
+    } catch (_) {}
     const checkoutClicked = await smartClick(page, RETAILER, "checkout_btn", [
       "[data-automation-id='cart-checkout-btn']",
       "button:has-text('Continue to checkout')",
       "button:has-text('Check out')",
       "button:has-text('Checkout')",
+      "[class*='checkout-btn']",
+      "[class*='checkoutBtn']",
       "a[href*='/checkout']:not([href*='help']):not([href*='account'])",
     ]);
     if (!checkoutClicked) return fail("Checkout button not found");
