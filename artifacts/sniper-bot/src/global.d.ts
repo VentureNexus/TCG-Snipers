@@ -97,7 +97,7 @@ declare global {
           email: string;
           accessToken: string;
           refreshToken: string;
-          expiresAt: string;
+          expiresAt: number;
         }>;
       };
       /** Discord OAuth — opens the browser for channel picker and returns webhook info. */

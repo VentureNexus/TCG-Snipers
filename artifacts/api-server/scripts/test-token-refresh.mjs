@@ -25,8 +25,8 @@ import assert from "node:assert/strict";
 
 const REFRESH_BUFFER_MS = 5 * 60 * 1000;
 
-function tokenNeedsRefresh(expiryIso) {
-  const expiresAt = expiryIso ? new Date(expiryIso).getTime() : 0;
+function tokenNeedsRefresh(expiryMs) {
+  const expiresAt = (expiryMs != null && !isNaN(expiryMs)) ? expiryMs : 0;
   return Date.now() + REFRESH_BUFFER_MS >= expiresAt;
 }
 
@@ -49,7 +49,7 @@ async function callRefreshEndpoint(refreshToken, clientId, clientSecret, fetchFn
 
     if (!res.ok || !data.access_token) return null;
 
-    const newExpiry = new Date(Date.now() + (data.expires_in ?? 3600) * 1000).toISOString();
+    const newExpiry = Date.now() + (data.expires_in ?? 3600) * 1000;
     return { accessToken: data.access_token, newExpiry };
   } catch {
     return null;
@@ -69,33 +69,33 @@ test("tokenNeedsRefresh: undefined expiry → needs refresh", () => {
 });
 
 test("tokenNeedsRefresh: already expired → needs refresh", () => {
-  const expired = new Date(Date.now() - 1000).toISOString();
-  assert.equal(tokenNeedsRefresh(expired), true);
+  assert.equal(tokenNeedsRefresh(Date.now() - 1000), true);
 });
 
 test("tokenNeedsRefresh: expiry exactly at now → needs refresh", () => {
-  const now = new Date(Date.now()).toISOString();
-  assert.equal(tokenNeedsRefresh(now), true);
+  assert.equal(tokenNeedsRefresh(Date.now()), true);
 });
 
 test("tokenNeedsRefresh: expiry 4 min 59 s from now (within 5-min buffer) → needs refresh", () => {
-  const nearExpiry = new Date(Date.now() + 4 * 60 * 1000 + 59 * 1000).toISOString();
-  assert.equal(tokenNeedsRefresh(nearExpiry), true);
+  assert.equal(tokenNeedsRefresh(Date.now() + 4 * 60 * 1000 + 59 * 1000), true);
 });
 
 test("tokenNeedsRefresh: expiry exactly 5 min from now (edge of buffer) → needs refresh", () => {
-  const edge = new Date(Date.now() + REFRESH_BUFFER_MS).toISOString();
-  assert.equal(tokenNeedsRefresh(edge), true);
+  assert.equal(tokenNeedsRefresh(Date.now() + REFRESH_BUFFER_MS), true);
 });
 
 test("tokenNeedsRefresh: expiry 5 min + 1 s from now → does NOT need refresh", () => {
-  const safe = new Date(Date.now() + REFRESH_BUFFER_MS + 1000).toISOString();
-  assert.equal(tokenNeedsRefresh(safe), false);
+  assert.equal(tokenNeedsRefresh(Date.now() + REFRESH_BUFFER_MS + 1000), false);
 });
 
 test("tokenNeedsRefresh: expiry 1 hour from now → does NOT need refresh", () => {
-  const fresh = new Date(Date.now() + 60 * 60 * 1000).toISOString();
-  assert.equal(tokenNeedsRefresh(fresh), false);
+  assert.equal(tokenNeedsRefresh(Date.now() + 60 * 60 * 1000), false);
+});
+
+test("tokenNeedsRefresh: NaN (legacy malformed value coerced to number) → needs refresh", () => {
+  // Regression: before the bigint migration a malformed ISO string could be
+  // coerced to NaN. NaN must be treated as epoch-0 so a refresh is triggered.
+  assert.equal(tokenNeedsRefresh(NaN), true);
 });
 
 // ---------------------------------------------------------------------------
@@ -111,10 +111,9 @@ test("callRefreshEndpoint: successful response returns accessToken and newExpiry
   const result = await callRefreshEndpoint("rt-123", "cid", "csecret", mockFetch);
   assert.ok(result, "expected a non-null result");
   assert.equal(result.accessToken, "new-token-abc");
-  const expiryMs = new Date(result.newExpiry).getTime();
   const nowMs = Date.now();
-  assert.ok(expiryMs > nowMs + 3500 * 1000, "newExpiry should be ~1 hour from now");
-  assert.ok(expiryMs < nowMs + 3700 * 1000, "newExpiry should not be excessively far");
+  assert.ok(result.newExpiry > nowMs + 3500 * 1000, "newExpiry should be ~1 hour from now");
+  assert.ok(result.newExpiry < nowMs + 3700 * 1000, "newExpiry should not be excessively far");
 });
 
 test("callRefreshEndpoint: uses expires_in=3600 as default when field is absent", async () => {
@@ -125,8 +124,7 @@ test("callRefreshEndpoint: uses expires_in=3600 as default when field is absent"
 
   const result = await callRefreshEndpoint("rt-x", "cid", "csecret", mockFetch);
   assert.ok(result);
-  const expiryMs = new Date(result.newExpiry).getTime();
-  assert.ok(expiryMs > Date.now() + 3500 * 1000);
+  assert.ok(result.newExpiry > Date.now() + 3500 * 1000);
 });
 
 test("callRefreshEndpoint: HTTP error response returns null", async () => {

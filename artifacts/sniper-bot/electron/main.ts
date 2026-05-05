@@ -314,7 +314,7 @@ ipcMain.handle("google:oauthSignIn", async (): Promise<{
   email: string;
   accessToken: string;
   refreshToken: string;
-  expiresAt: string;
+  expiresAt: number;
 }> => {
   const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
   const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
@@ -448,7 +448,7 @@ ipcMain.handle("google:oauthSignIn", async (): Promise<{
     email,
     accessToken: tokenData.access_token,
     refreshToken: tokenData.refresh_token ?? "",
-    expiresAt: new Date(Date.now() + (tokenData.expires_in ?? 3600) * 1000).toISOString(),
+    expiresAt: Date.now() + (tokenData.expires_in ?? 3600) * 1000,
   };
 });
 

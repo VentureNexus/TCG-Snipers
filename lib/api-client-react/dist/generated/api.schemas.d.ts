@@ -20,7 +20,7 @@ export interface Settings {
     googleEmail?: string | null;
     googleAccessToken?: string | null;
     googleRefreshToken?: string | null;
-    googleTokenExpiry?: string | null;
+    googleTokenExpiry?: number | null;
     discordGuildName?: string | null;
     discordChannelName?: string | null;
 }
@@ -35,7 +35,7 @@ export interface UpdateSettingsBody {
     googleEmail?: string | null;
     googleAccessToken?: string | null;
     googleRefreshToken?: string | null;
-    googleTokenExpiry?: string | null;
+    googleTokenExpiry?: number | null;
     discordGuildName?: string | null;
     discordChannelName?: string | null;
 }

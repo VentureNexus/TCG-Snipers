@@ -30,7 +30,7 @@ export const GetSettingsResponse = zod.object({
   googleEmail: zod.string().nullable().optional(),
   googleAccessToken: zod.string().nullable().optional(),
   googleRefreshToken: zod.string().nullable().optional(),
-  googleTokenExpiry: zod.string().nullable().optional(),
+  googleTokenExpiry: zod.number().nullable().optional(),
   discordGuildName: zod.string().nullable().optional(),
   discordChannelName: zod.string().nullable().optional(),
 });
@@ -49,7 +49,7 @@ export const UpdateSettingsBody = zod.object({
   googleEmail: zod.string().nullable().optional(),
   googleAccessToken: zod.string().nullable().optional(),
   googleRefreshToken: zod.string().nullable().optional(),
-  googleTokenExpiry: zod.string().nullable().optional(),
+  googleTokenExpiry: zod.number().nullable().optional(),
   discordGuildName: zod.string().nullable().optional(),
   discordChannelName: zod.string().nullable().optional(),
 });
@@ -66,7 +66,7 @@ export const UpdateSettingsResponse = zod.object({
   googleEmail: zod.string().nullable().optional(),
   googleAccessToken: zod.string().nullable().optional(),
   googleRefreshToken: zod.string().nullable().optional(),
-  googleTokenExpiry: zod.string().nullable().optional(),
+  googleTokenExpiry: zod.number().nullable().optional(),
   discordGuildName: zod.string().nullable().optional(),
   discordChannelName: zod.string().nullable().optional(),
 });

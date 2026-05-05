@@ -5,10 +5,11 @@ export const REFRESH_BUFFER_MS = 5 * 60 * 1000; // refresh if < 5 min remaining
 
 /**
  * Pure helper — returns true when the stored token should be refreshed.
+ * `expiryMs` is a Unix timestamp in milliseconds (bigint column stored as number).
  * Exported so it can be unit-tested without a database dependency.
  */
-export function tokenNeedsRefresh(expiryIso: string | null | undefined): boolean {
-  const expiresAt = expiryIso ? new Date(expiryIso).getTime() : 0;
+export function tokenNeedsRefresh(expiryMs: number | null | undefined): boolean {
+  const expiresAt = (expiryMs != null && !isNaN(expiryMs)) ? expiryMs : 0;
   return Date.now() + REFRESH_BUFFER_MS >= expiresAt;
 }
 
@@ -24,7 +25,7 @@ export async function callRefreshEndpoint(
   clientId: string,
   clientSecret: string,
   fetchFn: typeof fetch = fetch,
-): Promise<{ accessToken: string; newExpiry: string } | null> {
+): Promise<{ accessToken: string; newExpiry: number } | null> {
   const params = new URLSearchParams({
     client_id: clientId,
     client_secret: clientSecret,
@@ -47,7 +48,7 @@ export async function callRefreshEndpoint(
 
     if (!res.ok || !data.access_token) return null;
 
-    const newExpiry = new Date(Date.now() + (data.expires_in ?? 3600) * 1000).toISOString();
+    const newExpiry = Date.now() + (data.expires_in ?? 3600) * 1000;
     return { accessToken: data.access_token, newExpiry };
   } catch {
     return null;
