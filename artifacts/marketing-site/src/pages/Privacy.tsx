@@ -17,10 +17,8 @@ export default function Privacy() {
           </p>
         </section>
 
-        <section className="border border-primary/30 bg-primary/5 rounded-lg p-6">
-          <h2 className="text-xl font-semibold mb-3 text-primary">
-            2. We Do Not Sell Your Data
-          </h2>
+        <section>
+          <h2 className="text-xl font-semibold mb-3">2. We Do Not Sell Your Data</h2>
           <p>
             TCG Snipers does not sell, trade, rent, or otherwise transfer any personal information
             to third parties for commercial purposes — ever. Your data is yours.
@@ -58,37 +56,40 @@ export default function Privacy() {
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold mb-3">5. Google Sign-In</h2>
+          <h2 className="text-xl font-semibold mb-3">5. Google Account Access</h2>
           <p className="mb-3">
-            TCG Snipers offers optional sign-in with Google via OAuth 2.0. If you choose to sign
-            in with Google:
+            TCG Snipers offers optional sign-in with Google via OAuth 2.0. If you choose to connect
+            your Google account, the Software requests the following access:
           </p>
           <ul className="list-disc pl-6 space-y-1">
             <li>
-              We request access to your basic profile information: name, email address, and profile
-              picture.
+              <strong>Basic profile</strong> — your name, email address, and profile picture, used
+              to identify your account and link your license.
             </li>
             <li>
-              This information is used solely to identify your account and link your license.
-            </li>
-            <li>
-              Your Google credentials and tokens are stored locally on your device only and are
-              never transmitted to our servers.
-            </li>
-            <li>We do not access your Google Drive, Gmail, Contacts, or any other Google data.</li>
-            <li>
-              You can revoke TCG Snipers' access to your Google account at any time by visiting{" "}
-              <a
-                href="https://myaccount.google.com/permissions"
-                target="_blank"
-                rel="noreferrer"
-                className="text-primary hover:underline"
-              >
-                myaccount.google.com/permissions
-              </a>
-              .
+              <strong>Gmail read access</strong> — the Software reads your inbox to detect and
+              parse purchase confirmation emails from supported retailers, so it can automatically
+              log successful checkouts and notify you of order details.
             </li>
           </ul>
+          <p className="mt-3">
+            Your Google access token is stored locally on your device only and is never transmitted
+            to our servers. Gmail data is read in real time on your machine and is not uploaded,
+            stored remotely, or shared with any third party. We do not access your Google Drive,
+            Contacts, Calendar, or any other Google data beyond what is described above.
+          </p>
+          <p className="mt-3">
+            You can revoke TCG Snipers' access to your Google account at any time by visiting{" "}
+            <a
+              href="https://myaccount.google.com/permissions"
+              target="_blank"
+              rel="noreferrer"
+              className="text-primary hover:underline"
+            >
+              myaccount.google.com/permissions
+            </a>
+            .
+          </p>
           <p className="mt-3">
             TCG Snipers' use and transfer of information received from Google APIs adheres to the{" "}
             <a
@@ -104,36 +105,40 @@ export default function Privacy() {
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold mb-3">6. Discord Sign-In</h2>
+          <h2 className="text-xl font-semibold mb-3">6. Discord Account Access</h2>
           <p className="mb-3">
-            TCG Snipers offers optional sign-in with Discord via OAuth 2.0. If you choose to sign
-            in with Discord:
+            TCG Snipers offers optional sign-in with Discord via OAuth 2.0. If you choose to
+            connect your Discord account, the Software requests the following access:
           </p>
           <ul className="list-disc pl-6 space-y-1">
             <li>
-              We request access to your Discord username, discriminator, avatar, and email address.
+              <strong>Basic profile</strong> — your Discord username, avatar, and email address,
+              used to identify your account and link your license.
             </li>
             <li>
-              This information is used solely to verify your identity and link your license.
-            </li>
-            <li>
-              Your Discord access token is stored locally on your device only and is never
-              transmitted to our servers.
-            </li>
-            <li>We do not read your Discord messages, servers, or any other Discord data.</li>
-            <li>
-              You can revoke TCG Snipers' access to your Discord account at any time by visiting{" "}
-              <a
-                href="https://discord.com/settings/authorized-apps"
-                target="_blank"
-                rel="noreferrer"
-                className="text-primary hover:underline"
-              >
-                discord.com/settings/authorized-apps
-              </a>
-              .
+              <strong>Notifications</strong> — the Software sends checkout alerts and status
+              updates to your Discord account (via webhook or direct message) so you are notified
+              the moment a product is successfully purchased or a task encounters an error.
             </li>
           </ul>
+          <p className="mt-3">
+            Your Discord access token is stored locally on your device only and is never
+            transmitted to our servers. We do not read your Discord messages, servers, channels,
+            or any other Discord data. Notifications are outbound only — sent from the Software
+            running on your machine.
+          </p>
+          <p className="mt-3">
+            You can revoke TCG Snipers' access to your Discord account at any time by visiting{" "}
+            <a
+              href="https://discord.com/settings/authorized-apps"
+              target="_blank"
+              rel="noreferrer"
+              className="text-primary hover:underline"
+            >
+              discord.com/settings/authorized-apps
+            </a>
+            .
+          </p>
         </section>
 
         <section>
