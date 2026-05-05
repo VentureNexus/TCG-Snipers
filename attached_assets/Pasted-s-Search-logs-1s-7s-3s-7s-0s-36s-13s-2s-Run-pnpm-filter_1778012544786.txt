@@ -1,0 +1,46 @@
+s
+Search logs
+1s
+7s
+3s
+7s
+0s
+36s
+13s
+2s
+Run pnpm --filter @workspace/api-server run build
+
+> @workspace/api-server@0.0.0 build D:\a\TCG-Snipers\TCG-Snipers\artifacts\api-server
+> node ./build.mjs
+
+Error: R] Could not resolve "chromium-bidi/lib/cjs/bidiMapper/BidiMapper"
+
+    ../../node_modules/.pnpm/playwright-core@1.59.1/node_modules/playwright-core/lib/server/bidi/bidiOverCdp.js:34:33:
+      34 │ ...= __toESM(require("chromium-bidi/lib/cjs/bidiMapper/BidiMapper"));
+         ╵                      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+  You can mark the path "chromium-bidi/lib/cjs/bidiMapper/BidiMapper" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle. You can also surround this "require" call with a try/catch block to handle this failure at run-time instead of bundle-time.
+
+Error: R] Could not resolve "chromium-bidi/lib/cjs/cdp/CdpConnection"
+
+    ../../node_modules/.pnpm/playwright-core@1.59.1/node_modules/playwright-core/lib/server/bidi/bidiOverCdp.js:35:40:
+      35 │ ...ion = __toESM(require("chromium-bidi/lib/cjs/cdp/CdpConnection"));
+         ╵                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+  You can mark the path "chromium-bidi/lib/cjs/cdp/CdpConnection" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle. You can also surround this "require" call with a try/catch block to handle this failure at run-time instead of bundle-time.
+
+2 errors
+Error: Build failed with 2 errors:
+../../node_modules/.pnpm/playwright-core@1.59.1/node_modules/playwright-core/lib/server/bidi/bidiOverCdp.js:34:33: ERROR: Could not resolve "chromium-bidi/lib/cjs/bidiMapper/BidiMapper"
+../../node_modules/.pnpm/playwright-core@1.59.1/node_modules/playwright-core/lib/server/bidi/bidiOverCdp.js:35:40: ERROR: Could not resolve "chromium-bidi/lib/cjs/cdp/CdpConnection"
+    at failureErrorWithLog (D:\a\TCG-Snipers\TCG-Snipers\node_modules\.pnpm\esbuild@0.27.7\node_modules\esbuild\lib\main.js:1748:15)
+    at D:\a\TCG-Snipers\TCG-Snipers\node_modules\.pnpm\esbuild@0.27.7\node_modules\esbuild\lib\main.js:1207:25
+    at D:\a\TCG-Snipers\TCG-Snipers\node_modules\.pnpm\esbuild@0.27.7\node_modules\esbuild\lib\main.js:1626:9
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5) {
+  errors: [Getter/Setter],
+  warnings: [Getter/Setter]
+}
+D:\a\TCG-Snipers\TCG-Snipers\artifacts\api-server:
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @workspace/api-server@0.0.0 build: `node ./build.mjs`
+Exit status 1
+Error: Process completed with exit code 1.

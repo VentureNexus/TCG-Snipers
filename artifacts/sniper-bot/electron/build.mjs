@@ -82,6 +82,8 @@ const sharedExternals = [
   "zeromq-prebuilt",
   "puppeteer",
   "puppeteer-core",
+  // playwright-core optional sub-dependency (BiDi protocol) — not used; cannot be bundled
+  "chromium-bidi",
 ];
 
 // ── Bake Discord OAuth credentials into the main-process bundle ───────────────
