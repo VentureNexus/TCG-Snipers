@@ -103,12 +103,28 @@ const googleOAuthDefines = {
   ),
 };
 
+const missingGoogleSecrets = [];
 if (process.env.GOOGLE_OAUTH_CLIENT_ID) {
   console.log("✓ GOOGLE_OAUTH_CLIENT_ID will be baked into the bundle");
 } else {
-  console.warn(
-    "⚠ GOOGLE_OAUTH_CLIENT_ID is not set — packaged app will not support Google sign-in"
+  missingGoogleSecrets.push("GOOGLE_OAUTH_CLIENT_ID");
+}
+if (process.env.GOOGLE_OAUTH_CLIENT_SECRET) {
+  console.log("✓ GOOGLE_OAUTH_CLIENT_SECRET will be baked into the bundle");
+} else {
+  missingGoogleSecrets.push("GOOGLE_OAUTH_CLIENT_SECRET");
+}
+if (missingGoogleSecrets.length > 0) {
+  for (const name of missingGoogleSecrets) {
+    console.error(
+      `✗ ${name} is not set — packaged app will not support Google sign-in`
+    );
+  }
+  console.error(
+    "Set GOOGLE_OAUTH_CLIENT_ID and GOOGLE_OAUTH_CLIENT_SECRET before building a " +
+    "release. In CI, add them under Settings → Secrets → Actions in the GitHub repo."
   );
+  process.exit(1);
 }
 
 // ── Bake Discord OAuth credentials into the main-process bundle ───────────────
