@@ -2,13 +2,12 @@ import type { Browser } from "playwright";
 import { createBrowser, createStealthContext, humanDelay, humanType } from "../browser";
 import type { RetailerContext, RetailerResult } from "./types";
 import { decrypt } from "../crypto";
-import { db, creditCardsTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { applyCartQuantity } from "./cartHelpers";
 
 const RETAILER = "Pokemon Center";
 
 export async function runPokemonCenter(ctx: RetailerContext): Promise<RetailerResult> {
-  const { task, profile, proxy, token, log, setStatus, setRetryProgress } = ctx;
+  const { task, profile, card, proxy, token, log, setStatus, setRetryProgress } = ctx;
   let browser: Browser | null = null;
 
   const fail = (msg: string): RetailerResult => ({
@@ -55,7 +54,6 @@ export async function runPokemonCenter(ctx: RetailerContext): Promise<RetailerRe
         await humanDelay(800, 1500);
         if (token.cancelled) return fail("Task cancelled");
 
-        // Detect waiting room / queue
         const queue = await page.$('[id*="queue"], [class*="waiting-room"], h1:has-text("Waiting")');
         if (queue) {
           log("WARN", `[${RETAILER}] Waiting room detected — standing by...`);
@@ -79,7 +77,6 @@ export async function runPokemonCenter(ctx: RetailerContext): Promise<RetailerRe
           productImage = await page.$eval('meta[property="og:image"]', el => el.getAttribute("content") ?? "").catch(() => "");
         }
 
-        // Pokémon Center uses Shopify — look for "Add to cart" button
         const atcBtn = await page.$('button[name="add"]:not([disabled]), button.add-to-cart:not([disabled]), button:has-text("Add to Cart"):not([disabled])');
         const outOfStock = await page.$('button[disabled]:has-text("Sold Out"), .sold-out-badge');
         if (atcBtn && !outOfStock) {
@@ -112,11 +109,13 @@ export async function runPokemonCenter(ctx: RetailerContext): Promise<RetailerRe
     }
     await humanDelay(1500, 2500);
 
-    // Shopify cart drawer or redirect
     const viewCart = await page.$('a:has-text("View Cart"), a[href="/cart"]');
     if (viewCart) { await viewCart.click(); await humanDelay(1000, 1800); }
     else await page.goto("https://www.pokemoncenter.com/cart", { waitUntil: "domcontentloaded" });
     if (token.cancelled) return fail("Task cancelled");
+
+    const effectiveQty = await applyCartQuantity(page, task.quantity, log);
+    log("INFO", `[${RETAILER}] Cart quantity: ${effectiveQty}`);
 
     log("INFO", `[${RETAILER}] Proceeding to checkout (Shopify)...`);
     await setStatus("checking_out");
@@ -126,7 +125,6 @@ export async function runPokemonCenter(ctx: RetailerContext): Promise<RetailerRe
     await humanDelay(2000, 3000);
     if (token.cancelled) return fail("Task cancelled");
 
-    // Shopify checkout steps
     if (profile) {
       log("INFO", `[${RETAILER}] Filling Shopify contact & shipping for profile: ${profile.name}`);
       const contactFields: Array<[string, string]> = [
@@ -152,25 +150,22 @@ export async function runPokemonCenter(ctx: RetailerContext): Promise<RetailerRe
     if (continuePayment) { await continuePayment.click(); await humanDelay(2000, 3000); }
     if (token.cancelled) return fail("Task cancelled");
 
-    if (profile) {
-      const cards = await db.select().from(creditCardsTable).where(eq(creditCardsTable.profileId, profile.id));
-      if (cards.length > 0) {
-        const card = cards[0];
-        log("INFO", `[${RETAILER}] Entering payment (${card.cardType} ****${card.lastFour})...`);
-        try {
-          const cardNumber = decrypt(card.encryptedNumber);
-          const cvv = decrypt(card.encryptedCvv);
-          // Shopify embeds card fields in iframes
-          const cardFrame = page.frameLocator('[id*="card-fields-number"] iframe, iframe[title*="Card Number"]');
-          try { await cardFrame.locator('input').fill(cardNumber); await humanDelay(100, 200); } catch (_) {}
-          const expFrame = page.frameLocator('[id*="card-fields-expiry"] iframe, iframe[title*="Expiry"]');
-          try { await expFrame.locator('input').fill(`${card.expiryMonth} / ${card.expiryYear.slice(-2)}`); await humanDelay(100, 200); } catch (_) {}
-          const cvvFrame = page.frameLocator('[id*="card-fields-verification"] iframe, iframe[title*="Security"]');
-          try { await cvvFrame.locator('input').fill(cvv); await humanDelay(100, 200); } catch (_) {}
-        } catch (decryptErr) {
-          log("WARN", `[${RETAILER}] Could not decrypt card: ${String(decryptErr)}`);
-        }
+    if (card) {
+      log("INFO", `[${RETAILER}] Entering payment (${card.cardType} ****${card.lastFour})...`);
+      try {
+        const cardNumber = decrypt(card.encryptedNumber);
+        const cvv = decrypt(card.encryptedCvv);
+        const cardFrame = page.frameLocator('[id*="card-fields-number"] iframe, iframe[title*="Card Number"]');
+        try { await cardFrame.locator('input').fill(cardNumber); await humanDelay(100, 200); } catch (_) {}
+        const expFrame = page.frameLocator('[id*="card-fields-expiry"] iframe, iframe[title*="Expiry"]');
+        try { await expFrame.locator('input').fill(`${card.expiryMonth} / ${card.expiryYear.slice(-2)}`); await humanDelay(100, 200); } catch (_) {}
+        const cvvFrame = page.frameLocator('[id*="card-fields-verification"] iframe, iframe[title*="Security"]');
+        try { await cvvFrame.locator('input').fill(cvv); await humanDelay(100, 200); } catch (_) {}
+      } catch (decryptErr) {
+        log("WARN", `[${RETAILER}] Could not decrypt card: ${String(decryptErr)}`);
       }
+    } else {
+      log("WARN", `[${RETAILER}] No credit card provided — skipping payment step`);
     }
 
     log("INFO", `[${RETAILER}] Submitting Shopify order...`);

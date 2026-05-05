@@ -1,4 +1,4 @@
-import { db, tasksTable, checkoutResultsTable, profilesTable, proxiesTable } from "@workspace/db";
+import { db, tasksTable, checkoutResultsTable, profilesTable, proxiesTable, creditCardsTable } from "@workspace/db";
 import { eq, inArray } from "drizzle-orm";
 import { broadcastLog, broadcastStatus, broadcastRetryProgress } from "./websocket";
 import { dispatchRetailer } from "./retailers";
@@ -124,88 +124,123 @@ async function runTaskAutomation(task: TaskRow, token: { cancelled: boolean }) {
       };
     }
 
-    const result = await dispatchRetailer({
-      task: {
-        id: task.id,
-        retailer: task.retailer,
-        productUrl: task.productUrl,
-        productKeywords: task.productKeywords,
-        size: task.size,
-        quantity: task.quantity,
-        monitorDelay: Math.max(task.monitorDelay, 100),
-        monitorDelayMax: task.monitorDelayMax ?? null,
-        retryCount: task.retryCount,
-        maxPrice: task.maxPrice ?? null,
-        stopAfterMs: task.stopAfterMs ?? null,
-      },
-      profile: profile ?? null,
-      proxy,
-      token,
-      log,
-      setStatus,
-      setRetryProgress,
-      globalImapConfig,
-    });
+    // Fetch all cards for this profile upfront so we can cycle through them.
+    const profileCards = profile
+      ? await db.select().from(creditCardsTable).where(eq(creditCardsTable.profileId, profile.id))
+      : [];
 
-    if (token.cancelled) return;
+    // If no cards are on the profile, run once with card=null (profile may use
+    // a saved payment method already on the account).
+    const cardSlots = profileCards.length > 0 ? profileCards : [null];
+    const totalCards = cardSlots.length;
+
+    if (totalCards > 1) {
+      log("INFO", `[Card Cycling] Profile has ${totalCards} cards — will checkout once per card.`);
+    }
 
     const profileNickname = profile?.name ?? "No Profile";
+    let anySuccess = false;
 
-    if (result.success) {
+    for (let cardIdx = 0; cardIdx < cardSlots.length; cardIdx++) {
+      if (token.cancelled) break;
+
+      const card = cardSlots[cardIdx];
+
+      if (totalCards > 1) {
+        log("INFO", `[Card Cycling] Run ${cardIdx + 1}/${totalCards} — card ${card ? `${card.cardType} ****${card.lastFour}` : "none"}`);
+      }
+
+      const result = await dispatchRetailer({
+        task: {
+          id: task.id,
+          retailer: task.retailer,
+          productUrl: task.productUrl,
+          productKeywords: task.productKeywords,
+          size: task.size,
+          quantity: task.quantity,
+          monitorDelay: Math.max(task.monitorDelay, 100),
+          monitorDelayMax: task.monitorDelayMax ?? null,
+          retryCount: task.retryCount,
+          maxPrice: task.maxPrice ?? null,
+          stopAfterMs: task.stopAfterMs ?? null,
+        },
+        profile: profile ?? null,
+        card: card ?? null,
+        proxy,
+        token,
+        log,
+        setStatus,
+        setRetryProgress,
+        globalImapConfig,
+      });
+
+      if (token.cancelled) break;
+
+      if (result.success) {
+        anySuccess = true;
+        await db.insert(checkoutResultsTable).values({
+          taskId: task.id,
+          success: true,
+          productName: result.productName,
+          productImage: result.productImage,
+          price: result.price,
+          retailer: task.retailer,
+          orderNumber: result.orderNumber,
+          errorMessage: "",
+          profileId: task.profileId,
+        });
+        if (settings.webhookUrl) {
+          try {
+            await notifySuccess({
+              retailer: task.retailer,
+              productName: result.productName,
+              price: result.price != null ? result.price : "N/A",
+              orderNumber: result.orderNumber,
+              profileNickname,
+              webhookUrl: settings.webhookUrl,
+            });
+          } catch (webhookErr) {
+            log("WARN", `[Discord] Webhook notification failed: ${String(webhookErr)}`);
+          }
+        }
+        if (totalCards > 1) {
+          log("SUCCESS", `[Card Cycling] Checkout ${cardIdx + 1}/${totalCards} succeeded — order ${result.orderNumber}`);
+        }
+      } else {
+        log("ERROR", `[${task.retailer}] Checkout ${totalCards > 1 ? `${cardIdx + 1}/${totalCards} ` : ""}failed: ${result.errorMessage}`);
+        await db.insert(checkoutResultsTable).values({
+          taskId: task.id,
+          success: false,
+          productName: result.productName,
+          productImage: result.productImage,
+          price: null,
+          retailer: task.retailer,
+          orderNumber: "",
+          errorMessage: result.errorMessage,
+          profileId: task.profileId,
+        });
+        if (settings.webhookUrl) {
+          try {
+            await notifyFailure({
+              retailer: task.retailer,
+              productName: result.productName,
+              errorMessage: result.errorMessage,
+              retryCount: task.retryCount,
+              profileNickname,
+              webhookUrl: settings.webhookUrl,
+            });
+          } catch (webhookErr) {
+            log("WARN", `[Discord] Webhook notification failed: ${String(webhookErr)}`);
+          }
+        }
+      }
+    }
+
+    // Final task status: success if at least one card checked out, failed if all failed.
+    if (anySuccess) {
       await setStatus("success");
-      await db.insert(checkoutResultsTable).values({
-        taskId: task.id,
-        success: true,
-        productName: result.productName,
-        productImage: result.productImage,
-        price: result.price,
-        retailer: task.retailer,
-        orderNumber: result.orderNumber,
-        errorMessage: "",
-        profileId: task.profileId,
-      });
-      if (settings.webhookUrl) {
-        try {
-          await notifySuccess({
-            retailer: task.retailer,
-            productName: result.productName,
-            price: result.price != null ? result.price : "N/A",
-            orderNumber: result.orderNumber,
-            profileNickname,
-            webhookUrl: settings.webhookUrl,
-          });
-        } catch (webhookErr) {
-          log("WARN", `[Discord] Webhook notification failed: ${String(webhookErr)}`);
-        }
-      }
-    } else {
-      log("ERROR", `[${task.retailer}] Task failed: ${result.errorMessage}`);
+    } else if (!token.cancelled) {
       await setStatus("failed");
-      await db.insert(checkoutResultsTable).values({
-        taskId: task.id,
-        success: false,
-        productName: result.productName,
-        productImage: result.productImage,
-        price: null,
-        retailer: task.retailer,
-        orderNumber: "",
-        errorMessage: result.errorMessage,
-        profileId: task.profileId,
-      });
-      if (settings.webhookUrl) {
-        try {
-          await notifyFailure({
-            retailer: task.retailer,
-            productName: result.productName,
-            errorMessage: result.errorMessage,
-            retryCount: task.retryCount,
-            profileNickname,
-            webhookUrl: settings.webhookUrl,
-          });
-        } catch (webhookErr) {
-          log("WARN", `[Discord] Webhook notification failed: ${String(webhookErr)}`);
-        }
-      }
     }
   } catch (err) {
     log("ERROR", `[${task.retailer}] Unexpected error: ${String(err)}`);

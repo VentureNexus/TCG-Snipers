@@ -1,4 +1,4 @@
-import type { Profile } from "@workspace/db";
+import type { Profile, CreditCard } from "@workspace/db";
 import type { ProxyConfig } from "../browser";
 import type { ImapConfig } from "../imap";
 
@@ -19,6 +19,10 @@ export interface TaskInfo {
 export interface RetailerContext {
   task: TaskInfo;
   profile: Profile | null;
+  /** The specific credit card to use for this checkout run. Provided by the
+   *  task worker after cycling through all cards on the profile. Runners must
+   *  NOT query the DB for cards themselves — always use this field. */
+  card: CreditCard | null;
   proxy: ProxyConfig | null;
   token: { cancelled: boolean };
   log: (level: "INFO" | "SUCCESS" | "WARN" | "ERROR", msg: string) => void;

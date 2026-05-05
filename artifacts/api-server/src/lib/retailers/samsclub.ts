@@ -2,13 +2,12 @@ import type { Browser } from "playwright";
 import { createBrowser, createStealthContext, humanDelay, humanType } from "../browser";
 import type { RetailerContext, RetailerResult } from "./types";
 import { decrypt } from "../crypto";
-import { db, creditCardsTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { applyCartQuantity } from "./cartHelpers";
 
 const RETAILER = "Sam's Club";
 
 export async function runSamsClub(ctx: RetailerContext): Promise<RetailerResult> {
-  const { task, profile, proxy, token, log, setStatus, setRetryProgress } = ctx;
+  const { task, profile, card, proxy, token, log, setStatus, setRetryProgress } = ctx;
   let browser: Browser | null = null;
 
   const fail = (msg: string): RetailerResult => ({
@@ -63,7 +62,6 @@ export async function runSamsClub(ctx: RetailerContext): Promise<RetailerResult>
         await humanDelay(800, 1500);
         if (token.cancelled) return fail("Task cancelled");
 
-        // Sign in if prompted
         const signInBtn = await page.$('a[href*="login"], button:has-text("Sign In"), a:has-text("Sign in")');
         if (signInBtn && profile) {
           log("INFO", `[${RETAILER}] Sign-in prompt detected — logging in...`);
@@ -130,6 +128,9 @@ export async function runSamsClub(ctx: RetailerContext): Promise<RetailerResult>
     await humanDelay(1000, 1800);
     if (token.cancelled) return fail("Task cancelled");
 
+    const effectiveQty = await applyCartQuantity(page, task.quantity, log);
+    log("INFO", `[${RETAILER}] Cart quantity: ${effectiveQty}`);
+
     log("INFO", `[${RETAILER}] Proceeding to checkout...`);
     await setStatus("checking_out");
     const checkoutBtn = await page.$('button:has-text("Checkout"), a:has-text("Proceed to Checkout")');
@@ -157,27 +158,27 @@ export async function runSamsClub(ctx: RetailerContext): Promise<RetailerResult>
       const continueBtn = await page.$('button:has-text("Continue"), button:has-text("Save & Continue")');
       if (continueBtn) { await continueBtn.click(); await humanDelay(2000, 3000); }
       if (token.cancelled) return fail("Task cancelled");
+    }
 
-      const cards = await db.select().from(creditCardsTable).where(eq(creditCardsTable.profileId, profile.id));
-      if (cards.length > 0) {
-        const card = cards[0];
-        log("INFO", `[${RETAILER}] Entering payment (${card.cardType} ****${card.lastFour})...`);
-        try {
-          const cardNumber = decrypt(card.encryptedNumber);
-          const cvv = decrypt(card.encryptedCvv);
-          const payFields: Array<[string, string]> = [
-            ['input[name="cardNumber"], input[id*="cardNumber"]', cardNumber],
-            ['input[name="expirationMonth"]', card.expiryMonth],
-            ['input[name="expirationYear"]', card.expiryYear],
-            ['input[name="cvv"], input[name="securityCode"]', cvv],
-          ];
-          for (const [sel, val] of payFields) {
-            try { await humanType(page, sel, val); await humanDelay(80, 150); } catch (_) {}
-          }
-        } catch (decryptErr) {
-          log("WARN", `[${RETAILER}] Could not decrypt card: ${String(decryptErr)}`);
+    if (card) {
+      log("INFO", `[${RETAILER}] Entering payment (${card.cardType} ****${card.lastFour})...`);
+      try {
+        const cardNumber = decrypt(card.encryptedNumber);
+        const cvv = decrypt(card.encryptedCvv);
+        const payFields: Array<[string, string]> = [
+          ['input[name="cardNumber"], input[id*="cardNumber"]', cardNumber],
+          ['input[name="expirationMonth"]', card.expiryMonth],
+          ['input[name="expirationYear"]', card.expiryYear],
+          ['input[name="cvv"], input[name="securityCode"]', cvv],
+        ];
+        for (const [sel, val] of payFields) {
+          try { await humanType(page, sel, val); await humanDelay(80, 150); } catch (_) {}
         }
+      } catch (decryptErr) {
+        log("WARN", `[${RETAILER}] Could not decrypt card: ${String(decryptErr)}`);
       }
+    } else {
+      log("WARN", `[${RETAILER}] No credit card provided — skipping payment step`);
     }
 
     log("INFO", `[${RETAILER}] Submitting order...`);

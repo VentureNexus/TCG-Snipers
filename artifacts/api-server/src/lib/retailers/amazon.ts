@@ -3,13 +3,12 @@ import { createBrowser, createStealthContext, humanDelay, humanType } from "../b
 import { imapFetchCode } from "../imap";
 import type { RetailerContext, RetailerResult } from "./types";
 import { decrypt } from "../crypto";
-import { db, creditCardsTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { applyCartQuantity } from "./cartHelpers";
 
 const RETAILER = "Amazon";
 
 export async function runAmazon(ctx: RetailerContext): Promise<RetailerResult> {
-  const { task, profile, proxy, token, log, setStatus, setRetryProgress } = ctx;
+  const { task, profile, card, proxy, token, log, setStatus, setRetryProgress } = ctx;
   let browser: Browser | null = null;
 
   const fail = (msg: string): RetailerResult => ({
@@ -99,6 +98,9 @@ export async function runAmazon(ctx: RetailerContext): Promise<RetailerResult> {
     await humanDelay(1000, 1800);
     if (token.cancelled) return fail("Task cancelled");
 
+    const effectiveQty = await applyCartQuantity(page, task.quantity, log);
+    log("INFO", `[${RETAILER}] Cart quantity: ${effectiveQty}`);
+
     log("INFO", `[${RETAILER}] Proceeding to checkout...`);
     await setStatus("checking_out");
     const checkoutBtn = await page.$('[name="proceedToRetailCheckout"], button:has-text("Proceed to checkout")');
@@ -155,26 +157,24 @@ export async function runAmazon(ctx: RetailerContext): Promise<RetailerResult> {
     if (continueShipping) { await continueShipping.click(); await humanDelay(2000, 3000); }
     if (token.cancelled) return fail("Task cancelled");
 
-    if (profile) {
-      const cards = await db.select().from(creditCardsTable).where(eq(creditCardsTable.profileId, profile.id));
-      if (cards.length > 0) {
-        const card = cards[0];
-        log("INFO", `[${RETAILER}] Entering payment (${card.cardType} ****${card.lastFour})...`);
-        try {
-          const cardNumber = decrypt(card.encryptedNumber);
-          const cvv = decrypt(card.encryptedCvv);
-          const payFields: Array<[string, string]> = [
-            ['input[name="addCreditCardNumber"]', cardNumber],
-            ['input[name="addCreditCardExpirationDate"]', `${card.expiryMonth}/${card.expiryYear}`],
-            ['input[name="cvv"]', cvv],
-          ];
-          for (const [sel, val] of payFields) {
-            try { await humanType(page, sel, val); await humanDelay(80, 150); } catch (_) {}
-          }
-        } catch (decryptErr) {
-          log("WARN", `[${RETAILER}] Could not decrypt card: ${String(decryptErr)}`);
+    if (card) {
+      log("INFO", `[${RETAILER}] Entering payment (${card.cardType} ****${card.lastFour})...`);
+      try {
+        const cardNumber = decrypt(card.encryptedNumber);
+        const cvv = decrypt(card.encryptedCvv);
+        const payFields: Array<[string, string]> = [
+          ['input[name="addCreditCardNumber"]', cardNumber],
+          ['input[name="addCreditCardExpirationDate"]', `${card.expiryMonth}/${card.expiryYear}`],
+          ['input[name="cvv"]', cvv],
+        ];
+        for (const [sel, val] of payFields) {
+          try { await humanType(page, sel, val); await humanDelay(80, 150); } catch (_) {}
         }
+      } catch (decryptErr) {
+        log("WARN", `[${RETAILER}] Could not decrypt card: ${String(decryptErr)}`);
       }
+    } else {
+      log("WARN", `[${RETAILER}] No credit card provided — skipping payment step`);
     }
 
     log("INFO", `[${RETAILER}] Submitting order...`);

@@ -2,13 +2,12 @@ import type { Browser } from "playwright";
 import { createBrowser, createStealthContext, humanDelay, humanType } from "../browser";
 import type { RetailerContext, RetailerResult } from "./types";
 import { decrypt } from "../crypto";
-import { db, creditCardsTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { applyCartQuantity } from "./cartHelpers";
 
 const RETAILER = "Best Buy";
 
 export async function runBestBuy(ctx: RetailerContext): Promise<RetailerResult> {
-  const { task, profile, proxy, token, log, setStatus, setRetryProgress } = ctx;
+  const { task, profile, card, proxy, token, log, setStatus, setRetryProgress } = ctx;
   let browser: Browser | null = null;
 
   const fail = (msg: string): RetailerResult => ({
@@ -65,7 +64,6 @@ export async function runBestBuy(ctx: RetailerContext): Promise<RetailerResult> 
           productImage = await page.$eval('meta[property="og:image"]', el => el.getAttribute("content") ?? "").catch(() => "");
         }
 
-        // Best Buy: check for "Add to Cart" vs "Sold Out" button
         const atcBtn = await page.$('button.add-to-cart-button:not([disabled]):not(.btn-disabled)');
         const soldOut = await page.$('.btn-disabled, button:has-text("Sold Out"), button:has-text("Coming Soon")');
         if (atcBtn && !soldOut) {
@@ -80,7 +78,6 @@ export async function runBestBuy(ctx: RetailerContext): Promise<RetailerResult> 
           inStock = true;
           break;
         }
-        // Check for Best Buy queue system
         const queueBtn = await page.$('button:has-text("Queue"), a:has-text("Join Queue")');
         if (queueBtn) {
           log("INFO", `[${RETAILER}] Queue system detected — joining queue...`);
@@ -112,6 +109,9 @@ export async function runBestBuy(ctx: RetailerContext): Promise<RetailerResult> 
     else await page.goto("https://www.bestbuy.com/cart", { waitUntil: "domcontentloaded" });
     if (token.cancelled) return fail("Task cancelled");
 
+    const effectiveQty = await applyCartQuantity(page, task.quantity, log);
+    log("INFO", `[${RETAILER}] Cart quantity: ${effectiveQty}`);
+
     log("INFO", `[${RETAILER}] Proceeding to checkout...`);
     await setStatus("checking_out");
     const checkoutBtn = await page.$('button.btn-primary:has-text("Checkout"), a:has-text("Checkout")');
@@ -141,26 +141,24 @@ export async function runBestBuy(ctx: RetailerContext): Promise<RetailerResult> 
     if (continueBtn) { await continueBtn.click(); await humanDelay(2000, 3000); }
     if (token.cancelled) return fail("Task cancelled");
 
-    if (profile) {
-      const cards = await db.select().from(creditCardsTable).where(eq(creditCardsTable.profileId, profile.id));
-      if (cards.length > 0) {
-        const card = cards[0];
-        log("INFO", `[${RETAILER}] Entering payment (${card.cardType} ****${card.lastFour})...`);
-        try {
-          const cardNumber = decrypt(card.encryptedNumber);
-          const cvv = decrypt(card.encryptedCvv);
-          const payFields: Array<[string, string]> = [
-            ['input[id="creditCard.cardNumber"], input[name="number"]', cardNumber],
-            ['input[id="creditCard.expiration"], input[name="expiration"]', `${card.expiryMonth}/${card.expiryYear.slice(-2)}`],
-            ['input[id="creditCard.cvv"], input[name="cvv"]', cvv],
-          ];
-          for (const [sel, val] of payFields) {
-            try { await humanType(page, sel, val); await humanDelay(80, 150); } catch (_) {}
-          }
-        } catch (decryptErr) {
-          log("WARN", `[${RETAILER}] Could not decrypt card: ${String(decryptErr)}`);
+    if (card) {
+      log("INFO", `[${RETAILER}] Entering payment (${card.cardType} ****${card.lastFour})...`);
+      try {
+        const cardNumber = decrypt(card.encryptedNumber);
+        const cvv = decrypt(card.encryptedCvv);
+        const payFields: Array<[string, string]> = [
+          ['input[id="creditCard.cardNumber"], input[name="number"]', cardNumber],
+          ['input[id="creditCard.expiration"], input[name="expiration"]', `${card.expiryMonth}/${card.expiryYear.slice(-2)}`],
+          ['input[id="creditCard.cvv"], input[name="cvv"]', cvv],
+        ];
+        for (const [sel, val] of payFields) {
+          try { await humanType(page, sel, val); await humanDelay(80, 150); } catch (_) {}
         }
+      } catch (decryptErr) {
+        log("WARN", `[${RETAILER}] Could not decrypt card: ${String(decryptErr)}`);
       }
+    } else {
+      log("WARN", `[${RETAILER}] No credit card provided — skipping payment step`);
     }
 
     log("INFO", `[${RETAILER}] Submitting order...`);
