@@ -35,6 +35,35 @@ and macOS arm64 installers, and publishes them to GitHub Releases via
 
 ---
 
+## v1.0.25 — 2026-05-05
+
+**GitHub Release:** https://github.com/VentureNexus/TCG-Snipers/releases/tag/v1.0.25
+
+### Assets (9 files)
+
+| File | Size |
+|---|---|
+| [TCGSnipers-1.0.25-x64-win.exe](https://github.com/VentureNexus/TCG-Snipers/releases/download/v1.0.25/TCGSnipers-1.0.25-x64-win.exe) | — |
+| TCGSnipers-1.0.25-x64-win.exe.blockmap | — |
+| TCGSnipers-1.0.25-x64-win.zip | — |
+| [TCGSnipers-1.0.25-arm64.dmg](https://github.com/VentureNexus/TCG-Snipers/releases/download/v1.0.25/TCGSnipers-1.0.25-arm64.dmg) | — |
+| TCGSnipers-1.0.25-arm64.dmg.blockmap | — |
+| TCGSnipers-1.0.25-arm64.zip | — |
+| TCGSnipers-1.0.25-arm64.zip.blockmap | — |
+| latest.yml (Windows auto-update) | — |
+| latest-mac.yml (macOS auto-update) | — |
+
+### Changes
+- Remove Google OAuth from app and CI (Discord notifications remain)
+- Add App Password link in profiles IMAP section
+- Add product image thumbnails to task list and recent checkouts
+- Move Notifications card above Engine Settings
+- Fix sidebar logo height to match TopBar
+- Fix membership ID fields to be full-width
+- Rebuild api-client-react dist (startedAt timestamp)
+
+---
+
 ## v1.0.23 — 2026-05-05
 
 **GitHub Release:** https://github.com/VentureNexus/TCG-Snipers/releases/tag/v1.0.23
