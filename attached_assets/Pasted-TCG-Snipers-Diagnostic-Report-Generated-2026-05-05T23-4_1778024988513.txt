@@ -1,0 +1,110 @@
+TCG Snipers Diagnostic Report
+Generated: 2026-05-05T23:49:43.796Z
+Version: 1.0.43
+
+=== Server Status ===
+API alive: true
+Port: 8080
+Start OK: true
+Uptime: 2m 8s
+
+
+=== Server Requests (last 98) ===
+06:49:15 PM  GET    /analytics/summary                       304  36ms
+06:49:18 PM  POST   /retailer-accounts                       404  3ms
+06:49:18 PM  GET    /tasks                                   304  9ms
+06:49:18 PM  GET    /analytics/summary                       304  41ms
+06:49:21 PM  GET    /tasks                                   304  10ms
+06:49:21 PM  GET    /analytics/summary                       304  35ms
+06:49:24 PM  GET    /tasks                                   304  7ms
+06:49:24 PM  GET    /analytics/summary                       304  23ms
+06:49:26 PM  POST   /retailer-accounts                       404  1ms
+06:49:27 PM  POST   /retailer-accounts                       404  2ms
+06:49:27 PM  POST   /retailer-accounts                       404  1ms
+06:49:27 PM  GET    /tasks                                   304  10ms
+06:49:27 PM  GET    /analytics/summary                       304  39ms
+06:49:27 PM  POST   /retailer-accounts                       404  1ms
+06:49:27 PM  POST   /retailer-accounts                       404  1ms
+06:49:28 PM  POST   /retailer-accounts                       404  2ms
+06:49:28 PM  POST   /retailer-accounts                       404  1ms
+06:49:30 PM  GET    /tasks                                   304  10ms
+06:49:30 PM  GET    /analytics/summary                       304  30ms
+06:49:33 PM  GET    /tasks                                   304  6ms
+06:49:33 PM  GET    /analytics/summary                       304  33ms
+06:49:34 PM  GET    /retailer-accounts                       404  1ms
+06:49:35 PM  GET    /retailer-accounts                       404  2ms
+06:49:36 PM  GET    /tasks                                   304  9ms
+06:49:36 PM  GET    /analytics/summary                       304  39ms
+06:49:36 PM  GET    /retailer-accounts                       404  1ms
+06:49:37 PM  GET    /retailer-accounts                       404  1ms
+06:49:37 PM  GET    /retailer-accounts                       404  2ms
+06:49:39 PM  GET    /tasks                                   304  11ms
+06:49:39 PM  GET    /analytics/summary                       304  36ms
+
+=== Client Errors (14) ===
+06:47:49 PM  GET    /retailer-accounts                       404  48ms  
+06:49:18 PM  POST   /retailer-accounts                       404  19ms  
+06:49:26 PM  POST   /retailer-accounts                       404  11ms  
+06:49:27 PM  POST   /retailer-accounts                       404  9ms  
+06:49:27 PM  POST   /retailer-accounts                       404  6ms  
+06:49:27 PM  POST   /retailer-accounts                       404  6ms  
+06:49:27 PM  POST   /retailer-accounts                       404  10ms  
+06:49:28 PM  POST   /retailer-accounts                       404  10ms  
+06:49:28 PM  POST   /retailer-accounts                       404  10ms  
+06:49:34 PM  GET    /retailer-accounts                       404  47ms  
+06:49:35 PM  GET    /retailer-accounts                       404  40ms  
+06:49:36 PM  GET    /retailer-accounts                       404  38ms  
+06:49:37 PM  GET    /retailer-accounts                       404  46ms  
+06:49:37 PM  GET    /retailer-accounts                       404  48ms  
+
+=== Client Requests (last 50) ===
+06:48:27 PM  GET    /api/tasks                               200  18ms
+06:48:30 PM  GET    /api/analytics/summary                   200  49ms
+06:48:30 PM  GET    /api/tasks                               200  15ms
+06:48:33 PM  GET    /api/analytics/summary                   200  49ms
+06:48:34 PM  GET    /api/tasks                               200  13ms
+06:48:37 PM  GET    /api/analytics/summary                   200  44ms
+06:48:37 PM  GET    /api/tasks                               200  48ms
+06:48:40 PM  GET    /api/analytics/summary                   200  45ms
+06:48:40 PM  GET    /api/tasks                               200  51ms
+06:48:43 PM  GET    /api/analytics/summary                   200  51ms
+06:48:43 PM  GET    /api/tasks                               200  43ms
+06:49:12 PM  GET    /api/tasks                               200  57ms
+06:49:12 PM  GET    /api/profiles                            200  56ms
+06:49:12 PM  GET    /api/analytics/summary                   200  62ms
+06:49:12 PM  GET    /api/credit-cards                        200  66ms
+06:49:15 PM  GET    /api/tasks                               200  16ms
+06:49:15 PM  GET    /api/analytics/summary                   200  53ms
+06:49:18 PM  POST   /retailer-accounts                       404  19ms
+06:49:18 PM  GET    /api/tasks                               200  15ms
+06:49:18 PM  GET    /api/analytics/summary                   200  45ms
+06:49:21 PM  GET    /api/tasks                               200  17ms
+06:49:21 PM  GET    /api/analytics/summary                   200  41ms
+06:49:24 PM  GET    /api/tasks                               200  11ms
+06:49:24 PM  GET    /api/analytics/summary                   200  25ms
+06:49:26 PM  POST   /retailer-accounts                       404  11ms
+06:49:27 PM  POST   /retailer-accounts                       404  9ms
+06:49:27 PM  POST   /retailer-accounts                       404  6ms
+06:49:27 PM  GET    /api/tasks                               200  17ms
+06:49:27 PM  GET    /api/analytics/summary                   200  45ms
+06:49:27 PM  POST   /retailer-accounts                       404  6ms
+06:49:27 PM  POST   /retailer-accounts                       404  10ms
+06:49:28 PM  POST   /retailer-accounts                       404  10ms
+06:49:28 PM  POST   /retailer-accounts                       404  10ms
+06:49:30 PM  GET    /api/tasks                               200  16ms
+06:49:30 PM  GET    /api/analytics/summary                   200  40ms
+06:49:33 PM  GET    /api/tasks                               200  10ms
+06:49:33 PM  GET    /api/analytics/summary                   200  39ms
+06:49:34 PM  GET    /retailer-accounts                       404  47ms
+06:49:35 PM  GET    /retailer-accounts                       404  40ms
+06:49:36 PM  GET    /api/tasks                               200  15ms
+06:49:36 PM  GET    /api/analytics/summary                   200  45ms
+06:49:36 PM  GET    /retailer-accounts                       404  38ms
+06:49:37 PM  GET    /retailer-accounts                       404  46ms
+06:49:37 PM  GET    /retailer-accounts                       404  48ms
+06:49:39 PM  GET    /api/tasks                               200  17ms
+06:49:39 PM  GET    /api/analytics/summary                   200  41ms
+06:49:41 PM  GET    /api/checkout-results                    200  27ms
+06:49:41 PM  GET    /api/settings                            200  30ms
+06:49:42 PM  GET    /api/tasks                               200  17ms
+06:49:42 PM  GET    /api/analytics/summary                   200  46ms

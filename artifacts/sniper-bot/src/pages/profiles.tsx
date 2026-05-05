@@ -1128,7 +1128,7 @@ function RetailerAccountsDialog({ open, onOpenChange, profiles }: RetailerAccoun
   const fetchAccounts = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${apiBase}/retailer-accounts`);
+      const res = await fetch(`${apiBase}/api/retailer-accounts`);
       if (!res.ok) throw new Error("Failed to fetch");
       setAccounts(await res.json());
     } catch {
@@ -1182,13 +1182,13 @@ function RetailerAccountsDialog({ open, onOpenChange, profiles }: RetailerAccoun
 
       let res: Response;
       if (editingId) {
-        res = await fetch(`${apiBase}/retailer-accounts/${editingId}`, {
+        res = await fetch(`${apiBase}/api/retailer-accounts/${editingId}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body),
         });
       } else {
-        res = await fetch(`${apiBase}/retailer-accounts`, {
+        res = await fetch(`${apiBase}/api/retailer-accounts`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body),
@@ -1208,7 +1208,7 @@ function RetailerAccountsDialog({ open, onOpenChange, profiles }: RetailerAccoun
   async function handleDelete(id: number) {
     setDeletingId(id);
     try {
-      await fetch(`${apiBase}/retailer-accounts/${id}`, { method: "DELETE" });
+      await fetch(`${apiBase}/api/retailer-accounts/${id}`, { method: "DELETE" });
       toast({ title: "Account removed" });
       setAccounts((prev) => prev.filter((a) => a.id !== id));
     } catch {
