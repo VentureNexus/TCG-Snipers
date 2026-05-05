@@ -1,0 +1,231 @@
+export default function Privacy() {
+  const updated = "May 5, 2026";
+  return (
+    <div className="max-w-3xl mx-auto px-6 py-16">
+      <h1 className="text-4xl font-bold tracking-tight mb-2">Privacy Policy</h1>
+      <p className="text-sm text-muted-foreground mb-10">Last updated: {updated}</p>
+
+      <div className="space-y-10 text-[15px] leading-relaxed text-foreground/90">
+        <section>
+          <h2 className="text-xl font-semibold mb-3">1. Overview</h2>
+          <p>
+            TCG Snipers ("we", "us", "our") is a locally-installed desktop application. Your privacy
+            is fundamental to how we designed the Software. We do not collect, transmit, or store
+            your personal information on any remote server. All data you enter into TCG Snipers —
+            profiles, shipping addresses, payment details, proxy lists, task configurations — lives
+            exclusively on your local machine.
+          </p>
+        </section>
+
+        <section className="border border-primary/30 bg-primary/5 rounded-lg p-6">
+          <h2 className="text-xl font-semibold mb-3 text-primary">
+            2. We Do Not Sell Your Data
+          </h2>
+          <p>
+            TCG Snipers does not sell, trade, rent, or otherwise transfer any personal information
+            to third parties for commercial purposes — ever. Your data is yours.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="text-xl font-semibold mb-3">3. Data Stored Locally</h2>
+          <p className="mb-3">
+            All application data is stored in an embedded local database on your device. This
+            includes:
+          </p>
+          <ul className="list-disc pl-6 space-y-1">
+            <li>Task and monitor configurations</li>
+            <li>Checkout profiles (name, address, payment details)</li>
+            <li>Proxy lists</li>
+            <li>Account credentials for supported retailers</li>
+            <li>Activity logs and checkout history</li>
+            <li>Application settings and preferences</li>
+          </ul>
+          <p className="mt-3">
+            None of this data is ever uploaded to or accessible by TCG Snipers or any third party.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="text-xl font-semibold mb-3">4. Data Deleted on Uninstall</h2>
+          <p>
+            When you uninstall TCG Snipers, all locally stored application data — including
+            profiles, tasks, credentials, and logs — is permanently deleted from your device. All
+            active connections initiated by the Software (retailer sessions, proxy tunnels,
+            monitor loops) are terminated upon application exit or uninstall. We retain no copy of
+            this data.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="text-xl font-semibold mb-3">5. Google Sign-In</h2>
+          <p className="mb-3">
+            TCG Snipers offers optional sign-in with Google via OAuth 2.0. If you choose to sign
+            in with Google:
+          </p>
+          <ul className="list-disc pl-6 space-y-1">
+            <li>
+              We request access to your basic profile information: name, email address, and profile
+              picture.
+            </li>
+            <li>
+              This information is used solely to identify your account and link your license.
+            </li>
+            <li>
+              Your Google credentials and tokens are stored locally on your device only and are
+              never transmitted to our servers.
+            </li>
+            <li>We do not access your Google Drive, Gmail, Contacts, or any other Google data.</li>
+            <li>
+              You can revoke TCG Snipers' access to your Google account at any time by visiting{" "}
+              <a
+                href="https://myaccount.google.com/permissions"
+                target="_blank"
+                rel="noreferrer"
+                className="text-primary hover:underline"
+              >
+                myaccount.google.com/permissions
+              </a>
+              .
+            </li>
+          </ul>
+          <p className="mt-3">
+            TCG Snipers' use and transfer of information received from Google APIs adheres to the{" "}
+            <a
+              href="https://developers.google.com/terms/api-services-user-data-policy"
+              target="_blank"
+              rel="noreferrer"
+              className="text-primary hover:underline"
+            >
+              Google API Services User Data Policy
+            </a>
+            , including the Limited Use requirements.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="text-xl font-semibold mb-3">6. Discord Sign-In</h2>
+          <p className="mb-3">
+            TCG Snipers offers optional sign-in with Discord via OAuth 2.0. If you choose to sign
+            in with Discord:
+          </p>
+          <ul className="list-disc pl-6 space-y-1">
+            <li>
+              We request access to your Discord username, discriminator, avatar, and email address.
+            </li>
+            <li>
+              This information is used solely to verify your identity and link your license.
+            </li>
+            <li>
+              Your Discord access token is stored locally on your device only and is never
+              transmitted to our servers.
+            </li>
+            <li>We do not read your Discord messages, servers, or any other Discord data.</li>
+            <li>
+              You can revoke TCG Snipers' access to your Discord account at any time by visiting{" "}
+              <a
+                href="https://discord.com/settings/authorized-apps"
+                target="_blank"
+                rel="noreferrer"
+                className="text-primary hover:underline"
+              >
+                discord.com/settings/authorized-apps
+              </a>
+              .
+            </li>
+          </ul>
+        </section>
+
+        <section>
+          <h2 className="text-xl font-semibold mb-3">7. License Verification</h2>
+          <p>
+            To validate your subscription, the Software communicates with our license server. This
+            request includes your license key and a device fingerprint used to enforce the
+            single-device limit. No personal information such as name, email, or address is
+            included in license checks. License verification data is not sold or shared with third
+            parties.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="text-xl font-semibold mb-3">8. Payment Information</h2>
+          <p>
+            All payment processing is handled by{" "}
+            <a
+              href="https://stripe.com/privacy"
+              target="_blank"
+              rel="noreferrer"
+              className="text-primary hover:underline"
+            >
+              Stripe
+            </a>
+            . TCG Snipers does not receive, process, or store your payment card details. When you
+            complete a purchase, your payment data is transmitted directly and securely to Stripe.
+            Please refer to Stripe's Privacy Policy for details on how payment data is handled.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="text-xl font-semibold mb-3">9. Analytics &amp; Crash Reporting</h2>
+          <p>
+            TCG Snipers does not embed any third-party analytics, tracking pixels, or crash
+            reporting SDKs. We do not monitor your usage patterns, session duration, or in-app
+            behavior.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="text-xl font-semibold mb-3">10. Third-Party Retailer Interactions</h2>
+          <p>
+            When TCG Snipers interacts with retailer websites on your behalf, those requests
+            originate from your IP address (or the proxy address you configure). You are
+            responsible for your use of the Software in accordance with each retailer's terms of
+            service. TCG Snipers does not intercept, store, or transmit the data exchanged between
+            you and those retailers.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="text-xl font-semibold mb-3">11. Children's Privacy</h2>
+          <p>
+            TCG Snipers is not directed to children under the age of 13. We do not knowingly
+            collect personal information from children. If you believe a child under 13 has
+            provided us with personal information, please contact us and we will take steps to
+            delete it.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="text-xl font-semibold mb-3">12. Your Rights</h2>
+          <p className="mb-3">
+            Because we do not collect or store your personal data on our servers, most traditional
+            data subject requests (access, deletion, portability) are fulfilled automatically —
+            your data never leaves your device. You always have full control over your local data
+            by managing or uninstalling the application. If you have specific concerns about data
+            held in connection with your license or payment, please contact us.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="text-xl font-semibold mb-3">13. Changes to This Policy</h2>
+          <p>
+            We may update this Privacy Policy from time to time. When we do, we will update the
+            "Last updated" date at the top of this page. Continued use of the Software after
+            changes are posted constitutes your acceptance of the updated policy.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="text-xl font-semibold mb-3">14. Contact</h2>
+          <p>
+            Questions about this Privacy Policy? Contact us at{" "}
+            <a href="mailto:support@tcgsnipers.com" className="text-primary hover:underline">
+              support@tcgsnipers.com
+            </a>
+            .
+          </p>
+        </section>
+      </div>
+    </div>
+  );
+}
