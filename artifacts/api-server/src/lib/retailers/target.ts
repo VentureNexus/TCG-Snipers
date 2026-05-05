@@ -86,6 +86,14 @@ export async function runTarget(ctx: RetailerContext): Promise<RetailerResult> {
         log("INFO", `[${RETAILER}] Checking availability: ${productName}`);
         inStock = await waitForAddToCart(page, 5000, token);
         if (inStock) {
+          if (task.maxPrice != null && productPrice) {
+            const priceCents = Math.round(parseFloat(productPrice) * 100);
+            if (priceCents > task.maxPrice) {
+              log("WARN", `[${RETAILER}] Price $${productPrice} exceeds limit $${(task.maxPrice / 100).toFixed(2)} — waiting for price to drop...`);
+              inStock = false;
+              continue;
+            }
+          }
           log("SUCCESS", `[${RETAILER}] In stock! ${productName}${productPrice ? " @ $" + productPrice : ""}`);
           break;
         } else {

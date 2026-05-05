@@ -74,6 +74,13 @@ export async function runCostco(ctx: RetailerContext): Promise<RetailerResult> {
 
         const atcBtn = await page.$('button#add-to-cart-btn:not(.disabled), button:has-text("Add to Cart"):not(.disabled)');
         if (atcBtn) {
+          if (task.maxPrice != null && productPrice) {
+            const priceCents = Math.round(parseFloat(productPrice) * 100);
+            if (priceCents > task.maxPrice) {
+              log("WARN", `[${RETAILER}] Price $${productPrice} exceeds limit $${(task.maxPrice / 100).toFixed(2)} — waiting for price to drop...`);
+              continue;
+            }
+          }
           log("SUCCESS", `[${RETAILER}] In stock: ${productName}${productPrice ? " @ $" + productPrice : ""}`);
           inStock = true;
           break;

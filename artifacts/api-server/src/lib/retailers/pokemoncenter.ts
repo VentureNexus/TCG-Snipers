@@ -69,6 +69,13 @@ export async function runPokemonCenter(ctx: RetailerContext): Promise<RetailerRe
         const atcBtn = await page.$('button[name="add"]:not([disabled]), button.add-to-cart:not([disabled]), button:has-text("Add to Cart"):not([disabled])');
         const outOfStock = await page.$('button[disabled]:has-text("Sold Out"), .sold-out-badge');
         if (atcBtn && !outOfStock) {
+          if (task.maxPrice != null && productPrice) {
+            const priceCents = Math.round(parseFloat(productPrice) * 100);
+            if (priceCents > task.maxPrice) {
+              log("WARN", `[${RETAILER}] Price $${productPrice} exceeds limit $${(task.maxPrice / 100).toFixed(2)} — waiting for price to drop...`);
+              continue;
+            }
+          }
           log("SUCCESS", `[${RETAILER}] In stock: ${productName}${productPrice ? " @ $" + productPrice : ""}`);
           inStock = true;
           break;

@@ -593,6 +593,7 @@ export const ListTasksResponseItem = zod.object({
   quantity: zod.number(),
   monitorDelay: zod.number(),
   retryCount: zod.number(),
+  maxPrice: zod.number().nullish(),
   status: zod.string(),
   createdAt: zod.string(),
   updatedAt: zod.string(),
@@ -620,6 +621,7 @@ export const CreateTaskBody = zod.object({
   quantity: zod.number().optional(),
   monitorDelay: zod.number().optional(),
   retryCount: zod.number().optional(),
+  maxPrice: zod.number().int().min(0).optional(),
 });
 
 /**
@@ -641,6 +643,7 @@ export const GetTaskResponse = zod.object({
   quantity: zod.number(),
   monitorDelay: zod.number(),
   retryCount: zod.number(),
+  maxPrice: zod.number().nullish(),
   status: zod.string(),
   createdAt: zod.string(),
   updatedAt: zod.string(),
@@ -666,6 +669,7 @@ export const UpdateTaskBody = zod.object({
   quantity: zod.number().optional(),
   monitorDelay: zod.number().optional(),
   retryCount: zod.number().optional(),
+  maxPrice: zod.number().int().min(0).nullable().optional(),
   status: zod.string().optional(),
 });
 
@@ -681,6 +685,7 @@ export const UpdateTaskResponse = zod.object({
   quantity: zod.number(),
   monitorDelay: zod.number(),
   retryCount: zod.number(),
+  maxPrice: zod.number().nullish(),
   status: zod.string(),
   createdAt: zod.string(),
   updatedAt: zod.string(),
@@ -712,6 +717,7 @@ export const StartTaskResponse = zod.object({
   quantity: zod.number(),
   monitorDelay: zod.number(),
   retryCount: zod.number(),
+  maxPrice: zod.number().nullish(),
   status: zod.string(),
   createdAt: zod.string(),
   updatedAt: zod.string(),
@@ -736,6 +742,7 @@ export const StopTaskResponse = zod.object({
   quantity: zod.number(),
   monitorDelay: zod.number(),
   retryCount: zod.number(),
+  maxPrice: zod.number().nullish(),
   status: zod.string(),
   createdAt: zod.string(),
   updatedAt: zod.string(),

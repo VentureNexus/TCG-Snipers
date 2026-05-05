@@ -10,6 +10,7 @@ export interface TaskInfo {
   quantity: number;
   monitorDelay: number;
   retryCount: number;
+  maxPrice: number | null;
 }
 
 export interface RetailerContext {

@@ -74,6 +74,7 @@ const taskSchema = z.object({
   quantity: z.coerce.number().min(1).default(1),
   monitorDelay: z.coerce.number().min(100).default(3000),
   retryCount: z.coerce.number().min(0).default(3),
+  maxPrice: z.coerce.number().min(0).optional(),
 });
 
 type TaskFormValues = z.infer<typeof taskSchema>;
@@ -93,6 +94,9 @@ function formValuesToPayload(values: TaskFormValues) {
     quantity: values.quantity,
     monitorDelay: values.monitorDelay,
     retryCount: values.retryCount,
+    maxPrice: values.maxPrice !== undefined && values.maxPrice !== null
+      ? Math.round(values.maxPrice * 100)
+      : undefined,
   };
 }
 
@@ -107,6 +111,7 @@ function taskToFormValues(task: Task): TaskFormValues {
     quantity: task.quantity,
     monitorDelay: task.monitorDelay,
     retryCount: task.retryCount,
+    maxPrice: task.maxPrice != null ? task.maxPrice / 100 : undefined,
   };
 }
 
@@ -362,7 +367,7 @@ function TaskFormFields({
         />
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 gap-4">
         <FormField
           control={form.control}
           name="quantity"
@@ -374,6 +379,20 @@ function TaskFormFields({
             </FormItem>
           )}
         />
+        <FormField
+          control={form.control}
+          name="maxPrice"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Max Price ($) <span className="text-muted-foreground font-normal">(optional)</span></FormLabel>
+              <FormControl><Input type="number" step="0.01" min="0" placeholder="No limit" data-testid="input-max-price" {...field} value={field.value ?? ""} onChange={(e) => field.onChange(e.target.value === "" ? undefined : e.target.valueAsNumber)} /></FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
         <FormField
           control={form.control}
           name="monitorDelay"
@@ -600,8 +619,11 @@ export default function TasksPage() {
                       </td>
                       <td className="px-4 py-3 font-mono text-xs text-muted-foreground">#{task.id}</td>
                       <td className="px-4 py-3"><RetailerBadge retailer={task.retailer} /></td>
-                      <td className="px-4 py-3 font-mono text-xs max-w-[200px] truncate text-primary/80" title={task.productUrl ?? task.productKeywords ?? ""}>
-                        {task.productUrl || task.productKeywords || "-"}
+                      <td className="px-4 py-3 font-mono text-xs max-w-[200px] text-primary/80" title={task.productUrl ?? task.productKeywords ?? ""}>
+                        <div className="truncate">{task.productUrl || task.productKeywords || "-"}</div>
+                        {task.maxPrice != null && (
+                          <div className="text-amber-400/80 font-mono text-[10px] mt-0.5" data-testid={`max-price-${task.id}`}>≤ ${(task.maxPrice / 100).toFixed(2)}</div>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-muted-foreground">
                         {profiles.find((p) => p.id === task.profileId)?.name ?? "Unknown"}

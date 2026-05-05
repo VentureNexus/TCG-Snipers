@@ -14,6 +14,7 @@ export const tasksTable = pgTable("tasks", {
   quantity: integer("quantity").notNull().default(1),
   monitorDelay: integer("monitor_delay").notNull().default(3000),
   retryCount: integer("retry_count").notNull().default(3),
+  maxPrice: integer("max_price"),
   status: text("status").notNull().default("idle"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),

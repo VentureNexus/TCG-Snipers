@@ -55,6 +55,13 @@ export async function runBestBuy(ctx: RetailerContext): Promise<RetailerResult> 
         const atcBtn = await page.$('button.add-to-cart-button:not([disabled]):not(.btn-disabled)');
         const soldOut = await page.$('.btn-disabled, button:has-text("Sold Out"), button:has-text("Coming Soon")');
         if (atcBtn && !soldOut) {
+          if (task.maxPrice != null && productPrice) {
+            const priceCents = Math.round(parseFloat(productPrice) * 100);
+            if (priceCents > task.maxPrice) {
+              log("WARN", `[${RETAILER}] Price $${productPrice} exceeds limit $${(task.maxPrice / 100).toFixed(2)} — waiting for price to drop...`);
+              continue;
+            }
+          }
           log("SUCCESS", `[${RETAILER}] In stock: ${productName}${productPrice ? " @ $" + productPrice : ""}`);
           inStock = true;
           break;
