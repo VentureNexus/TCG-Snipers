@@ -4,6 +4,7 @@ import { runAmazon } from "./amazon";
 import { runBestBuy } from "./bestbuy";
 import { runCostco } from "./costco";
 import { runPokemonCenter } from "./pokemoncenter";
+import { runSamsClub } from "./samsclub";
 
 type RetailerRunner = (ctx: RetailerContext) => Promise<RetailerResult>;
 
@@ -13,6 +14,7 @@ const RETAILER_MAP: Record<string, RetailerRunner> = {
   "Best Buy": runBestBuy,
   Costco: runCostco,
   "Pokemon Center": runPokemonCenter,
+  "Sam's Club": runSamsClub,
 };
 
 export async function dispatchRetailer(ctx: RetailerContext): Promise<RetailerResult> {
