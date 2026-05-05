@@ -27,6 +27,14 @@ export async function runPgliteMigrations(client: PGlite): Promise<void> {
   `).catch(() => { /* table may not exist yet — CREATE below will include it */ });
 
   await client.exec(`
+    ALTER TABLE settings ADD COLUMN IF NOT EXISTS discord_guild_name TEXT;
+  `).catch(() => { /* table may not exist yet — CREATE below will include it */ });
+
+  await client.exec(`
+    ALTER TABLE settings ADD COLUMN IF NOT EXISTS discord_channel_name TEXT;
+  `).catch(() => { /* table may not exist yet — CREATE below will include it */ });
+
+  await client.exec(`
     CREATE TABLE IF NOT EXISTS profiles (
       id SERIAL PRIMARY KEY,
       name TEXT NOT NULL,
@@ -141,7 +149,9 @@ export async function runPgliteMigrations(client: PGlite): Promise<void> {
       google_email TEXT,
       google_access_token TEXT,
       google_refresh_token TEXT,
-      google_token_expiry TEXT
+      google_token_expiry TEXT,
+      discord_guild_name TEXT,
+      discord_channel_name TEXT
     );
   `);
 }

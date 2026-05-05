@@ -452,6 +452,127 @@ ipcMain.handle("google:oauthSignIn", async (): Promise<{
   };
 });
 
+// ── Discord OAuth IPC ─────────────────────────────────────────────────────────
+ipcMain.handle("discord:oauthConnect", async (): Promise<{
+  webhookUrl: string;
+  guildName: string;
+  channelName: string;
+}> => {
+  const clientId = process.env.DISCORD_OAUTH_CLIENT_ID;
+  const clientSecret = process.env.DISCORD_OAUTH_CLIENT_SECRET;
+  if (!clientId || !clientSecret) {
+    throw new Error("Discord OAuth is not configured. Please contact support.");
+  }
+
+  const oauthState = crypto.randomBytes(16).toString("hex");
+  let oauthPort = 0;
+
+  const { authCode, redirectUri } = await new Promise<{ authCode: string; redirectUri: string }>((resolve, reject) => {
+    let settled = false;
+    const settle = (fn: () => void) => { if (!settled) { settled = true; fn(); } };
+
+    const timeoutId = setTimeout(() => {
+      cbServer.close();
+      settle(() => reject(new Error("Discord connection timed out — please try again")));
+    }, 300_000);
+
+    const cbServer = http.createServer((req, res) => {
+      const reqUrl = new URL(req.url ?? "/", `http://127.0.0.1:${oauthPort}`);
+      if (reqUrl.pathname !== "/oauth/callback") {
+        res.writeHead(404);
+        res.end();
+        return;
+      }
+      const code = reqUrl.searchParams.get("code");
+      const error = reqUrl.searchParams.get("error");
+      const returnedState = reqUrl.searchParams.get("state");
+      res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+      res.end(
+        `<!doctype html><html><body style="font-family:sans-serif;text-align:center;padding-top:80px;background:#313338;color:#dbdee1">` +
+        `<h2 style="color:#23a55a">&#x2705; Discord connected! You can close this tab and return to TCG Snipers.</h2></body></html>`,
+      );
+      clearTimeout(timeoutId);
+      cbServer.close();
+      if (error) {
+        settle(() => reject(new Error(`Discord connection was denied: ${error}`)));
+      } else if (returnedState !== oauthState) {
+        settle(() => reject(new Error("OAuth state mismatch — possible CSRF. Please try again.")));
+      } else if (code) {
+        settle(() => resolve({ authCode: code, redirectUri: `http://127.0.0.1:${oauthPort}/oauth/callback` }));
+      } else {
+        settle(() => reject(new Error("No authorization code received from Discord")));
+      }
+    });
+
+    cbServer.listen(0, "127.0.0.1", () => {
+      oauthPort = (cbServer.address() as { port: number }).port;
+      const redir = `http://127.0.0.1:${oauthPort}/oauth/callback`;
+      const authUrl = new URL("https://discord.com/api/oauth2/authorize");
+      authUrl.searchParams.set("client_id", clientId);
+      authUrl.searchParams.set("redirect_uri", redir);
+      authUrl.searchParams.set("response_type", "code");
+      authUrl.searchParams.set("scope", "webhook.incoming");
+      authUrl.searchParams.set("state", oauthState);
+      shell.openExternal(authUrl.toString());
+      writeLog("INFO", `[discord:oauthConnect] OAuth server listening on port ${oauthPort}`);
+    });
+
+    cbServer.on("error", (err) => {
+      clearTimeout(timeoutId);
+      settle(() => reject(err));
+    });
+  });
+
+  writeLog("INFO", "[discord:oauthConnect] Auth code received, exchanging for tokens…");
+
+  const tokenParams = new URLSearchParams({
+    code: authCode,
+    client_id: clientId,
+    client_secret: clientSecret,
+    redirect_uri: redirectUri,
+    grant_type: "authorization_code",
+  });
+
+  const tokenRes = await fetch("https://discord.com/api/oauth2/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: tokenParams.toString(),
+  });
+
+  const tokenData = await tokenRes.json() as {
+    access_token?: string;
+    webhook?: {
+      url?: string;
+      id?: string;
+      name?: string;
+      channel_id?: string;
+      guild_id?: string;
+      guild?: { id?: string; name?: string };
+      channel?: { id?: string; name?: string };
+    };
+    error?: string;
+    error_description?: string;
+  };
+
+  if (!tokenRes.ok || !tokenData.access_token) {
+    throw new Error(
+      `Discord token exchange failed: ${tokenData.error_description ?? tokenData.error ?? "unknown error"}`,
+    );
+  }
+
+  const webhookUrl = tokenData.webhook?.url ?? "";
+  const guildName = tokenData.webhook?.guild?.name ?? "";
+  const channelName = tokenData.webhook?.channel?.name ?? "";
+
+  if (!webhookUrl) {
+    throw new Error("Discord did not return a webhook URL. Make sure you selected a channel.");
+  }
+
+  writeLog("INFO", `[discord:oauthConnect] Webhook obtained for guild="${guildName}" channel="${channelName}"`);
+
+  return { webhookUrl, guildName, channelName };
+});
+
 // ── Diagnostics IPC ──────────────────────────────────────────────────────────
 ipcMain.handle("api:getLogs", () => {
   try {

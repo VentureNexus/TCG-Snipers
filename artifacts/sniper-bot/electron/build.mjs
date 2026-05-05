@@ -111,6 +111,28 @@ if (process.env.GOOGLE_OAUTH_CLIENT_ID) {
   );
 }
 
+// ── Bake Discord OAuth credentials into the main-process bundle ───────────────
+// Same rationale as Google: desktop OAuth client credentials are not truly
+// secret for distributed apps — Discord explicitly supports this model.
+// CI: set DISCORD_OAUTH_CLIENT_ID and DISCORD_OAUTH_CLIENT_SECRET as repository
+// secrets and expose them to the "electron:compile" step via `env:`.
+const discordOAuthDefines = {
+  "process.env.DISCORD_OAUTH_CLIENT_ID": JSON.stringify(
+    process.env.DISCORD_OAUTH_CLIENT_ID ?? ""
+  ),
+  "process.env.DISCORD_OAUTH_CLIENT_SECRET": JSON.stringify(
+    process.env.DISCORD_OAUTH_CLIENT_SECRET ?? ""
+  ),
+};
+
+if (process.env.DISCORD_OAUTH_CLIENT_ID) {
+  console.log("✓ DISCORD_OAUTH_CLIENT_ID will be baked into the bundle");
+} else {
+  console.warn(
+    "⚠ DISCORD_OAUTH_CLIENT_ID is not set — packaged app will not support Discord notifications"
+  );
+}
+
 // ── Main process build (ESM with code-splitting for lazy imports) ─────────────
 await build({
   entryPoints: [
@@ -125,7 +147,7 @@ await build({
   outdir: outDir,
   sourcemap: true,
   treeShaking: true,
-  define: googleOAuthDefines,
+  define: { ...googleOAuthDefines, ...discordOAuthDefines },
   plugins: [],
   banner: {
     js: [

@@ -15,6 +15,8 @@ export const settingsTable = pgTable("settings", {
   googleAccessToken: text("google_access_token"),
   googleRefreshToken: text("google_refresh_token"),
   googleTokenExpiry: text("google_token_expiry"),
+  discordGuildName: text("discord_guild_name"),
+  discordChannelName: text("discord_channel_name"),
 });
 
 export const insertSettingsSchema = createInsertSchema(settingsTable).omit({ id: true });

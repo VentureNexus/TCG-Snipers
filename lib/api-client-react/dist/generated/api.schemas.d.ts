@@ -21,6 +21,8 @@ export interface Settings {
     googleAccessToken?: string | null;
     googleRefreshToken?: string | null;
     googleTokenExpiry?: string | null;
+    discordGuildName?: string | null;
+    discordChannelName?: string | null;
 }
 export interface UpdateSettingsBody {
     concurrency?: number;
@@ -34,6 +36,8 @@ export interface UpdateSettingsBody {
     googleAccessToken?: string | null;
     googleRefreshToken?: string | null;
     googleTokenExpiry?: string | null;
+    discordGuildName?: string | null;
+    discordChannelName?: string | null;
 }
 export interface Profile {
     id: number;

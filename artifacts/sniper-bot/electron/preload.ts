@@ -113,6 +113,15 @@ const api = {
       expiresAt: string;
     }> => ipcRenderer.invoke("google:oauthSignIn"),
   },
+
+  /** Discord OAuth — opens the browser for channel picker and returns webhook info. */
+  discord: {
+    connect: (): Promise<{
+      webhookUrl: string;
+      guildName: string;
+      channelName: string;
+    }> => ipcRenderer.invoke("discord:oauthConnect"),
+  },
 };
 
 contextBridge.exposeInMainWorld("electronAPI", api);

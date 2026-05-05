@@ -100,6 +100,14 @@ declare global {
           expiresAt: string;
         }>;
       };
+      /** Discord OAuth — opens the browser for channel picker and returns webhook info. */
+      discord: {
+        connect: () => Promise<{
+          webhookUrl: string;
+          guildName: string;
+          channelName: string;
+        }>;
+      };
     };
   }
 }
