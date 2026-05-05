@@ -612,6 +612,7 @@ export const ListTasksResponseItem = zod.object({
   monitorDelay: zod.number(),
   retryCount: zod.number(),
   maxPrice: zod.number().nullish(),
+  stopAfterMs: zod.number().nullish(),
   status: zod.string(),
   createdAt: zod.string(),
   updatedAt: zod.string(),
@@ -640,6 +641,7 @@ export const CreateTaskBody = zod.object({
   monitorDelay: zod.number().optional(),
   retryCount: zod.number().optional(),
   maxPrice: zod.number().int().min(0).optional(),
+  stopAfterMs: zod.number().int().min(0).nullable().optional(),
 });
 
 /**
@@ -662,6 +664,7 @@ export const GetTaskResponse = zod.object({
   monitorDelay: zod.number(),
   retryCount: zod.number(),
   maxPrice: zod.number().nullish(),
+  stopAfterMs: zod.number().nullish(),
   status: zod.string(),
   createdAt: zod.string(),
   updatedAt: zod.string(),
@@ -688,6 +691,7 @@ export const UpdateTaskBody = zod.object({
   monitorDelay: zod.number().optional(),
   retryCount: zod.number().optional(),
   maxPrice: zod.number().int().min(0).nullable().optional(),
+  stopAfterMs: zod.number().int().min(0).nullable().optional(),
   status: zod.string().optional(),
 });
 
@@ -704,6 +708,7 @@ export const UpdateTaskResponse = zod.object({
   monitorDelay: zod.number(),
   retryCount: zod.number(),
   maxPrice: zod.number().nullish(),
+  stopAfterMs: zod.number().nullish(),
   status: zod.string(),
   createdAt: zod.string(),
   updatedAt: zod.string(),
@@ -736,6 +741,7 @@ export const StartTaskResponse = zod.object({
   monitorDelay: zod.number(),
   retryCount: zod.number(),
   maxPrice: zod.number().nullish(),
+  stopAfterMs: zod.number().nullish(),
   status: zod.string(),
   createdAt: zod.string(),
   updatedAt: zod.string(),
@@ -761,6 +767,7 @@ export const StopTaskResponse = zod.object({
   monitorDelay: zod.number(),
   retryCount: zod.number(),
   maxPrice: zod.number().nullish(),
+  stopAfterMs: zod.number().nullish(),
   status: zod.string(),
   createdAt: zod.string(),
   updatedAt: zod.string(),

@@ -11,6 +11,10 @@ export async function runPgliteMigrations(client: PGlite): Promise<void> {
   `).catch(() => { /* table may not exist yet — CREATE below will include it */ });
 
   await client.exec(`
+    ALTER TABLE tasks ADD COLUMN IF NOT EXISTS stop_after_ms INTEGER;
+  `).catch(() => { /* table may not exist yet — CREATE below will include it */ });
+
+  await client.exec(`
     ALTER TABLE settings ADD COLUMN IF NOT EXISTS google_email TEXT;
   `).catch(() => { /* table may not exist yet — CREATE below will include it */ });
 
@@ -144,6 +148,7 @@ export async function runPgliteMigrations(client: PGlite): Promise<void> {
       monitor_delay INTEGER NOT NULL DEFAULT 3000,
       retry_count INTEGER NOT NULL DEFAULT 3,
       max_price INTEGER,
+      stop_after_ms INTEGER,
       status TEXT NOT NULL DEFAULT 'idle',
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()

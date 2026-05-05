@@ -85,6 +85,7 @@ const taskSchema = z.object({
   monitorDelay: z.coerce.number().min(100).default(3000),
   retryCount: z.coerce.number().min(-1).default(3),
   maxPrice: z.coerce.number().min(0).optional(),
+  stopAfterHours: z.coerce.number().min(0.1).optional(),
 });
 
 type TaskFormValues = z.infer<typeof taskSchema>;
@@ -107,6 +108,9 @@ function formValuesToPayload(values: TaskFormValues) {
     maxPrice: values.maxPrice !== undefined && values.maxPrice !== null
       ? Math.round(values.maxPrice * 100)
       : undefined,
+    stopAfterMs: values.retryCount === -1 && values.stopAfterHours
+      ? Math.round(values.stopAfterHours * 3_600_000)
+      : null,
   };
 }
 
@@ -122,6 +126,7 @@ function taskToFormValues(task: Task): TaskFormValues {
     monitorDelay: task.monitorDelay,
     retryCount: task.retryCount,
     maxPrice: task.maxPrice != null ? task.maxPrice / 100 : undefined,
+    stopAfterHours: task.stopAfterMs != null ? task.stopAfterMs / 3_600_000 : undefined,
   };
 }
 
@@ -501,6 +506,7 @@ function TaskFormFields({
                     } else {
                       const restore = Number.isFinite(prevRetryCount) && prevRetryCount >= 0 ? prevRetryCount : 3;
                       form.setValue("retryCount", restore);
+                      form.setValue("stopAfterHours", undefined);
                       setIsUnlimited(false);
                     }
                   }}
@@ -513,6 +519,42 @@ function TaskFormFields({
             </FormItem>
           )}
         />
+        {isUnlimited && (
+          <FormField
+            control={form.control}
+            name="stopAfterHours"
+            render={({ field }) => (
+              <FormItem className="col-span-2">
+                <FormLabel className="flex items-center gap-1">
+                  Stop after (hours)
+                  <TooltipProvider delayDuration={200}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-[260px] text-xs">
+                        Automatically stop the task after this many hours if nothing is found. Leave blank to run indefinitely.
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    step="0.5"
+                    min="0.1"
+                    placeholder="No limit"
+                    data-testid="input-stop-after-hours"
+                    {...field}
+                    value={field.value ?? ""}
+                    onChange={(e) => field.onChange(e.target.value === "" ? undefined : e.target.valueAsNumber)}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
       </div>
     </div>
   );

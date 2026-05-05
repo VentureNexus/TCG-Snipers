@@ -257,6 +257,8 @@ export interface Task {
   retryCount: number;
   /** @nullable */
   maxPrice?: number | null;
+  /** @nullable */
+  stopAfterMs?: number | null;
   status: string;
   createdAt: string;
   updatedAt: string;
@@ -286,6 +288,7 @@ export interface CreateTaskBody {
   monitorDelay?: number;
   retryCount?: number;
   maxPrice?: number;
+  stopAfterMs?: number | null;
 }
 
 export type UpdateTaskBodyRetailer =
@@ -312,6 +315,7 @@ export interface UpdateTaskBody {
   monitorDelay?: number;
   retryCount?: number;
   maxPrice?: number | null;
+  stopAfterMs?: number | null;
   status?: string;
 }
 

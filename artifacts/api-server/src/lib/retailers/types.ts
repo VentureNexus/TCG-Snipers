@@ -12,6 +12,7 @@ export interface TaskInfo {
   monitorDelay: number;
   retryCount: number;
   maxPrice: number | null;
+  stopAfterMs: number | null;
 }
 
 export interface RetailerContext {

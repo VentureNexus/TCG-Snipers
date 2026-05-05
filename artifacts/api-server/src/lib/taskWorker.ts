@@ -19,6 +19,7 @@ interface TaskRow {
   retryCount: number;
   quantity: number;
   maxPrice: number | null;
+  stopAfterMs: number | null;
 }
 
 let maxConcurrency = 5;
@@ -118,6 +119,7 @@ async function runTaskAutomation(task: TaskRow, token: { cancelled: boolean }) {
         monitorDelay: Math.max(task.monitorDelay, 500),
         retryCount: task.retryCount,
         maxPrice: task.maxPrice ?? null,
+        stopAfterMs: task.stopAfterMs ?? null,
       },
       profile: profile ?? null,
       proxy,

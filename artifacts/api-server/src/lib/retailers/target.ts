@@ -66,8 +66,14 @@ export async function runTarget(ctx: RetailerContext): Promise<RetailerResult> {
     let productPrice = "";
 
     const isUnlimited = task.retryCount === -1;
+    const stopAt = isUnlimited && task.stopAfterMs != null ? Date.now() + task.stopAfterMs : null;
+    if (stopAt !== null) {
+      const hrs = (task.stopAfterMs! / 3_600_000).toFixed(1);
+      log("INFO", `[${RETAILER}] Time limit active — will stop after ${hrs}h if nothing is found.`);
+    }
     for (let attempt = 0; isUnlimited || attempt <= task.retryCount; attempt++) {
       if (token.cancelled) return fail("Task cancelled");
+      if (stopAt !== null && Date.now() >= stopAt) return fail("Time limit reached — task timed out");
       if (attempt > 0) {
         log("WARN", `[${RETAILER}] OOS — waiting ${task.monitorDelay}ms before retry ${attempt}/${isUnlimited ? "∞" : task.retryCount}...`);
         await humanDelay(task.monitorDelay, task.monitorDelay + 500);
