@@ -205,6 +205,39 @@ export default function SettingsPage() {
     toast({ title: "RAM Guard Settings Saved" });
   };
 
+  const handleSaveAll = async () => {
+    if (isEngineDirty) {
+      if (delayError) {
+        toast({ title: "Invalid delay range", description: delayError, variant: "destructive" });
+      } else {
+        try {
+          const updatedSettings = await updateSettingsMutation.mutateAsync({ data: settings });
+          const prev = queryClient.getQueryData<typeof settingsData>(getGetSettingsQueryKey());
+          queryClient.setQueryData(getGetSettingsQueryKey(), {
+            ...updatedSettings,
+            systemCores: updatedSettings.systemCores ?? prev?.systemCores,
+            recommendedMin: updatedSettings.recommendedMin ?? prev?.recommendedMin,
+            recommendedMax: updatedSettings.recommendedMax ?? prev?.recommendedMax,
+          });
+          engineBaseline.current = { ...settings };
+          toast({ title: "Settings Saved", description: "Your settings have been persisted to the server." });
+        } catch (err) {
+          toast({
+            title: "Engine Settings Save Failed",
+            description: err instanceof Error ? err.message : "Could not save settings.",
+            variant: "destructive",
+          });
+        }
+      }
+    }
+    if (isDefaultsDirty) {
+      handleSaveDefaults();
+    }
+    if (isRamDirty) {
+      handleSaveRamSettings();
+    }
+  };
+
   const handleDiscordConnect = async () => {
     if (!window.electronAPI?.discord) return;
     setDiscordConnecting(true);
@@ -628,6 +661,19 @@ export default function SettingsPage() {
               </div>
             </CardContent>
           </Card>
+
+          {anyDirty && (
+            <div className="sticky bottom-4 flex justify-end">
+              <Button
+                size="default"
+                onClick={handleSaveAll}
+                disabled={saving}
+                className="shadow-lg bg-primary text-primary-foreground hover:bg-primary/90 gap-2 px-6"
+              >
+                {saving ? "Saving…" : "Save All Changes"}
+              </Button>
+            </div>
+          )}
         </>
       )}
     </div>
