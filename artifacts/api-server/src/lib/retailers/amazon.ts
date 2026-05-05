@@ -153,7 +153,15 @@ export async function runAmazon(ctx: RetailerContext): Promise<RetailerResult> {
       }
     }
 
-    if (profile) {
+    // If Amazon already shows the place-your-order button (saved address + payment on file),
+    // skip address/payment filling entirely — trying to fill fields that don't exist wastes
+    // minutes and causes the "Place order button not found" error when Amazon redirects away.
+    const quickPlaceOrder = await page.$(
+      'input[name="placeYourOrder1"], [data-action="place-order"], ' +
+      'span[id*="placeOrder"] input[type="submit"], ' +
+      'button:has-text("Place your order"), button:has-text("Place Order")'
+    );
+    if (!quickPlaceOrder && profile) {
       log("INFO", `[${RETAILER}] Filling address for profile: ${profile.name}`);
       const addressFields: Array<[string, string]> = [
         ['input[name="address1"]', profile.shipAddress1],
@@ -167,11 +175,13 @@ export async function runAmazon(ctx: RetailerContext): Promise<RetailerResult> {
       }
     }
 
-    const continueShipping = await page.$('input[name="continue-to-payment"], button:has-text("Continue"), input[value="Continue"]');
-    if (continueShipping) { await continueShipping.click(); await humanDelay(2000, 3000); }
+    if (!quickPlaceOrder) {
+      const continueShipping = await page.$('input[name="continue-to-payment"], button:has-text("Continue"), input[value="Continue"]');
+      if (continueShipping) { await continueShipping.click(); await humanDelay(1500, 2000); }
+    }
     if (token.cancelled) return fail("Task cancelled");
 
-    if (card) {
+    if (!quickPlaceOrder && card) {
       log("INFO", `[${RETAILER}] Entering payment (${card.cardType} ****${card.lastFour})...`);
       try {
         const cardNumber = decrypt(card.encryptedNumber);
@@ -187,14 +197,21 @@ export async function runAmazon(ctx: RetailerContext): Promise<RetailerResult> {
       } catch (decryptErr) {
         log("WARN", `[${RETAILER}] Could not decrypt card: ${String(decryptErr)}`);
       }
-    } else {
+    } else if (!quickPlaceOrder) {
       log("WARN", `[${RETAILER}] No credit card provided — skipping payment step`);
     }
 
     log("INFO", `[${RETAILER}] Submitting order...`);
-    const placeOrder = await page.$('input[name="placeYourOrder1"], button:has-text("Place your order")');
+    // Re-query in case page navigated after filling address/payment
+    const placeOrder = quickPlaceOrder ?? await page.$(
+      'input[name="placeYourOrder1"], [data-action="place-order"], ' +
+      'span[id*="placeOrder"] input[type="submit"], ' +
+      'button:has-text("Place your order"), button:has-text("Place Order")'
+    );
     if (!placeOrder) return fail("Place order button not found");
-    await placeOrder.click();
+    await placeOrder.scrollIntoViewIfNeeded();
+    await humanDelay(200, 400);
+    await page.evaluate(el => (el as HTMLElement).click(), placeOrder);
     await humanDelay(3000, 5000);
 
     const confirmation = await page.$('[class*="confirmation"], h1:has-text("order"), h4:has-text("order")');

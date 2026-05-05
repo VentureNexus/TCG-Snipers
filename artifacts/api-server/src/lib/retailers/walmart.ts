@@ -120,10 +120,18 @@ export async function runWalmart(ctx: RetailerContext): Promise<RetailerResult> 
 
     log("INFO", `[${RETAILER}] Proceeding to checkout...`);
     await setStatus("checking_out");
-    const checkoutBtn = await page.$('button:has-text("Checkout"), a:has-text("Continue to Checkout")');
+    const checkoutBtn = await page.$(
+      '[data-automation-id="cart-checkout-btn"], ' +
+      'button:has-text("Continue to checkout"), ' +
+      'button:has-text("Check out"), ' +
+      'button:has-text("Checkout"), ' +
+      'a[href*="/checkout"]:not([href*="help"]):not([href*="account"])'
+    );
     if (!checkoutBtn) return fail("Checkout button not found");
-    await checkoutBtn.click();
-    await humanDelay(2000, 3000);
+    await checkoutBtn.scrollIntoViewIfNeeded();
+    await humanDelay(200, 400);
+    await page.evaluate(el => (el as HTMLElement).click(), checkoutBtn);
+    await humanDelay(1500, 2500);
     if (token.cancelled) return fail("Task cancelled");
 
     if (profile) {
