@@ -55,6 +55,7 @@ async function poll() {
 
 function startPolling() {
   if (pollTimer !== null) return;
+  if (typeof document !== "undefined" && document.hidden) return;
   void poll();
   pollTimer = setInterval(() => { void poll(); }, POLL_INTERVAL_MS);
 }
@@ -64,6 +65,36 @@ function stopPolling() {
     clearInterval(pollTimer);
     pollTimer = null;
   }
+}
+
+// ---------------------------------------------------------------------------
+// Page Visibility API — pause polling when the window is hidden so we don't
+// waste CPU/IPC cycles, then resume when it becomes visible again.
+// History timestamps remain coherent: no phantom flat-line points are injected
+// during the hidden period; charts will simply show a natural time gap.
+// ---------------------------------------------------------------------------
+
+function handleVisibilityChange() {
+  if (document.hidden) {
+    stopPolling();
+  } else if (subscriberCount > 0) {
+    startPolling();
+  }
+}
+
+// Guard against duplicate listener registration on HMR hot-reloads: the module
+// may be re-evaluated while the old listener is still attached to document.
+// We stash the current handler on window under a stable key so we can remove
+// the previous copy before registering the new one.
+const _VISIBILITY_KEY = "__tcgSnipersMetricsVisibilityListener__";
+if (typeof document !== "undefined") {
+  const w = window as unknown as Record<string, unknown>;
+  const prev = w[_VISIBILITY_KEY];
+  if (typeof prev === "function") {
+    document.removeEventListener("visibilitychange", prev as EventListener);
+  }
+  w[_VISIBILITY_KEY] = handleVisibilityChange;
+  document.addEventListener("visibilitychange", handleVisibilityChange);
 }
 
 function subscribe(listener: Listener): () => void {
