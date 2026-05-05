@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import type { SystemMetrics } from "@/global";
 
 export interface SystemMetricsPoint extends SystemMetrics {
@@ -20,36 +20,90 @@ const ZERO_METRICS: SystemMetrics = {
   ramPercent: 0,
 };
 
+// ---------------------------------------------------------------------------
+// Module-level singleton store — survives component mount/unmount cycles so
+// the history buffer is never reset when navigating between pages.
+// ---------------------------------------------------------------------------
+
+type Listener = (current: SystemMetrics, history: SystemMetricsPoint[]) => void;
+
+let storeCurrent: SystemMetrics = ZERO_METRICS;
+let storeHistory: SystemMetricsPoint[] = [];
+const listeners = new Set<Listener>();
+let pollTimer: ReturnType<typeof setInterval> | null = null;
+let subscriberCount = 0;
+
+function notify() {
+  for (const l of listeners) {
+    l(storeCurrent, storeHistory);
+  }
+}
+
+async function poll() {
+  try {
+    const metrics = await window.electronAPI!.system!.getMetrics();
+    const point: SystemMetricsPoint = { ...metrics, timestamp: Date.now() };
+    storeCurrent = metrics;
+    storeHistory = storeHistory.length >= HISTORY_LENGTH
+      ? [...storeHistory.slice(storeHistory.length - HISTORY_LENGTH + 1), point]
+      : [...storeHistory, point];
+    notify();
+  } catch {
+    // silently ignore
+  }
+}
+
+function startPolling() {
+  if (pollTimer !== null) return;
+  void poll();
+  pollTimer = setInterval(() => { void poll(); }, POLL_INTERVAL_MS);
+}
+
+function stopPolling() {
+  if (pollTimer !== null) {
+    clearInterval(pollTimer);
+    pollTimer = null;
+  }
+}
+
+function subscribe(listener: Listener): () => void {
+  listeners.add(listener);
+  subscriberCount++;
+  startPolling();
+
+  return () => {
+    listeners.delete(listener);
+    subscriberCount--;
+    if (subscriberCount <= 0) {
+      subscriberCount = 0;
+      stopPolling();
+    }
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Hook — subscribes to the singleton store and re-renders on each update.
+// ---------------------------------------------------------------------------
+
 export function useSystemMetrics(): UseSystemMetricsResult {
   const isElectron = typeof window !== "undefined" && !!window.electronAPI?.system;
 
-  const [current, setCurrent] = useState<SystemMetrics>(ZERO_METRICS);
-  const [history, setHistory] = useState<SystemMetricsPoint[]>([]);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [current, setCurrent] = useState<SystemMetrics>(storeCurrent);
+  const [history, setHistory] = useState<SystemMetricsPoint[]>(storeHistory);
 
   useEffect(() => {
     if (!isElectron) return;
 
-    const poll = async () => {
-      try {
-        const metrics = await window.electronAPI!.system!.getMetrics();
-        const point: SystemMetricsPoint = { ...metrics, timestamp: Date.now() };
-        setCurrent(metrics);
-        setHistory((prev) => {
-          const next = [...prev, point];
-          return next.length > HISTORY_LENGTH ? next.slice(next.length - HISTORY_LENGTH) : next;
-        });
-      } catch {
-        // silently ignore
-      }
-    };
+    const unsubscribe = subscribe((c, h) => {
+      setCurrent(c);
+      setHistory(h);
+    });
 
-    void poll();
-    timerRef.current = setInterval(poll, POLL_INTERVAL_MS);
+    // Immediately reflect whatever is already in the store (from prior visits)
+    setCurrent(storeCurrent);
+    setHistory(storeHistory);
 
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
+    return unsubscribe;
   }, [isElectron]);
 
   return { current, history };
