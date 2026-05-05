@@ -55,6 +55,16 @@ export function clearLogBuffer(taskId: number): void {
   statusCache.delete(taskId);
 }
 
+export async function initStatusCacheFromDb(): Promise<void> {
+  const { db, tasksTable } = await import("@workspace/db");
+  const tasks = await db.select({ id: tasksTable.id, status: tasksTable.status }).from(tasksTable);
+  for (const task of tasks) {
+    if (task.status) {
+      statusCache.set(task.id, { type: "status", taskId: task.id, status: task.status });
+    }
+  }
+}
+
 export function createWebSocketServer(server: Server): WebSocketServer {
   const wss = new WebSocketServer({ server, path: "/ws" });
 
