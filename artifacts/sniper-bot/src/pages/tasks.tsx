@@ -906,14 +906,16 @@ export default function TasksPage() {
               <Plus className="w-4 h-4" /> New Task
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[500px]">
+          <DialogContent className="sm:max-w-[500px] flex flex-col max-h-[90vh]">
             <DialogHeader>
               <DialogTitle>Create New Task</DialogTitle>
             </DialogHeader>
             <Form {...createForm}>
-              <form onSubmit={createForm.handleSubmit(onCreateSubmit, () => toast({ title: "Please fill in all required fields", variant: "destructive" }))} className="space-y-4">
-                <TaskFormFields form={createForm} profiles={profiles} groups={groups} proxies={proxies} />
-                <Button type="submit" className="w-full" disabled={createTask.isPending || isCreateProfileIncomplete} data-testid="button-submit-create-task">
+              <form onSubmit={createForm.handleSubmit(onCreateSubmit, () => toast({ title: "Please fill in all required fields", variant: "destructive" }))} className="flex flex-col flex-1 min-h-0 gap-4">
+                <div className="flex-1 overflow-y-auto pr-1 space-y-4">
+                  <TaskFormFields form={createForm} profiles={profiles} groups={groups} proxies={proxies} />
+                </div>
+                <Button type="submit" className="w-full shrink-0" disabled={createTask.isPending || isCreateProfileIncomplete} data-testid="button-submit-create-task">
                   {createTask.isPending ? "Creating..." : "Create Task"}
                 </Button>
               </form>
@@ -922,14 +924,16 @@ export default function TasksPage() {
         </Dialog>
 
         <Dialog open={editingTask !== null} onOpenChange={(open) => { if (!open) setEditingTask(null); }}>
-          <DialogContent className="sm:max-w-[500px]">
+          <DialogContent className="sm:max-w-[500px] flex flex-col max-h-[90vh]">
             <DialogHeader>
               <DialogTitle>Edit Task #{editingTask?.id}</DialogTitle>
             </DialogHeader>
             <Form {...editForm}>
-              <form onSubmit={editForm.handleSubmit(onEditSubmit, () => toast({ title: "Please fill in all required fields", variant: "destructive" }))} className="space-y-4">
-                <TaskFormFields form={editForm} profiles={profiles} groups={groups} proxies={proxies} />
-                <Button type="submit" className="w-full" disabled={updateTask.isPending || isEditProfileIncomplete} data-testid="button-submit-edit-task">
+              <form onSubmit={editForm.handleSubmit(onEditSubmit, () => toast({ title: "Please fill in all required fields", variant: "destructive" }))} className="flex flex-col flex-1 min-h-0 gap-4">
+                <div className="flex-1 overflow-y-auto pr-1 space-y-4">
+                  <TaskFormFields form={editForm} profiles={profiles} groups={groups} proxies={proxies} />
+                </div>
+                <Button type="submit" className="w-full shrink-0" disabled={updateTask.isPending || isEditProfileIncomplete} data-testid="button-submit-edit-task">
                   {updateTask.isPending ? "Saving..." : "Save Changes"}
                 </Button>
               </form>

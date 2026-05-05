@@ -1,0 +1,200 @@
+[2026-05-04T05:54:20.554Z] [INFO] electron/dist contents (40 files): app-UHKWXV6U.js, app-UHKWXV6U.js.map, chunk-AUQ5QMPN.js, chunk-AUQ5QMPN.js.map, chunk-KFHPWSTI.js, chunk-KFHPWSTI.js.map, chunk-KXDC6MGZ.js, chunk-KXDC6MGZ.js.map, chunk-OEC5A2IQ.js, chunk-OEC5A2IQ.js.map, chunk-SGFZVGF2.js, chunk-SGFZVGF2.js.map, chunk-SMR2BPHQ.js, chunk-SMR2BPHQ.js.map, chunk-WJQGXH5Y.js, chunk-WJQGXH5Y.js.map, chunk-XWWITKHY.js, chunk-XWWITKHY.js.map, dist-44FBOYIR.js, dist-44FBOYIR.js.map
+[2026-05-04T05:54:20.554Z] [INFO] Step 1: importing API server module…
+[2026-05-04T05:54:21.426Z] [INFO] Step 1 OK: module imported
+[2026-05-04T05:54:21.426Z] [INFO] Step 2: creating HTTP server…
+[2026-05-04T05:54:21.428Z] [INFO] Step 2 OK
+[2026-05-04T05:54:21.428Z] [INFO] Step 3: binding to port…
+[2026-05-04T05:54:21.428Z] [INFO]   trying port 8080…
+[2026-05-04T05:54:21.433Z] [INFO] Step 3 OK: listening on port 8080
+=== TCG Snipers v1.0.19 started 2026-05-04T22:31:21.058Z ===
+[2026-05-04T22:31:21.060Z] [INFO] Platform: win32, packaged: true
+[2026-05-04T22:31:21.061Z] [INFO] Node version: v20.19.1
+[2026-05-04T22:31:21.061Z] [INFO] Platform: win32 arch: x64
+[2026-05-04T22:31:21.061Z] [INFO] isPackaged: true
+[2026-05-04T22:31:21.061Z] [INFO] DB path: C:\Users\Owner\AppData\Roaming\@workspace\sniper-bot\pgdata
+[2026-05-04T22:31:21.061Z] [INFO] NODE_ENV set to: production
+[2026-05-04T22:31:21.062Z] [INFO] electron/dist contents (40 files): app-54LKSOTE.js, app-54LKSOTE.js.map, chunk-AUQ5QMPN.js, chunk-AUQ5QMPN.js.map, chunk-KFHPWSTI.js, chunk-KFHPWSTI.js.map, chunk-KXDC6MGZ.js, chunk-KXDC6MGZ.js.map, chunk-OEC5A2IQ.js, chunk-OEC5A2IQ.js.map, chunk-SGFZVGF2.js, chunk-SGFZVGF2.js.map, chunk-SMR2BPHQ.js, chunk-SMR2BPHQ.js.map, chunk-WJQGXH5Y.js, chunk-WJQGXH5Y.js.map, chunk-XWWITKHY.js, chunk-XWWITKHY.js.map, dist-44FBOYIR.js, dist-44FBOYIR.js.map
+[2026-05-04T22:31:21.062Z] [INFO] Step 1: importing API server module…
+[2026-05-04T22:31:22.085Z] [INFO] Step 1 OK: module imported
+[2026-05-04T22:31:22.086Z] [INFO] Step 2: creating HTTP server…
+[2026-05-04T22:31:22.087Z] [INFO] Step 2 OK
+[2026-05-04T22:31:22.088Z] [INFO] Step 3: binding to port…
+[2026-05-04T22:31:22.088Z] [INFO]   trying port 8080…
+[2026-05-04T22:31:22.093Z] [INFO] Step 3 OK: listening on port 8080
+=== TCG Snipers v1.0.19 started 2026-05-04T22:34:57.321Z ===
+[2026-05-04T22:34:57.322Z] [INFO] Platform: win32, packaged: true
+[2026-05-04T22:34:57.323Z] [INFO] Node version: v20.19.1
+[2026-05-04T22:34:57.323Z] [INFO] Platform: win32 arch: x64
+[2026-05-04T22:34:57.323Z] [INFO] isPackaged: true
+[2026-05-04T22:34:57.323Z] [INFO] DB path: C:\Users\Owner\AppData\Roaming\@workspace\sniper-bot\pgdata
+[2026-05-04T22:34:57.323Z] [INFO] NODE_ENV set to: production
+[2026-05-04T22:34:57.323Z] [INFO] electron/dist contents (40 files): app-54LKSOTE.js, app-54LKSOTE.js.map, chunk-AUQ5QMPN.js, chunk-AUQ5QMPN.js.map, chunk-KFHPWSTI.js, chunk-KFHPWSTI.js.map, chunk-KXDC6MGZ.js, chunk-KXDC6MGZ.js.map, chunk-OEC5A2IQ.js, chunk-OEC5A2IQ.js.map, chunk-SGFZVGF2.js, chunk-SGFZVGF2.js.map, chunk-SMR2BPHQ.js, chunk-SMR2BPHQ.js.map, chunk-WJQGXH5Y.js, chunk-WJQGXH5Y.js.map, chunk-XWWITKHY.js, chunk-XWWITKHY.js.map, dist-44FBOYIR.js, dist-44FBOYIR.js.map
+[2026-05-04T22:34:57.324Z] [INFO] Step 1: importing API server module…
+[2026-05-04T22:34:58.173Z] [INFO] Step 1 OK: module imported
+[2026-05-04T22:34:58.174Z] [INFO] Step 2: creating HTTP server…
+[2026-05-04T22:34:58.175Z] [INFO] Step 2 OK
+[2026-05-04T22:34:58.175Z] [INFO] Step 3: binding to port…
+[2026-05-04T22:34:58.175Z] [INFO]   trying port 8080…
+[2026-05-04T22:34:58.181Z] [INFO] Step 3 OK: listening on port 8080
+=== TCG Snipers v1.0.19 started 2026-05-04T23:07:16.616Z ===
+[2026-05-04T23:07:16.617Z] [INFO] Platform: win32, packaged: true
+[2026-05-04T23:07:16.619Z] [INFO] Node version: v20.19.1
+[2026-05-04T23:07:16.619Z] [INFO] Platform: win32 arch: x64
+[2026-05-04T23:07:16.619Z] [INFO] isPackaged: true
+[2026-05-04T23:07:16.619Z] [INFO] DB path: C:\Users\Owner\AppData\Roaming\@workspace\sniper-bot\pgdata
+[2026-05-04T23:07:16.619Z] [INFO] NODE_ENV set to: production
+[2026-05-04T23:07:16.620Z] [INFO] electron/dist contents (40 files): app-54LKSOTE.js, app-54LKSOTE.js.map, chunk-AUQ5QMPN.js, chunk-AUQ5QMPN.js.map, chunk-KFHPWSTI.js, chunk-KFHPWSTI.js.map, chunk-KXDC6MGZ.js, chunk-KXDC6MGZ.js.map, chunk-OEC5A2IQ.js, chunk-OEC5A2IQ.js.map, chunk-SGFZVGF2.js, chunk-SGFZVGF2.js.map, chunk-SMR2BPHQ.js, chunk-SMR2BPHQ.js.map, chunk-WJQGXH5Y.js, chunk-WJQGXH5Y.js.map, chunk-XWWITKHY.js, chunk-XWWITKHY.js.map, dist-44FBOYIR.js, dist-44FBOYIR.js.map
+[2026-05-04T23:07:16.620Z] [INFO] Step 1: importing API server module…
+[2026-05-04T23:07:17.425Z] [INFO] Step 1 OK: module imported
+[2026-05-04T23:07:17.425Z] [INFO] Step 2: creating HTTP server…
+[2026-05-04T23:07:17.426Z] [INFO] Step 2 OK
+[2026-05-04T23:07:17.426Z] [INFO] Step 3: binding to port…
+[2026-05-04T23:07:17.426Z] [INFO]   trying port 8080…
+[2026-05-04T23:07:17.435Z] [INFO] Step 3 OK: listening on port 8080
+=== TCG Snipers v1.0.20 started 2026-05-05T00:02:02.427Z ===
+[2026-05-05T00:02:02.429Z] [INFO] Platform: win32, packaged: true
+[2026-05-05T00:02:02.429Z] [INFO] Node version: v20.19.1
+[2026-05-05T00:02:02.429Z] [INFO] Platform: win32 arch: x64
+[2026-05-05T00:02:02.429Z] [INFO] isPackaged: true
+[2026-05-05T00:02:02.429Z] [INFO] DB path: C:\Users\Owner\AppData\Roaming\@workspace\sniper-bot\pgdata
+[2026-05-05T00:02:02.430Z] [INFO] NODE_ENV set to: production
+[2026-05-05T00:02:02.430Z] [INFO] electron/dist contents (40 files): app-54LKSOTE.js, app-54LKSOTE.js.map, chunk-AUQ5QMPN.js, chunk-AUQ5QMPN.js.map, chunk-KFHPWSTI.js, chunk-KFHPWSTI.js.map, chunk-KXDC6MGZ.js, chunk-KXDC6MGZ.js.map, chunk-OEC5A2IQ.js, chunk-OEC5A2IQ.js.map, chunk-SGFZVGF2.js, chunk-SGFZVGF2.js.map, chunk-SMR2BPHQ.js, chunk-SMR2BPHQ.js.map, chunk-WJQGXH5Y.js, chunk-WJQGXH5Y.js.map, chunk-XWWITKHY.js, chunk-XWWITKHY.js.map, dist-44FBOYIR.js, dist-44FBOYIR.js.map
+[2026-05-05T00:02:02.430Z] [INFO] Step 1: importing API server module…
+[2026-05-05T00:02:08.648Z] [INFO] Step 1 OK: module imported
+[2026-05-05T00:02:08.649Z] [INFO] Step 2: creating HTTP server…
+[2026-05-05T00:02:08.650Z] [INFO] Step 2 OK
+[2026-05-05T00:02:08.650Z] [INFO] Step 3: binding to port…
+[2026-05-05T00:02:08.650Z] [INFO]   trying port 8080…
+[2026-05-05T00:02:08.654Z] [INFO] Step 3 OK: listening on port 8080
+=== TCG Snipers v1.0.21 started 2026-05-05T00:34:16.166Z ===
+[2026-05-05T00:34:16.167Z] [INFO] Platform: win32, packaged: true
+[2026-05-05T00:34:16.168Z] [INFO] Node version: v20.19.1
+[2026-05-05T00:34:16.168Z] [INFO] Platform: win32 arch: x64
+[2026-05-05T00:34:16.168Z] [INFO] isPackaged: true
+[2026-05-05T00:34:16.168Z] [INFO] DB path: C:\Users\Owner\AppData\Roaming\@workspace\sniper-bot\pgdata
+[2026-05-05T00:34:16.168Z] [INFO] NODE_ENV set to: production
+[2026-05-05T00:34:16.169Z] [INFO] Encryption key generated and stored securely
+[2026-05-05T00:34:16.169Z] [INFO] electron/dist contents (40 files): app-54LKSOTE.js, app-54LKSOTE.js.map, chunk-AUQ5QMPN.js, chunk-AUQ5QMPN.js.map, chunk-KFHPWSTI.js, chunk-KFHPWSTI.js.map, chunk-KXDC6MGZ.js, chunk-KXDC6MGZ.js.map, chunk-OEC5A2IQ.js, chunk-OEC5A2IQ.js.map, chunk-SGFZVGF2.js, chunk-SGFZVGF2.js.map, chunk-SMR2BPHQ.js, chunk-SMR2BPHQ.js.map, chunk-WJQGXH5Y.js, chunk-WJQGXH5Y.js.map, chunk-XWWITKHY.js, chunk-XWWITKHY.js.map, dist-44FBOYIR.js, dist-44FBOYIR.js.map
+[2026-05-05T00:34:16.169Z] [INFO] Step 1: importing API server module…
+[2026-05-05T00:34:17.025Z] [INFO] Step 1 OK: module imported
+[2026-05-05T00:34:17.026Z] [INFO] Step 2: creating HTTP server…
+[2026-05-05T00:34:17.027Z] [INFO] Step 2 OK
+[2026-05-05T00:34:17.027Z] [INFO] Step 3: binding to port…
+[2026-05-05T00:34:17.027Z] [INFO]   trying port 8080…
+[2026-05-05T00:34:17.031Z] [INFO] Step 3 OK: listening on port 8080
+=== TCG Snipers v1.0.22 started 2026-05-05T01:35:00.447Z ===
+[2026-05-05T01:35:00.449Z] [INFO] Platform: win32, packaged: true
+[2026-05-05T01:35:00.450Z] [INFO] Node version: v20.19.1
+[2026-05-05T01:35:00.450Z] [INFO] Platform: win32 arch: x64
+[2026-05-05T01:35:00.450Z] [INFO] isPackaged: true
+[2026-05-05T01:35:00.450Z] [INFO] DB path: C:\Users\Owner\AppData\Roaming\@workspace\sniper-bot\pgdata
+[2026-05-05T01:35:00.450Z] [INFO] NODE_ENV set to: production
+[2026-05-05T01:35:00.452Z] [INFO] Encryption key loaded from secure store
+[2026-05-05T01:35:00.452Z] [INFO] electron/dist contents (40 files): app-RIGPWNIL.js, app-RIGPWNIL.js.map, chunk-AUQ5QMPN.js, chunk-AUQ5QMPN.js.map, chunk-KFHPWSTI.js, chunk-KFHPWSTI.js.map, chunk-KXDC6MGZ.js, chunk-KXDC6MGZ.js.map, chunk-OEC5A2IQ.js, chunk-OEC5A2IQ.js.map, chunk-SGFZVGF2.js, chunk-SGFZVGF2.js.map, chunk-SMR2BPHQ.js, chunk-SMR2BPHQ.js.map, chunk-WJQGXH5Y.js, chunk-WJQGXH5Y.js.map, chunk-XWWITKHY.js, chunk-XWWITKHY.js.map, dist-44FBOYIR.js, dist-44FBOYIR.js.map
+[2026-05-05T01:35:00.452Z] [INFO] Step 1: importing API server module…
+[2026-05-05T01:35:01.763Z] [INFO] Step 1 OK: module imported
+[2026-05-05T01:35:01.763Z] [INFO] Step 2: creating HTTP server…
+[2026-05-05T01:35:01.763Z] [INFO] Step 2 OK
+[2026-05-05T01:35:01.764Z] [INFO] Step 3: binding to port…
+[2026-05-05T01:35:01.764Z] [INFO]   trying port 8080…
+[2026-05-05T01:35:01.767Z] [INFO] Step 3 OK: listening on port 8080
+=== TCG Snipers v1.0.22 started 2026-05-05T02:30:30.981Z ===
+[2026-05-05T02:30:30.982Z] [INFO] Platform: win32, packaged: true
+[2026-05-05T02:30:30.983Z] [INFO] Node version: v20.19.1
+[2026-05-05T02:30:30.983Z] [INFO] Platform: win32 arch: x64
+[2026-05-05T02:30:30.983Z] [INFO] isPackaged: true
+[2026-05-05T02:30:30.983Z] [INFO] DB path: C:\Users\Owner\AppData\Roaming\@workspace\sniper-bot\pgdata
+[2026-05-05T02:30:30.983Z] [INFO] NODE_ENV set to: production
+[2026-05-05T02:30:30.991Z] [INFO] Encryption key loaded from secure store
+[2026-05-05T02:30:30.992Z] [INFO] electron/dist contents (40 files): app-RIGPWNIL.js, app-RIGPWNIL.js.map, chunk-AUQ5QMPN.js, chunk-AUQ5QMPN.js.map, chunk-KFHPWSTI.js, chunk-KFHPWSTI.js.map, chunk-KXDC6MGZ.js, chunk-KXDC6MGZ.js.map, chunk-OEC5A2IQ.js, chunk-OEC5A2IQ.js.map, chunk-SGFZVGF2.js, chunk-SGFZVGF2.js.map, chunk-SMR2BPHQ.js, chunk-SMR2BPHQ.js.map, chunk-WJQGXH5Y.js, chunk-WJQGXH5Y.js.map, chunk-XWWITKHY.js, chunk-XWWITKHY.js.map, dist-44FBOYIR.js, dist-44FBOYIR.js.map
+[2026-05-05T02:30:30.992Z] [INFO] Step 1: importing API server module…
+[2026-05-05T02:30:37.143Z] [INFO] Step 1 OK: module imported
+[2026-05-05T02:30:37.143Z] [INFO] Step 2: creating HTTP server…
+[2026-05-05T02:30:37.144Z] [INFO] Step 2 OK
+[2026-05-05T02:30:37.144Z] [INFO] Step 3: binding to port…
+[2026-05-05T02:30:37.144Z] [INFO]   trying port 8080…
+[2026-05-05T02:30:37.148Z] [INFO] Step 3 OK: listening on port 8080
+=== TCG Snipers v1.0.23 started 2026-05-05T05:54:45.102Z ===
+[2026-05-05T05:54:45.103Z] [INFO] Platform: win32, packaged: true
+[2026-05-05T05:54:45.104Z] [INFO] Node version: v20.19.1
+[2026-05-05T05:54:45.104Z] [INFO] Platform: win32 arch: x64
+[2026-05-05T05:54:45.104Z] [INFO] isPackaged: true
+[2026-05-05T05:54:45.104Z] [INFO] DB path: C:\Users\Owner\AppData\Roaming\@workspace\sniper-bot\pgdata
+[2026-05-05T05:54:45.104Z] [INFO] NODE_ENV set to: production
+[2026-05-05T05:54:45.112Z] [INFO] Encryption key loaded from secure store
+[2026-05-05T05:54:45.112Z] [INFO] electron/dist contents (40 files): app-V62RELI7.js, app-V62RELI7.js.map, chunk-BXNLCUBD.js, chunk-BXNLCUBD.js.map, chunk-KFHPWSTI.js, chunk-KFHPWSTI.js.map, chunk-KXDC6MGZ.js, chunk-KXDC6MGZ.js.map, chunk-OEC5A2IQ.js, chunk-OEC5A2IQ.js.map, chunk-SMR2BPHQ.js, chunk-SMR2BPHQ.js.map, chunk-WJQGXH5Y.js, chunk-WJQGXH5Y.js.map, chunk-XWWITKHY.js, chunk-XWWITKHY.js.map, chunk-ZTJMLXC3.js, chunk-ZTJMLXC3.js.map, dist-44FBOYIR.js, dist-44FBOYIR.js.map
+[2026-05-05T05:54:45.112Z] [INFO] Step 1: importing API server module…
+[2026-05-05T05:54:50.706Z] [INFO] Step 1 OK: module imported
+[2026-05-05T05:54:50.707Z] [INFO] Step 2: creating HTTP server…
+[2026-05-05T05:54:50.707Z] [INFO] Step 2 OK
+[2026-05-05T05:54:50.707Z] [INFO] Step 3: binding to port…
+[2026-05-05T05:54:50.708Z] [INFO]   trying port 8080…
+[2026-05-05T05:54:50.712Z] [INFO] Step 3 OK: listening on port 8080
+[2026-05-05T05:55:54.095Z] [INFO] [google:oauthSignIn] OAuth server listening on port 59013
+=== TCG Snipers v1.0.23 started 2026-05-05T06:00:07.092Z ===
+[2026-05-05T06:00:07.093Z] [INFO] Platform: win32, packaged: true
+[2026-05-05T06:00:07.094Z] [INFO] Node version: v20.19.1
+[2026-05-05T06:00:07.094Z] [INFO] Platform: win32 arch: x64
+[2026-05-05T06:00:07.094Z] [INFO] isPackaged: true
+[2026-05-05T06:00:07.094Z] [INFO] DB path: C:\Users\Owner\AppData\Roaming\@workspace\sniper-bot\pgdata
+[2026-05-05T06:00:07.094Z] [INFO] NODE_ENV set to: production
+[2026-05-05T06:00:07.095Z] [INFO] Encryption key loaded from secure store
+[2026-05-05T06:00:07.095Z] [INFO] electron/dist contents (40 files): app-V62RELI7.js, app-V62RELI7.js.map, chunk-BXNLCUBD.js, chunk-BXNLCUBD.js.map, chunk-KFHPWSTI.js, chunk-KFHPWSTI.js.map, chunk-KXDC6MGZ.js, chunk-KXDC6MGZ.js.map, chunk-OEC5A2IQ.js, chunk-OEC5A2IQ.js.map, chunk-SMR2BPHQ.js, chunk-SMR2BPHQ.js.map, chunk-WJQGXH5Y.js, chunk-WJQGXH5Y.js.map, chunk-XWWITKHY.js, chunk-XWWITKHY.js.map, chunk-ZTJMLXC3.js, chunk-ZTJMLXC3.js.map, dist-44FBOYIR.js, dist-44FBOYIR.js.map
+[2026-05-05T06:00:07.095Z] [INFO] Step 1: importing API server module…
+[2026-05-05T06:00:07.866Z] [INFO] Step 1 OK: module imported
+[2026-05-05T06:00:07.867Z] [INFO] Step 2: creating HTTP server…
+[2026-05-05T06:00:07.868Z] [INFO] Step 2 OK
+[2026-05-05T06:00:07.868Z] [INFO] Step 3: binding to port…
+[2026-05-05T06:00:07.868Z] [INFO]   trying port 8080…
+[2026-05-05T06:00:07.872Z] [INFO] Step 3 OK: listening on port 8080
+[2026-05-05T06:00:13.498Z] [INFO] [google:oauthSignIn] OAuth server listening on port 57286
+=== TCG Snipers v1.0.25 started 2026-05-05T14:58:35.527Z ===
+[2026-05-05T14:58:35.528Z] [INFO] Platform: win32, packaged: true
+[2026-05-05T14:58:35.529Z] [INFO] Node version: v20.19.1
+[2026-05-05T14:58:35.529Z] [INFO] Platform: win32 arch: x64
+[2026-05-05T14:58:35.529Z] [INFO] isPackaged: true
+[2026-05-05T14:58:35.529Z] [INFO] DB path: C:\Users\Owner\AppData\Roaming\@workspace\sniper-bot\pgdata
+[2026-05-05T14:58:35.529Z] [INFO] NODE_ENV set to: production
+[2026-05-05T14:58:35.536Z] [INFO] Encryption key loaded from secure store
+[2026-05-05T14:58:35.537Z] [INFO] electron/dist contents (40 files): app-CUQ2WFAK.js, app-CUQ2WFAK.js.map, chunk-AUQ5QMPN.js, chunk-AUQ5QMPN.js.map, chunk-KFHPWSTI.js, chunk-KFHPWSTI.js.map, chunk-KXDC6MGZ.js, chunk-KXDC6MGZ.js.map, chunk-OEC5A2IQ.js, chunk-OEC5A2IQ.js.map, chunk-SGFZVGF2.js, chunk-SGFZVGF2.js.map, chunk-SMR2BPHQ.js, chunk-SMR2BPHQ.js.map, chunk-WJQGXH5Y.js, chunk-WJQGXH5Y.js.map, chunk-XWWITKHY.js, chunk-XWWITKHY.js.map, dist-44FBOYIR.js, dist-44FBOYIR.js.map
+[2026-05-05T14:58:35.537Z] [INFO] Step 1: importing API server module…
+[2026-05-05T14:58:41.272Z] [INFO] Step 1 OK: module imported
+[2026-05-05T14:58:41.273Z] [INFO] Step 2: creating HTTP server…
+[2026-05-05T14:58:41.273Z] [INFO] Step 2 OK
+[2026-05-05T14:58:41.273Z] [INFO] Step 3: binding to port…
+[2026-05-05T14:58:41.273Z] [INFO]   trying port 8080…
+[2026-05-05T14:58:41.279Z] [INFO] Step 3 OK: listening on port 8080
+=== TCG Snipers v1.0.25 started 2026-05-05T15:14:00.895Z ===
+[2026-05-05T15:14:00.896Z] [INFO] Platform: win32, packaged: true
+[2026-05-05T15:14:00.897Z] [INFO] Node version: v20.19.1
+[2026-05-05T15:14:00.897Z] [INFO] Platform: win32 arch: x64
+[2026-05-05T15:14:00.897Z] [INFO] isPackaged: true
+[2026-05-05T15:14:00.897Z] [INFO] DB path: C:\Users\Owner\AppData\Roaming\@workspace\sniper-bot\pgdata
+[2026-05-05T15:14:00.897Z] [INFO] NODE_ENV set to: production
+[2026-05-05T15:14:00.898Z] [INFO] Encryption key loaded from secure store
+[2026-05-05T15:14:00.898Z] [INFO] electron/dist contents (40 files): app-CUQ2WFAK.js, app-CUQ2WFAK.js.map, chunk-AUQ5QMPN.js, chunk-AUQ5QMPN.js.map, chunk-KFHPWSTI.js, chunk-KFHPWSTI.js.map, chunk-KXDC6MGZ.js, chunk-KXDC6MGZ.js.map, chunk-OEC5A2IQ.js, chunk-OEC5A2IQ.js.map, chunk-SGFZVGF2.js, chunk-SGFZVGF2.js.map, chunk-SMR2BPHQ.js, chunk-SMR2BPHQ.js.map, chunk-WJQGXH5Y.js, chunk-WJQGXH5Y.js.map, chunk-XWWITKHY.js, chunk-XWWITKHY.js.map, dist-44FBOYIR.js, dist-44FBOYIR.js.map
+[2026-05-05T15:14:00.898Z] [INFO] Step 1: importing API server module…
+[2026-05-05T15:14:01.609Z] [INFO] Step 1 OK: module imported
+[2026-05-05T15:14:01.609Z] [INFO] Step 2: creating HTTP server…
+[2026-05-05T15:14:01.610Z] [INFO] Step 2 OK
+[2026-05-05T15:14:01.610Z] [INFO] Step 3: binding to port…
+[2026-05-05T15:14:01.610Z] [INFO]   trying port 8080…
+[2026-05-05T15:14:01.614Z] [INFO] Step 3 OK: listening on port 8080
+[2026-05-05T15:14:48.778Z] [INFO] [discord:oauthConnect] OAuth callback server listening on port 47842
+[2026-05-05T15:18:11.274Z] [INFO] [discord:oauthConnect] OAuth callback server listening on port 47842
+=== TCG Snipers v1.0.25 started 2026-05-05T15:19:39.116Z ===
+[2026-05-05T15:19:39.117Z] [INFO] Platform: win32, packaged: true
+[2026-05-05T15:19:39.118Z] [INFO] Node version: v20.19.1
+[2026-05-05T15:19:39.118Z] [INFO] Platform: win32 arch: x64
+[2026-05-05T15:19:39.118Z] [INFO] isPackaged: true
+[2026-05-05T15:19:39.118Z] [INFO] DB path: C:\Users\Owner\AppData\Roaming\@workspace\sniper-bot\pgdata
+[2026-05-05T15:19:39.118Z] [INFO] NODE_ENV set to: production
+[2026-05-05T15:19:39.119Z] [INFO] Encryption key loaded from secure store
+[2026-05-05T15:19:39.119Z] [INFO] electron/dist contents (40 files): app-CUQ2WFAK.js, app-CUQ2WFAK.js.map, chunk-AUQ5QMPN.js, chunk-AUQ5QMPN.js.map, chunk-KFHPWSTI.js, chunk-KFHPWSTI.js.map, chunk-KXDC6MGZ.js, chunk-KXDC6MGZ.js.map, chunk-OEC5A2IQ.js, chunk-OEC5A2IQ.js.map, chunk-SGFZVGF2.js, chunk-SGFZVGF2.js.map, chunk-SMR2BPHQ.js, chunk-SMR2BPHQ.js.map, chunk-WJQGXH5Y.js, chunk-WJQGXH5Y.js.map, chunk-XWWITKHY.js, chunk-XWWITKHY.js.map, dist-44FBOYIR.js, dist-44FBOYIR.js.map
+[2026-05-05T15:19:39.119Z] [INFO] Step 1: importing API server module…
+[2026-05-05T15:19:39.826Z] [INFO] Step 1 OK: module imported
+[2026-05-05T15:19:39.826Z] [INFO] Step 2: creating HTTP server…
+[2026-05-05T15:19:39.827Z] [INFO] Step 2 OK
+[2026-05-05T15:19:39.827Z] [INFO] Step 3: binding to port…
+[2026-05-05T15:19:39.827Z] [INFO]   trying port 8080…
+[2026-05-05T15:19:39.830Z] [INFO] Step 3 OK: listening on port 8080

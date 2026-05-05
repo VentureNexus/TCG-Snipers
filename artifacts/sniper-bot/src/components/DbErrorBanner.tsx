@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { X } from "lucide-react";
 
 interface ApiFailure {
   reason: string;
@@ -15,6 +16,7 @@ const MID_SESSION_REASON = "The database process stopped responding.";
 export function DbErrorBanner() {
   const [failure, setFailure] = useState<ApiFailure | null>(null);
   const [slowWarning, setSlowWarning] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
   const [logs, setLogs] = useState<string[] | null>(null);
   const [showLogs, setShowLogs] = useState(false);
   const probeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -40,11 +42,11 @@ export function DbErrorBanner() {
     })();
 
     const offFailed = diag.onStartFailed((info) => {
-      if (!cancelled) setFailure({ reason: info.reason, kind: "startup" });
+      if (!cancelled) { setFailure({ reason: info.reason, kind: "startup" }); setDismissed(false); }
     });
 
     const offCrashed = diag.onCrashed((info) => {
-      if (!cancelled) setFailure({ reason: info.reason, kind: "startup" });
+      if (!cancelled) { setFailure({ reason: info.reason, kind: "startup" }); setDismissed(false); }
     });
 
     const offRecovered = diag.onRecovered(() => {
@@ -65,9 +67,10 @@ export function DbErrorBanner() {
           setSlowWarning(false);
           consecutiveFailsRef.current += 1;
           if (consecutiveFailsRef.current >= HEALTH_PROBE_FAIL_THRESHOLD) {
-            setFailure((prev) =>
-              prev ?? { reason: MID_SESSION_REASON, kind: "mid-session" }
-            );
+            setFailure((prev) => {
+              if (!prev) { setDismissed(false); return { reason: MID_SESSION_REASON, kind: "mid-session" }; }
+              return prev;
+            });
           }
         } else {
           consecutiveFailsRef.current = 0;
@@ -107,6 +110,7 @@ export function DbErrorBanner() {
   };
 
   if (!failure && !slowWarning) return null;
+  if (dismissed) return null;
 
   if (!failure && slowWarning) {
     return (
@@ -121,6 +125,14 @@ export function DbErrorBanner() {
         <span className="text-muted-foreground flex-1 truncate">
           The database is taking longer than usual to respond. Performance may be degraded.
         </span>
+        <button
+          type="button"
+          onClick={() => setDismissed(true)}
+          className="ml-auto text-muted-foreground hover:text-foreground transition p-0.5 rounded"
+          aria-label="Dismiss"
+        >
+          <X className="h-3.5 w-3.5" />
+        </button>
       </div>
     );
   }
@@ -169,6 +181,14 @@ export function DbErrorBanner() {
             >
               Contact Support
             </a>
+            <button
+              type="button"
+              onClick={() => setDismissed(true)}
+              className="text-destructive/70 hover:text-destructive transition p-0.5 rounded"
+              aria-label="Dismiss"
+            >
+              <X className="h-4 w-4" />
+            </button>
           </div>
         </div>
       </div>
