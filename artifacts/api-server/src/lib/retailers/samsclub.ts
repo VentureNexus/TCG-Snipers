@@ -81,7 +81,7 @@ export async function runSamsClub(ctx: RetailerContext): Promise<RetailerResult>
         if (atcBtn) {
           if (task.maxPrice != null && productPrice) {
             const priceCents = Math.round(parseFloat(productPrice) * 100);
-            if (priceCents > task.maxPrice) {
+            if (Number.isFinite(priceCents) && priceCents > task.maxPrice) {
               log("WARN", `[${RETAILER}] Price $${productPrice} exceeds limit $${(task.maxPrice / 100).toFixed(2)} — waiting for price to drop...`);
               continue;
             }

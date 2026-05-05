@@ -475,7 +475,15 @@ export default function TasksPage() {
   const onEditSubmit = (values: TaskFormValues) => {
     if (!editingTask) return;
     updateTask.mutate(
-      { id: editingTask.id, data: formValuesToPayload(values) },
+      {
+        id: editingTask.id,
+        data: {
+          ...formValuesToPayload(values),
+          maxPrice: values.maxPrice !== undefined && values.maxPrice !== null
+            ? Math.round(values.maxPrice * 100)
+            : null,
+        },
+      },
       {
         onSuccess: () => {
           setEditingTask(null);
