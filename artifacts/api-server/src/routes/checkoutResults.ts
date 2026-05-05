@@ -68,6 +68,11 @@ router.patch("/checkout-results/:id", async (req, res): Promise<void> => {
   res.json(result);
 });
 
+router.delete("/checkout-results", async (_req, res): Promise<void> => {
+  await db.delete(checkoutResultsTable);
+  res.sendStatus(204);
+});
+
 router.delete("/checkout-results/:id", async (req, res): Promise<void> => {
   const id = parseInt(req.params.id, 10);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }

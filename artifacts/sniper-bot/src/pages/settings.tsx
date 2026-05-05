@@ -5,27 +5,47 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
-import { useGetSettings, useUpdateSettings, getGetSettingsQueryKey } from "@workspace/api-client-react";
+import { useGetSettings, useUpdateSettings, useListCheckoutResults, getGetSettingsQueryKey, getListCheckoutResultsQueryKey } from "@workspace/api-client-react";
 import { DiagnosticsPanel } from "@/components/DiagnosticsPanel";
+import { getApiBase } from "@/lib/api-base";
+import { Trash2, Download } from "lucide-react";
+
+const TASK_DEFAULTS_KEY = "task-defaults";
+
+export interface TaskDefaults {
+  retryCount: number;
+  quantity: number;
+  stopAfterMinutes: number;
+}
+
+export const DEFAULT_TASK_DEFAULTS: TaskDefaults = {
+  retryCount: 3,
+  quantity: 1,
+  stopAfterMinutes: 0,
+};
+
+export function loadTaskDefaults(): TaskDefaults {
+  try {
+    const raw = localStorage.getItem(TASK_DEFAULTS_KEY);
+    if (raw) return { ...DEFAULT_TASK_DEFAULTS, ...JSON.parse(raw) };
+  } catch {}
+  return DEFAULT_TASK_DEFAULTS;
+}
+
+function saveTaskDefaults(d: TaskDefaults) {
+  try { localStorage.setItem(TASK_DEFAULTS_KEY, JSON.stringify(d)); } catch {}
+}
 
 interface SettingsForm {
   concurrency: number;
   monitorDelay: number;
   monitorDelayMax: number;
-  imapHost: string;
-  imapPort: string;
-  imapEmail: string;
-  imapPassword: string;
 }
 
 const DEFAULT_SETTINGS: SettingsForm = {
   concurrency: 5,
   monitorDelay: 200,
   monitorDelayMax: 800,
-  imapHost: "",
-  imapPort: "993",
-  imapEmail: "",
-  imapPassword: "",
 };
 
 function DiscordIcon() {
@@ -42,8 +62,13 @@ export default function SettingsPage() {
   const [settings, setSettings] = useState<SettingsForm>(DEFAULT_SETTINGS);
   const [formInitialized, setFormInitialized] = useState(false);
   const [discordConnecting, setDiscordConnecting] = useState(false);
+  const [taskDefaults, setTaskDefaults] = useState<TaskDefaults>(loadTaskDefaults);
+  const [clearConfirm, setClearConfirm] = useState(false);
+  const [clearing, setClearing] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   const { data: settingsData, isLoading: loading, isError } = useGetSettings();
+  const { data: checkouts = [] } = useListCheckoutResults();
   const updateSettingsMutation = useUpdateSettings();
   const saving = updateSettingsMutation.isPending;
 
@@ -58,10 +83,6 @@ export default function SettingsPage() {
         concurrency: settingsData.concurrency,
         monitorDelay: settingsData.monitorDelay,
         monitorDelayMax: settingsData.monitorDelayMax ?? 800,
-        imapHost: settingsData.imapHost,
-        imapPort: settingsData.imapPort,
-        imapEmail: settingsData.imapEmail,
-        imapPassword: settingsData.imapPassword,
       });
       setFormInitialized(true);
     }
@@ -76,6 +97,16 @@ export default function SettingsPage() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type } = e.target;
     setSettings((s) => ({ ...s, [name]: type === "number" ? Number(value) : value }));
+  };
+
+  const handleDefaultsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setTaskDefaults((d) => ({ ...d, [name]: Number(value) }));
+  };
+
+  const handleSaveDefaults = () => {
+    saveTaskDefaults(taskDefaults);
+    toast({ title: "Task Defaults Saved", description: "New tasks will use these defaults." });
   };
 
   const handleSave = () => {
@@ -103,36 +134,19 @@ export default function SettingsPage() {
     try {
       const result = await window.electronAPI.discord.connect();
       updateSettingsMutation.mutate(
-        {
-          data: {
-            webhookUrl: result.webhookUrl,
-            discordGuildName: result.guildName,
-            discordChannelName: result.channelName,
-          },
-        },
+        { data: { webhookUrl: result.webhookUrl, discordGuildName: result.guildName, discordChannelName: result.channelName } },
         {
           onSuccess: (updated) => {
             queryClient.setQueryData(getGetSettingsQueryKey(), updated);
-            toast({
-              title: "Discord connected",
-              description: `Notifications will be sent to #${result.channelName} in ${result.guildName}.`,
-            });
+            toast({ title: "Discord connected", description: `Notifications will be sent to #${result.channelName} in ${result.guildName}.` });
           },
           onError: (err) => {
-            toast({
-              title: "Failed to save Discord connection",
-              description: err instanceof Error ? err.message : "Could not save settings.",
-              variant: "destructive",
-            });
+            toast({ title: "Failed to save Discord connection", description: err instanceof Error ? err.message : "Could not save settings.", variant: "destructive" });
           },
         }
       );
     } catch (err) {
-      toast({
-        title: "Discord connection failed",
-        description: err instanceof Error ? err.message : "Could not connect to Discord.",
-        variant: "destructive",
-      });
+      toast({ title: "Discord connection failed", description: err instanceof Error ? err.message : "Could not connect to Discord.", variant: "destructive" });
     } finally {
       setDiscordConnecting(false);
     }
@@ -140,27 +154,62 @@ export default function SettingsPage() {
 
   const handleDiscordDisconnect = () => {
     updateSettingsMutation.mutate(
-      {
-        data: {
-          webhookUrl: "",
-          discordGuildName: null,
-          discordChannelName: null,
-        },
-      },
+      { data: { webhookUrl: "", discordGuildName: null, discordChannelName: null } },
       {
         onSuccess: (updated) => {
           queryClient.setQueryData(getGetSettingsQueryKey(), updated);
           toast({ title: "Discord disconnected" });
         },
         onError: (err) => {
-          toast({
-            title: "Failed to disconnect",
-            description: err instanceof Error ? err.message : "Could not update settings.",
-            variant: "destructive",
-          });
+          toast({ title: "Failed to disconnect", description: err instanceof Error ? err.message : "Could not update settings.", variant: "destructive" });
         },
       }
     );
+  };
+
+  const handleExportCsv = () => {
+    setExporting(true);
+    try {
+      const headers = ["ID", "Date", "Product", "Retailer", "Order Number", "Price", "Status", "Error"];
+      const rows = checkouts.map((co) => [
+        co.id,
+        new Date(co.createdAt).toISOString(),
+        `"${(co.productName ?? "").replace(/"/g, '""')}"`,
+        co.retailer,
+        co.orderNumber || "",
+        co.price || "",
+        co.success ? "Success" : "Failed",
+        `"${(co.errorMessage ?? "").replace(/"/g, '""')}"`,
+      ]);
+      const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+      const blob = new Blob([csv], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `checkout-history-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast({ title: "Exported", description: `${checkouts.length} records exported as CSV.` });
+    } catch {
+      toast({ title: "Export failed", variant: "destructive" });
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleClearHistory = async () => {
+    if (!clearConfirm) { setClearConfirm(true); return; }
+    setClearing(true);
+    try {
+      await fetch(`${getApiBase()}/api/checkout-results`, { method: "DELETE" });
+      await queryClient.invalidateQueries({ queryKey: getListCheckoutResultsQueryKey() });
+      toast({ title: "History cleared", description: "All checkout records have been deleted." });
+      setClearConfirm(false);
+    } catch {
+      toast({ title: "Failed to clear history", variant: "destructive" });
+    } finally {
+      setClearing(false);
+    }
   };
 
   return (
@@ -230,30 +279,17 @@ export default function SettingsPage() {
                     <span className="text-[#5865F2]"><DiscordIcon /></span>
                     <div>
                       <p className="text-sm font-medium">
-                        {discordGuildName
-                          ? `${discordGuildName} · #${discordChannelName ?? "unknown"}`
-                          : "Connected"}
+                        {discordGuildName ? `${discordGuildName} · #${discordChannelName ?? "unknown"}` : "Connected"}
                       </p>
                       <p className="text-xs text-muted-foreground">Connected via Discord OAuth</p>
                     </div>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleDiscordDisconnect}
-                    disabled={saving}
-                    className="text-muted-foreground hover:text-foreground"
-                  >
+                  <Button variant="ghost" size="sm" onClick={handleDiscordDisconnect} disabled={saving} className="text-muted-foreground hover:text-foreground">
                     Disconnect
                   </Button>
                 </div>
               ) : (
-                <Button
-                  className="w-full gap-2 text-white"
-                  style={{ background: "#5865F2" }}
-                  onClick={handleDiscordConnect}
-                  disabled={!isElectron || discordConnecting || saving}
-                >
+                <Button className="w-full gap-2 text-white" style={{ background: "#5865F2" }} onClick={handleDiscordConnect} disabled={!isElectron || discordConnecting || saving}>
                   <DiscordIcon />
                   {discordConnecting ? "Connecting to Discord…" : "Connect Discord"}
                 </Button>
@@ -266,46 +302,60 @@ export default function SettingsPage() {
 
           <Card className="glass-card">
             <CardHeader>
-              <CardTitle>IMAP Settings</CardTitle>
-              <CardDescription>
-                Default IMAP account used to intercept OTP codes for tasks that don't have a profile-specific inbox configured.
-                Each profile can override this with its own email in the profile editor.
-                We recommend a <strong>dedicated Gmail account</strong> — use <strong>imap.gmail.com</strong> port <strong>993</strong> with an{" "}
-                <a
-                  href="https://myaccount.google.com/apppasswords"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="underline hover:text-foreground"
-                >
-                  App Password
-                </a>{" "}
-                (enable 2-Step Verification first, then generate the App Password).
-              </CardDescription>
+              <CardTitle>Task Defaults</CardTitle>
+              <CardDescription>Default values applied when creating a new task. Individual tasks can still override these.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-6">
+              <div className="grid grid-cols-3 gap-6">
                 <div className="space-y-2">
-                  <Label htmlFor="imapHost">IMAP Host</Label>
-                  <Input id="imapHost" name="imapHost" placeholder="imap.gmail.com" value={settings.imapHost} onChange={handleChange} />
+                  <Label htmlFor="retryCount">Default Retry Count</Label>
+                  <Input id="retryCount" name="retryCount" type="number" min={0} max={20} value={taskDefaults.retryCount} onChange={handleDefaultsChange} />
+                  <p className="text-xs text-muted-foreground">How many times to retry if a task fails.</p>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="imapPort">IMAP Port</Label>
-                  <Input id="imapPort" name="imapPort" placeholder="993" value={settings.imapPort} onChange={handleChange} />
+                  <Label htmlFor="quantity">Default Quantity</Label>
+                  <Input id="quantity" name="quantity" type="number" min={1} max={10} value={taskDefaults.quantity} onChange={handleDefaultsChange} />
+                  <p className="text-xs text-muted-foreground">Number of units to purchase per task.</p>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="imapEmail">Email Address</Label>
-                  <Input id="imapEmail" name="imapEmail" type="email" placeholder="you@gmail.com" value={settings.imapEmail} onChange={handleChange} />
+                  <Label htmlFor="stopAfterMinutes">Auto-Stop After (min)</Label>
+                  <Input id="stopAfterMinutes" name="stopAfterMinutes" type="number" min={0} value={taskDefaults.stopAfterMinutes} onChange={handleDefaultsChange} />
+                  <p className="text-xs text-muted-foreground">Stop monitoring after this many minutes. Set 0 to run indefinitely.</p>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="imapPassword">App Password</Label>
-                  <Input
-                    id="imapPassword"
-                    name="imapPassword"
-                    type="password"
-                    value={settings.imapPassword}
-                    onChange={handleChange}
-                    placeholder="xxxx xxxx xxxx xxxx"
-                  />
+              </div>
+              <div className="flex justify-end">
+                <Button variant="outline" size="sm" onClick={handleSaveDefaults}>Save Task Defaults</Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="glass-card">
+            <CardHeader>
+              <CardTitle>Data Management</CardTitle>
+              <CardDescription>Export or clear your checkout history.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between rounded-lg border border-border/50 px-4 py-3 bg-muted/10">
+                <div>
+                  <p className="text-sm font-medium">Checkout History</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{checkouts.length} record{checkouts.length !== 1 ? "s" : ""} stored</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm" className="gap-1.5" onClick={handleExportCsv} disabled={exporting || checkouts.length === 0}>
+                    <Download className="w-3.5 h-3.5" />
+                    Export CSV
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className={`gap-1.5 transition-colors ${clearConfirm ? "border-red-500/50 text-red-400 hover:bg-red-500/10" : "text-muted-foreground hover:text-foreground"}`}
+                    onClick={handleClearHistory}
+                    disabled={clearing || checkouts.length === 0}
+                    onBlur={() => setTimeout(() => setClearConfirm(false), 200)}
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    {clearConfirm ? "Confirm Clear" : "Clear History"}
+                  </Button>
                 </div>
               </div>
             </CardContent>
@@ -313,7 +363,7 @@ export default function SettingsPage() {
 
           <div className="flex justify-end">
             <Button onClick={handleSave} disabled={saving} size="lg" className="px-8">
-              {saving ? "Saving…" : "Save All Settings"}
+              {saving ? "Saving…" : "Save Settings"}
             </Button>
           </div>
         </>
