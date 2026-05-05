@@ -139,6 +139,79 @@ function taskToFormValues(task: Task): TaskFormValues {
   };
 }
 
+function TimeLimitBadge({ task, isRunning }: { task: Task; isRunning: boolean }) {
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    if (!isRunning || (!task.stopAfterMs && !task.stopAtTime)) return;
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [isRunning, task.stopAfterMs, task.stopAtTime]);
+
+  if (!isRunning) return null;
+
+  if (task.stopAtTime) {
+    const [h, m] = task.stopAtTime.split(":").map(Number);
+    const target = new Date(now);
+    target.setHours(h, m, 0, 0);
+    if (target.getTime() <= now) target.setDate(target.getDate() + 1);
+    const remainingMs = target.getTime() - now;
+    const totalMins = Math.floor(remainingMs / 60000);
+    const rh = Math.floor(totalMins / 60);
+    const rm = totalMins % 60;
+    const remaining = rh > 0 ? `${rh}h ${rm}m` : `${rm}m`;
+    return (
+      <span
+        className="inline-flex items-center gap-1 text-[10px] font-mono text-sky-400 bg-sky-400/10 border border-sky-400/20 px-1.5 py-0.5 rounded"
+        data-testid={`time-limit-badge-${task.id}`}
+      >
+        ⏱ stops at {task.stopAtTime} ({remaining})
+      </span>
+    );
+  }
+
+  if (task.stopAfterMs) {
+    const startedAtMs = task.startedAt ? new Date(task.startedAt).getTime() : null;
+    if (startedAtMs !== null) {
+      const deadline = startedAtMs + task.stopAfterMs;
+      const remainingMs = Math.max(0, deadline - now);
+      const totalSecs = Math.floor(remainingMs / 1000);
+      const rh = Math.floor(totalSecs / 3600);
+      const rm = Math.floor((totalSecs % 3600) / 60);
+      const rs = totalSecs % 60;
+      const remaining = rh > 0
+        ? `${rh}h ${rm}m`
+        : rm > 0
+          ? `${rm}m ${rs}s`
+          : `${rs}s`;
+      const stopTime = new Date(deadline);
+      const stopLabel = stopTime.toLocaleTimeString("en-US", { hour12: false, hour: "2-digit", minute: "2-digit" });
+      return (
+        <span
+          className="inline-flex items-center gap-1 text-[10px] font-mono text-sky-400 bg-sky-400/10 border border-sky-400/20 px-1.5 py-0.5 rounded"
+          data-testid={`time-limit-badge-${task.id}`}
+        >
+          ⏱ stops at {stopLabel} ({remaining})
+        </span>
+      );
+    }
+    const totalMins = Math.round(task.stopAfterMs / 60000);
+    const lh = Math.floor(totalMins / 60);
+    const lm = totalMins % 60;
+    const label = lh > 0 ? (lm > 0 ? `${lh}h ${lm}m limit` : `${lh}h limit`) : `${lm}m limit`;
+    return (
+      <span
+        className="inline-flex items-center gap-1 text-[10px] font-mono text-sky-400 bg-sky-400/10 border border-sky-400/20 px-1.5 py-0.5 rounded"
+        data-testid={`time-limit-badge-${task.id}`}
+      >
+        ⏱ {label}
+      </span>
+    );
+  }
+
+  return null;
+}
+
 const STATUS_CONFIG: Record<string, { label: string; cls: string; dot?: string }> = {
   idle: { label: "IDLE", cls: "status-idle" },
   monitoring: { label: "MONITORING", cls: "status-monitoring", dot: "animate-pulse" },
@@ -919,10 +992,13 @@ export default function TasksPage() {
                         {task.retryCount === -1 ? "∞" : task.retryCount}
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs font-mono tracking-wide ${cfg.cls}`} data-testid={`status-task-${task.id}`}>
-                          {cfg.dot && <span className={`w-1.5 h-1.5 rounded-full bg-current ${cfg.dot}`} />}
-                          {cfg.label}
-                        </span>
+                        <div className="flex flex-col items-start gap-1">
+                          <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs font-mono tracking-wide ${cfg.cls}`} data-testid={`status-task-${task.id}`}>
+                            {cfg.dot && <span className={`w-1.5 h-1.5 rounded-full bg-current ${cfg.dot}`} />}
+                            {cfg.label}
+                          </span>
+                          <TimeLimitBadge task={task} isRunning={isRunning} />
+                        </div>
                       </td>
                       <td className="px-4 py-3 text-right space-x-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
                         {canStart ? (

@@ -22,6 +22,7 @@ interface TaskRow {
   maxPrice: number | null;
   stopAfterMs: number | null;
   stopAtTime: string | null;
+  startedAt?: Date | null;
 }
 
 let maxConcurrency = 5;
@@ -62,7 +63,8 @@ function launchTask(task: TaskRow): void {
   const token = { cancelled: false };
   cancellationTokens.set(task.id, token);
   activeConcurrency++;
-  runTaskAutomation({ ...task, stopAfterMs: resolveStopAfterMs(task) }, token).catch(() => {});
+  const startedAt = new Date();
+  runTaskAutomation({ ...task, stopAfterMs: resolveStopAfterMs(task), startedAt }, token).catch(() => {});
 }
 
 function drainQueue(): void {
@@ -78,8 +80,13 @@ async function runTaskAutomation(task: TaskRow, token: { cancelled: boolean }) {
   const log = (level: "INFO" | "SUCCESS" | "WARN" | "ERROR", message: string) =>
     broadcastLog(task.id, level, message);
 
+  await db.update(tasksTable).set({ startedAt: task.startedAt ?? new Date() }).where(eq(tasksTable.id, task.id)).catch(() => {});
+
   const setStatus = async (status: string) => {
-    await db.update(tasksTable).set({ status }).where(eq(tasksTable.id, task.id));
+    const isTerminal = ["success", "failed", "stopped"].includes(status);
+    await db.update(tasksTable)
+      .set(isTerminal ? { status, startedAt: null } : { status })
+      .where(eq(tasksTable.id, task.id));
     broadcastStatus(task.id, status);
   };
 
@@ -213,7 +220,7 @@ async function runTaskAutomation(task: TaskRow, token: { cancelled: boolean }) {
     }
   } catch (err) {
     log("ERROR", `[${task.retailer}] Unexpected error: ${String(err)}`);
-    await db.update(tasksTable).set({ status: "failed" }).where(eq(tasksTable.id, task.id));
+    await db.update(tasksTable).set({ status: "failed", startedAt: null }).where(eq(tasksTable.id, task.id));
     broadcastStatus(task.id, "failed");
   } finally {
     activeConcurrency--;
@@ -248,7 +255,7 @@ export async function stopTask(taskId: number): Promise<void> {
   }
   const queueIdx = pendingQueue.findIndex((t) => t.id === taskId);
   if (queueIdx !== -1) pendingQueue.splice(queueIdx, 1);
-  await db.update(tasksTable).set({ status: "stopped" }).where(eq(tasksTable.id, taskId));
+  await db.update(tasksTable).set({ status: "stopped", startedAt: null }).where(eq(tasksTable.id, taskId));
   broadcastStatus(taskId, "stopped");
 }
 

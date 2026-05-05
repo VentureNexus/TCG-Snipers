@@ -19,6 +19,7 @@ export const tasksTable = pgTable("tasks", {
   stopAfterMs: integer("stop_after_ms"),
   stopAtTime: text("stop_at_time"),
   status: text("status").notNull().default("idle"),
+  startedAt: timestamp("started_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });
