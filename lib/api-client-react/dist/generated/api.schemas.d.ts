@@ -239,6 +239,8 @@ export interface Task {
     /** @nullable */
     stopAtTime?: string | null;
     status: string;
+    /** @nullable */
+    startedAt?: string | null;
     createdAt: string;
     updatedAt: string;
 }
