@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
+import { healthProbeStore } from "@/lib/healthProbeStore";
 
 interface ApiFailure {
   reason: string;
@@ -77,6 +78,9 @@ export function DbErrorBanner() {
           setFailure((prev) =>
             prev?.kind === "mid-session" ? null : prev
           );
+          if (health.latencyMs !== null) {
+            healthProbeStore.push(health.latencyMs);
+          }
           const isSlow =
             health.latencyMs !== null && health.latencyMs > HEALTH_SLOW_THRESHOLD_MS;
           setSlowWarning(isSlow);

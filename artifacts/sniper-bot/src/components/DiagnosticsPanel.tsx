@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useRequestTracker } from "@/hooks/useRequestTracker";
+import { useHealthLatency } from "@/hooks/useHealthLatency";
 import type { ElectronMetrics } from "@/global";
 
 type Tab = "overview" | "requests" | "errors" | "server";
@@ -140,6 +141,7 @@ function buildCopyReport(
 export function DiagnosticsPanel() {
   const { toast } = useToast();
   const { entries, errors, avgLatency, errorRate, clear } = useRequestTracker();
+  const healthLatency = useHealthLatency();
   const [tab, setTab] = useState<Tab>("overview");
   const [serverMetrics, setServerMetrics] = useState<ElectronMetrics | null>(null);
   const [showAllRequests, setShowAllRequests] = useState(false);
@@ -291,6 +293,93 @@ export function DiagnosticsPanel() {
       {/* ── Overview Tab ─────────────────────────────────────────────────── */}
       {tab === "overview" && (
         <div className="space-y-4">
+          {/* ── Health Probe Latency ────────────────────────────────────── */}
+          {hasElectron && (
+            <div>
+              <p className="text-[11px] text-muted-foreground mb-2">
+                API health probe latency
+                {healthLatency.probeCount > 0 && (
+                  <span className="ml-1 text-muted-foreground/50">
+                    ({healthLatency.probeCount} {healthLatency.probeCount === 1 ? "probe" : "probes"})
+                  </span>
+                )}
+              </p>
+              {healthLatency.current === null ? (
+                <p className="text-[11px] text-muted-foreground/60 italic">
+                  Waiting for first health probe…
+                </p>
+              ) : (
+                <>
+                  <div className="grid grid-cols-3 gap-2 mb-2">
+                    {[
+                      { label: "Current", value: healthLatency.current },
+                      { label: "Avg", value: healthLatency.avg },
+                      { label: "Peak", value: healthLatency.max },
+                    ].map(({ label, value }) => {
+                      const ms = value ?? 0;
+                      const color =
+                        ms < 500 ? "text-emerald-400" : ms < 2000 ? "text-amber-400" : "text-red-400";
+                      return (
+                        <div
+                          key={label}
+                          className="bg-muted/30 border border-border/40 rounded-lg px-3 py-2"
+                        >
+                          <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5">
+                            {label}
+                          </p>
+                          <p className={`text-sm font-semibold font-mono ${color}`}>
+                            {fmtDuration(ms)}
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {healthLatency.history.length > 1 && (
+                    <div className="h-20 w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart
+                          data={healthLatency.history.map((r, i) => ({ i, latencyMs: r.latencyMs, ts: r.ts }))}
+                          margin={{ top: 2, right: 4, bottom: 0, left: -20 }}
+                        >
+                          <defs>
+                            <linearGradient id="healthLatencyGrad" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#34d399" stopOpacity={0.25} />
+                              <stop offset="95%" stopColor="#34d399" stopOpacity={0} />
+                            </linearGradient>
+                          </defs>
+                          <XAxis dataKey="i" hide />
+                          <YAxis tick={{ fontSize: 10, fill: "#6b7280" }} width={30} />
+                          <Tooltip
+                            content={({ active, payload }) => {
+                              if (!active || !payload?.[0]) return null;
+                              const d = payload[0].payload as { ts: number; latencyMs: number };
+                              return (
+                                <div className="bg-popover border border-border rounded px-2 py-1.5 text-[11px] space-y-0.5">
+                                  <div className="text-muted-foreground">{fmtTime(d.ts)}</div>
+                                  <div className="font-mono font-semibold">{fmtDuration(d.latencyMs)}</div>
+                                </div>
+                              );
+                            }}
+                          />
+                          <Area
+                            type="monotone"
+                            dataKey="latencyMs"
+                            stroke="#34d399"
+                            strokeWidth={1.5}
+                            fill="url(#healthLatencyGrad)"
+                            dot={false}
+                            activeDot={{ r: 3 }}
+                            isAnimationActive={false}
+                          />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+
           {entries.length === 0 ? (
             <p className="text-xs text-muted-foreground py-4 text-center">
               Monitoring active — requests will appear here as the app makes API calls.
