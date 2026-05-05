@@ -84,7 +84,7 @@ export default function AnalyticsPage() {
             <CardTitle className="text-sm font-medium text-muted-foreground">Total Spent</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold font-mono text-primary glow-blue">${summary?.totalSpent || "0.00"}</div>
+            <div className="text-2xl font-bold font-mono glow-blue" style={{ color: "var(--appearance-color)" }}>${summary?.totalSpent || "0.00"}</div>
           </CardContent>
         </Card>
         <Card className="glass-card">
