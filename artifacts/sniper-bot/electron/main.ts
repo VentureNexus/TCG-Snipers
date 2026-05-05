@@ -290,6 +290,38 @@ async function startApiServer(): Promise<void> {
     apiServer = http.createServer(expressApp);
     writeLog("INFO", "Step 2 OK");
 
+    // ── Initialize WebSocket server ────────────────────────────────────────
+    // CRITICAL: createWebSocketServer must be called before the HTTP server
+    // starts listening so the 'upgrade' event is wired up. Without this every
+    // WS connection hits Express and gets a 404, meaning task logs never appear.
+    try {
+      const { createWebSocketServer, initStatusCacheFromDb, setMaxConcurrency, getOrCreateSettings } = apiModule;
+      if (typeof createWebSocketServer === "function") {
+        createWebSocketServer(apiServer);
+        writeLog("INFO", "WebSocket server initialized on HTTP server");
+      } else {
+        writeLog("WARN", "createWebSocketServer not exported from app module — logs will not stream");
+      }
+      // Apply persisted concurrency setting
+      if (typeof getOrCreateSettings === "function" && typeof setMaxConcurrency === "function") {
+        try {
+          const settings = await getOrCreateSettings();
+          setMaxConcurrency(settings.concurrency);
+          writeLog("INFO", `Settings loaded — concurrency: ${settings.concurrency}`);
+        } catch (settingsErr) {
+          writeLog("WARN", `Could not load settings: ${settingsErr}`);
+        }
+      }
+      // Pre-populate task status cache from DB so badges are correct after restart
+      if (typeof initStatusCacheFromDb === "function") {
+        initStatusCacheFromDb().catch((err: unknown) =>
+          writeLog("WARN", `Could not pre-populate status cache: ${err}`)
+        );
+      }
+    } catch (wsErr) {
+      writeLog("WARN", `WebSocket server init failed: ${wsErr}`);
+    }
+
     apiServer.on("request", (req, res) => {
       const id = ++serverRequestCounter;
       const ts = Date.now();

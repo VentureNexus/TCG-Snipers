@@ -1,0 +1,94 @@
+TCG Snipers Diagnostic Report
+Generated: 2026-05-05T20:02:50.955Z
+Version: 1.0.29
+
+=== Server Status ===
+API alive: true
+Port: 8080
+Start OK: true
+Uptime: 52s
+
+
+=== Server Requests (last 91) ===
+03:02:37 PM  POST   /tasks/1/start                           200  59ms
+03:02:37 PM  GET    /tasks                                   200  4ms
+03:02:37 PM  POST   /tasks/1/start                           200  64ms
+03:02:37 PM  GET    /tasks                                   200  7ms
+03:02:37 PM  POST   /tasks/1/start                           200  68ms
+03:02:38 PM  GET    /tasks                                   200  8ms
+03:02:38 PM  GET    /healthz                                 404  0ms
+03:02:38 PM  POST   /tasks/1/start                           200  38ms
+03:02:38 PM  GET    /tasks                                   200  5ms
+03:02:39 PM  GET    /analytics/summary                       200  46ms
+03:02:39 PM  GET    /ws                                      404  1ms
+03:02:41 PM  GET    /tasks                                   304  12ms
+03:02:41 PM  POST   /tasks/34/start                          200  60ms
+03:02:41 PM  GET    /tasks                                   200  6ms
+03:02:41 PM  GET    /ws                                      404  1ms
+03:02:42 PM  GET    /ws                                      404  1ms
+03:02:42 PM  GET    /analytics/summary                       200  30ms
+03:02:43 PM  GET    /ws                                      404  1ms
+03:02:43 PM  POST   /tasks/34/start                          200  39ms
+03:02:43 PM  GET    /tasks                                   200  5ms
+03:02:43 PM  POST   /tasks/34/start                          200  62ms
+03:02:43 PM  GET    /tasks                                   200  7ms
+03:02:44 PM  POST   /tasks/34/start                          200  57ms
+03:02:44 PM  GET    /tasks                                   200  4ms
+03:02:45 PM  GET    /ws                                      404  2ms
+03:02:45 PM  GET    /analytics/summary                       200  40ms
+03:02:46 PM  GET    /checkout-results                        200  13ms
+03:02:46 PM  GET    /settings                                304  8ms
+03:02:47 PM  GET    /tasks                                   304  6ms
+03:02:48 PM  GET    /analytics/summary                       304  22ms
+
+=== Client Requests (last 50) ===
+03:02:21 PM  GET    /api/checkout-results                    200  36ms
+03:02:24 PM  GET    /api/analytics/summary                   200  49ms
+03:02:24 PM  GET    /api/tasks                               200  45ms
+03:02:27 PM  GET    /api/analytics/summary                   200  45ms
+03:02:27 PM  GET    /api/tasks                               200  51ms
+03:02:27 PM  GET    /api/analytics/summary                   200  51ms
+03:02:27 PM  GET    /api/checkout-results                    200  58ms
+03:02:27 PM  GET    /api/analytics/checkouts-over-time       200  64ms
+03:02:29 PM  GET    /api/tasks                               200  39ms
+03:02:29 PM  GET    /api/checkout-results                    200  38ms
+03:02:29 PM  GET    /api/task-groups                         200  39ms
+03:02:29 PM  GET    /api/proxies                             200  39ms
+03:02:29 PM  GET    /api/profiles                            200  40ms
+03:02:29 PM  GET    /api/og-image                            200  496ms
+03:02:30 PM  GET    /api/analytics/summary                   200  43ms
+03:02:29 PM  GET    /api/og-image                            200  2.1s
+03:02:32 PM  POST   /api/tasks/1/start                       200  44ms
+03:02:32 PM  GET    /api/tasks                               200  49ms
+03:02:33 PM  GET    /api/analytics/summary                   200  52ms
+03:02:35 PM  GET    /api/tasks                               200  22ms
+03:02:35 PM  POST   /api/tasks/1/start                       200  40ms
+03:02:35 PM  GET    /api/tasks                               200  28ms
+03:02:36 PM  GET    /api/analytics/summary                   200  46ms
+03:02:37 PM  POST   /api/tasks/1/start                       200  44ms
+03:02:37 PM  GET    /api/tasks                               200  27ms
+03:02:37 PM  POST   /api/tasks/1/start                       200  41ms
+03:02:37 PM  GET    /api/tasks                               200  26ms
+03:02:37 PM  POST   /api/tasks/1/start                       200  39ms
+03:02:37 PM  GET    /api/tasks                               200  37ms
+03:02:37 PM  POST   /api/tasks/1/start                       200  47ms
+03:02:38 PM  GET    /api/tasks                               200  34ms
+03:02:38 PM  POST   /api/tasks/1/start                       200  25ms
+03:02:38 PM  GET    /api/tasks                               200  25ms
+03:02:39 PM  GET    /api/analytics/summary                   200  52ms
+03:02:41 PM  GET    /api/tasks                               200  22ms
+03:02:41 PM  POST   /api/tasks/34/start                      200  43ms
+03:02:41 PM  GET    /api/tasks                               200  30ms
+03:02:42 PM  GET    /api/analytics/summary                   200  36ms
+03:02:43 PM  POST   /api/tasks/34/start                      200  23ms
+03:02:43 PM  GET    /api/tasks                               200  26ms
+03:02:43 PM  POST   /api/tasks/34/start                      200  43ms
+03:02:43 PM  GET    /api/tasks                               200  32ms
+03:02:44 PM  POST   /api/tasks/34/start                      200  42ms
+03:02:44 PM  GET    /api/tasks                               200  26ms
+03:02:45 PM  GET    /api/analytics/summary                   200  52ms
+03:02:46 PM  GET    /api/checkout-results                    200  39ms
+03:02:46 PM  GET    /api/settings                            200  39ms
+03:02:47 PM  GET    /api/tasks                               200  14ms
+03:02:48 PM  GET    /api/analytics/summary                   200  26ms
+03:02:50 PM  GET    /api/tasks                               200  16ms

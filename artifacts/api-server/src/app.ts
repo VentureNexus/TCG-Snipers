@@ -40,3 +40,10 @@ app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
 });
 
 export default app;
+
+// Re-export server-lifecycle functions so the Electron main process can call
+// them after it creates the HTTP server wrapping this Express app.
+// (index.ts calls these itself in standalone mode; Electron uses these exports.)
+export { createWebSocketServer, initStatusCacheFromDb } from "./lib/websocket";
+export { setMaxConcurrency } from "./lib/taskWorker";
+export { getOrCreateSettings } from "./routes/settings";
