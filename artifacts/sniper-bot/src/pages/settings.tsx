@@ -9,7 +9,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useGetSettings, useUpdateSettings, useListCheckoutResults, getGetSettingsQueryKey, getListCheckoutResultsQueryKey } from "@workspace/api-client-react";
 import { DiagnosticsPanel } from "@/components/DiagnosticsPanel";
 import { getApiBase } from "@/lib/api-base";
-import { Trash2, Download, AlertCircle } from "lucide-react";
+import { Trash2, Download } from "lucide-react";
 import { loadRamGuardSettings, saveRamGuardSettings, type RamGuardSettings } from "@/components/RamGuard";
 import { useUnsavedChanges } from "@/lib/unsaved-changes";
 
@@ -55,14 +55,6 @@ function deepEqual<T>(a: T, b: T): boolean {
   return JSON.stringify(a) === JSON.stringify(b);
 }
 
-function UnsavedBadge() {
-  return (
-    <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-400">
-      <AlertCircle className="w-3 h-3" />
-      Unsaved changes
-    </span>
-  );
-}
 
 function DiscordIcon() {
   return (
@@ -413,13 +405,8 @@ export default function SettingsPage() {
 
           <Card className="glass-card">
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Engine Settings</CardTitle>
-                  <CardDescription>Core performance and execution parameters.</CardDescription>
-                </div>
-                {isEngineDirty && <UnsavedBadge />}
-              </div>
+              <CardTitle>Engine Settings</CardTitle>
+              <CardDescription>Core performance and execution parameters.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-6">
@@ -456,29 +443,13 @@ export default function SettingsPage() {
                   <p className="text-xs text-muted-foreground">Recommended: 200–800ms. Values under 150ms may trigger bot detection on some retailers.</p>
                 </div>
               </div>
-              <div className="flex justify-end">
-                <Button
-                  onClick={handleSave}
-                  disabled={saving || !isEngineDirty}
-                  size="sm"
-                  className={isEngineDirty ? "bg-primary text-primary-foreground" : ""}
-                  variant={isEngineDirty ? "default" : "outline"}
-                >
-                  {saving ? "Saving…" : "Save Engine Settings"}
-                </Button>
-              </div>
             </CardContent>
           </Card>
 
           <Card className="glass-card">
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Task Defaults</CardTitle>
-                  <CardDescription>Default values applied when creating a new task. Individual tasks can still override these.</CardDescription>
-                </div>
-                {isDefaultsDirty && <UnsavedBadge />}
-              </div>
+              <CardTitle>Task Defaults</CardTitle>
+              <CardDescription>Default values applied when creating a new task. Individual tasks can still override these.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-3 gap-6">
@@ -498,31 +469,15 @@ export default function SettingsPage() {
                   <p className="text-xs text-muted-foreground">Stop monitoring after this many minutes. Set 0 to run indefinitely.</p>
                 </div>
               </div>
-              <div className="flex justify-end">
-                <Button
-                  variant={isDefaultsDirty ? "default" : "outline"}
-                  size="sm"
-                  onClick={handleSaveDefaults}
-                  disabled={!isDefaultsDirty}
-                  className={isDefaultsDirty ? "bg-primary text-primary-foreground" : ""}
-                >
-                  Save Task Defaults
-                </Button>
-              </div>
             </CardContent>
           </Card>
 
           <Card className="glass-card">
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>RAM Guard</CardTitle>
-                  <CardDescription>
-                    Alert when system memory usage exceeds a threshold. Optionally auto-stop low-priority tasks to free up RAM.
-                  </CardDescription>
-                </div>
-                {isRamDirty && <UnsavedBadge />}
-              </div>
+              <CardTitle>RAM Guard</CardTitle>
+              <CardDescription>
+                Alert when system memory usage exceeds a threshold. Optionally auto-stop low-priority tasks to free up RAM.
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-5">
               <div className="flex items-center justify-between">
@@ -616,17 +571,6 @@ export default function SettingsPage() {
                 </button>
               </div>
 
-              <div className="flex justify-end">
-                <Button
-                  variant={isRamDirty ? "default" : "outline"}
-                  size="sm"
-                  onClick={handleSaveRamSettings}
-                  disabled={!isRamDirty}
-                  className={isRamDirty ? "bg-primary text-primary-foreground" : ""}
-                >
-                  Save RAM Guard Settings
-                </Button>
-              </div>
             </CardContent>
           </Card>
 
@@ -662,18 +606,16 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
 
-          {anyDirty && (
-            <div className="sticky bottom-4 flex justify-end">
-              <Button
-                size="default"
-                onClick={handleSaveAll}
-                disabled={saving}
-                className="shadow-lg bg-primary text-primary-foreground hover:bg-primary/90 gap-2 px-6"
-              >
-                {saving ? "Saving…" : "Save All Changes"}
-              </Button>
-            </div>
-          )}
+          <div className="flex justify-end">
+            <Button
+              size="lg"
+              onClick={handleSaveAll}
+              disabled={saving}
+              className="px-8"
+            >
+              {saving ? "Saving…" : "Save Settings"}
+            </Button>
+          </div>
         </>
       )}
     </div>
