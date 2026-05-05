@@ -168,7 +168,7 @@ html { color-scheme: dark; }
 
 /* ── STATUS BADGES ───────────────────────────────────────────── */
 .status-idle        { @apply bg-muted/60 text-muted-foreground border border-border; }
-.status-monitoring  { @apply bg-yellow-400/10 text-yellow-300 border border-yellow-400/20; }
+.status-monitoring  { color: var(--appearance-color); background: color-mix(in srgb, var(--appearance-color) 10%, transparent); border: 1px solid color-mix(in srgb, var(--appearance-color) 25%, transparent); }
 .status-cart        { @apply bg-yellow-500/10 text-yellow-400 border border-yellow-500/20; }
 .status-checkout    { @apply bg-purple-500/10 text-purple-400 border border-purple-500/20; }
 .status-success     { @apply bg-emerald-500/10 text-emerald-400 border border-emerald-500/20; }
