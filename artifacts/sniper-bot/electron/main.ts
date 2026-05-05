@@ -169,6 +169,64 @@ function getOrCreateEncryptionKey(): string {
   return hex;
 }
 
+// ── Browser path detection ────────────────────────────────────────────────
+// Runs before the API server module is imported so PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH
+// is already set by the time any retailer automation tries to launch a browser.
+function resolveSystemBrowserPath(): string | undefined {
+  // 1. Bundled Playwright Chromium — installed into extraResources during CI build.
+  //    process.resourcesPath is only set in a packaged app; in dev it's undefined.
+  if (app.isPackaged && process.resourcesPath) {
+    const playwrightDir = path.join(process.resourcesPath, "playwright-chromium");
+    if (fs.existsSync(playwrightDir)) {
+      const entries = fs.readdirSync(playwrightDir);
+      for (const entry of entries) {
+        if (!entry.startsWith("chromium")) continue;
+        let bin: string | undefined;
+        if (process.platform === "win32") {
+          bin = path.join(playwrightDir, entry, "chrome-win", "chrome.exe");
+        } else if (process.platform === "darwin") {
+          bin = path.join(playwrightDir, entry, "chrome-mac", "Chromium.app", "Contents", "MacOS", "Chromium");
+        } else {
+          bin = path.join(playwrightDir, entry, "chrome-linux64", "chrome");
+        }
+        if (bin && fs.existsSync(bin)) {
+          writeLog("INFO", `Using bundled Playwright Chromium: ${bin}`);
+          return bin;
+        }
+      }
+      writeLog("WARN", `playwright-chromium dir exists but no binary found inside: ${playwrightDir}`);
+    }
+  }
+
+  // 2. Well-known system Chrome / Edge paths (no `which` needed — works on Windows)
+  const candidates: string[] = [];
+  if (process.platform === "win32") {
+    const localAppData = process.env.LOCALAPPDATA ?? "";
+    const programFiles = process.env.ProgramFiles ?? "C:\\Program Files";
+    const programFilesX86 = process.env["ProgramFiles(x86)"] ?? "C:\\Program Files (x86)";
+    candidates.push(
+      `${localAppData}\\Google\\Chrome\\Application\\chrome.exe`,
+      `${programFiles}\\Google\\Chrome\\Application\\chrome.exe`,
+      `${programFilesX86}\\Google\\Chrome\\Application\\chrome.exe`,
+      `${programFiles}\\Microsoft\\Edge\\Application\\msedge.exe`,
+      `${programFilesX86}\\Microsoft\\Edge\\Application\\msedge.exe`,
+      `${localAppData}\\Microsoft\\Edge\\Application\\msedge.exe`,
+    );
+  } else if (process.platform === "darwin") {
+    candidates.push(
+      "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+      "/Applications/Chromium.app/Contents/MacOS/Chromium",
+      "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
+      "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser",
+    );
+  }
+  for (const c of candidates) {
+    if (c && fs.existsSync(c)) return c;
+  }
+
+  return undefined;
+}
+
 // ── Start Express API server in-process ────────────────────────────────────
 async function startApiServer(): Promise<void> {
   const CANDIDATE_PORTS = [8080, 8081, 8082, 8083];
@@ -188,6 +246,22 @@ async function startApiServer(): Promise<void> {
     // encrypt/decrypt card numbers. Must be set before app.js is imported.
     if (!process.env.ENCRYPTION_KEY) {
       process.env.ENCRYPTION_KEY = getOrCreateEncryptionKey();
+    }
+
+    // ── Detect and inject browser executable path ─────────────────────────
+    // The API server's browser.ts checks PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH
+    // first. We resolve it here (before the module is imported) so the correct
+    // path is available from the very first createBrowser() call.
+    if (!process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH) {
+      const browserPath = resolveSystemBrowserPath();
+      if (browserPath) {
+        process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH = browserPath;
+        writeLog("INFO", `Browser found: ${browserPath}`);
+      } else {
+        writeLog("WARN", "No system Chrome/Edge found. Tasks requiring a browser will fail. Install Google Chrome and restart.");
+      }
+    } else {
+      writeLog("INFO", `Browser path from env: ${process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH}`);
     }
 
     // Verify that the electron/dist directory exists and list chunk files

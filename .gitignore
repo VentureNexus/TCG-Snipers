@@ -50,3 +50,6 @@ Thumbs.db
 # Replit
 .cache/
 .local/
+
+# Playwright Chromium — installed during CI, not committed
+artifacts/sniper-bot/playwright-chromium/

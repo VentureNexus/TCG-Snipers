@@ -65,6 +65,19 @@ jobs:
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
+      - name: Install Playwright Chromium (bundled into installer as extraResources)
+        shell: bash
+        run: |
+          # Install Playwright Chromium to a fixed location so electron-builder
+          # can pick it up as an extraResource. The path must match what
+          # electron/main.ts looks for under process.resourcesPath.
+          DEST="artifacts/sniper-bot/playwright-chromium"
+          mkdir -p "$DEST"
+          PLAYWRIGHT_BROWSERS_PATH="$PWD/$DEST" \
+            pnpm --filter @workspace/api-server exec playwright install chromium
+          echo "Playwright Chromium installed to $DEST:"
+          ls -la "$DEST"
+
       - name: Build api-server (bundled into desktop app)
         run: pnpm --filter @workspace/api-server run build
 

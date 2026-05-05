@@ -1,4 +1,5 @@
 import { execSync } from "child_process";
+import { existsSync } from "fs";
 
 const USER_AGENTS = [
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -65,25 +66,61 @@ async function getChromium() {
 }
 
 function resolveChromiumPathSync(): string | undefined {
+  // 1. Explicit env override — highest priority (set by Electron main before API server starts)
   if (process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH) {
-    return process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH;
+    const p = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH;
+    if (existsSync(p)) return p;
   }
-  for (const bin of ["chromium", "chromium-browser", "google-chrome", "google-chrome-stable"]) {
-    try {
-      const p = execSync(`which ${bin} 2>/dev/null`, { encoding: "utf8" }).trim();
-      if (p) return p;
-    } catch (_) {}
+
+  // 2. Platform-specific well-known Chrome/Edge paths (covers packaged Electron — no `which` needed)
+  const candidates: string[] = [];
+  if (process.platform === "win32") {
+    const localAppData = process.env.LOCALAPPDATA ?? "";
+    const programFiles = process.env.ProgramFiles ?? "C:\\Program Files";
+    const programFilesX86 = process.env["ProgramFiles(x86)"] ?? "C:\\Program Files (x86)";
+    candidates.push(
+      // Chrome (user install)
+      `${localAppData}\\Google\\Chrome\\Application\\chrome.exe`,
+      // Chrome (machine install)
+      `${programFiles}\\Google\\Chrome\\Application\\chrome.exe`,
+      `${programFilesX86}\\Google\\Chrome\\Application\\chrome.exe`,
+      // Edge (almost always present on Windows 10+)
+      `${programFiles}\\Microsoft\\Edge\\Application\\msedge.exe`,
+      `${programFilesX86}\\Microsoft\\Edge\\Application\\msedge.exe`,
+      `${localAppData}\\Microsoft\\Edge\\Application\\msedge.exe`,
+    );
+  } else if (process.platform === "darwin") {
+    candidates.push(
+      "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+      "/Applications/Chromium.app/Contents/MacOS/Chromium",
+      "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
+      "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser",
+    );
+  } else {
+    // Linux — use `which` as before
+    for (const bin of ["chromium", "chromium-browser", "google-chrome", "google-chrome-stable"]) {
+      try {
+        const p = execSync(`which ${bin} 2>/dev/null`, { encoding: "utf8" }).trim();
+        if (p && existsSync(p)) return p;
+      } catch (_) {}
+    }
+  }
+  for (const c of candidates) {
+    if (c && existsSync(c)) return c;
   }
   return undefined;
 }
 
 async function resolveChromiumPath(): Promise<string | undefined> {
+  // Try sync (env var + system browsers) first
   const fromEnvOrSystem = resolveChromiumPathSync();
   if (fromEnvOrSystem) return fromEnvOrSystem;
+
+  // Fall back to Playwright's own downloaded Chromium (only present if `playwright install chromium` was run)
   try {
     const chromium = await getChromium();
     const p = chromium.executablePath();
-    if (p) return p;
+    if (p && existsSync(p)) return p;
   } catch (_) {}
   return undefined;
 }

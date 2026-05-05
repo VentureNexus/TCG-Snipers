@@ -13,6 +13,17 @@ files:
   # production dependencies from node_modules — required so electron-updater
   # and its transitive deps are bundled into the asar at runtime.
 
+# Playwright Chromium is installed into artifacts/sniper-bot/playwright-chromium/
+# during CI (see .github/workflows/release.yml) and packed here as an
+# extraResource so Electron's main process can locate it at runtime via
+# process.resourcesPath without relying on users having Chrome installed.
+# The directory is placed outside the asar so the binary can be executed.
+extraResources:
+  - from: playwright-chromium
+    to: playwright-chromium
+    filter:
+      - "**/*"
+
 # The Express API server now runs in-process inside the Electron main bundle
 # (see electron/build.mjs). No extraResources needed for a separate api-server
 # child process any more.
