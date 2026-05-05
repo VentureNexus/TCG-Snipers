@@ -85,6 +85,32 @@ const sharedExternals = [
   "puppeteer-core",
 ];
 
+// ── Bake Google OAuth credentials into the main-process bundle ────────────────
+// In the packaged app there are no Replit environment variables, so we inject
+// the credentials at build time via esbuild's `define`. The Google OAuth
+// desktop client ID and secret are not truly secret for a distributed desktop
+// app — they are visible in any OAuth flow and Google explicitly supports this
+// model for installed applications (RFC 8252).
+//
+// CI: set GOOGLE_OAUTH_CLIENT_ID and GOOGLE_OAUTH_CLIENT_SECRET as repository
+// secrets and expose them to the "electron:compile" step via `env:`.
+const googleOAuthDefines = {
+  "process.env.GOOGLE_OAUTH_CLIENT_ID": JSON.stringify(
+    process.env.GOOGLE_OAUTH_CLIENT_ID ?? ""
+  ),
+  "process.env.GOOGLE_OAUTH_CLIENT_SECRET": JSON.stringify(
+    process.env.GOOGLE_OAUTH_CLIENT_SECRET ?? ""
+  ),
+};
+
+if (process.env.GOOGLE_OAUTH_CLIENT_ID) {
+  console.log("✓ GOOGLE_OAUTH_CLIENT_ID will be baked into the bundle");
+} else {
+  console.warn(
+    "⚠ GOOGLE_OAUTH_CLIENT_ID is not set — packaged app will not support Google sign-in"
+  );
+}
+
 // ── Main process build (ESM with code-splitting for lazy imports) ─────────────
 await build({
   entryPoints: [
@@ -99,6 +125,7 @@ await build({
   outdir: outDir,
   sourcemap: true,
   treeShaking: true,
+  define: googleOAuthDefines,
   plugins: [],
   banner: {
     js: [

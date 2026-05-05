@@ -89,10 +89,33 @@ jobs:
       - name: Smoke test — PGlite create/read round-trip
         run: node artifacts/api-server/scripts/smoke-test-pglite.mjs
 
+      - name: Verify Google OAuth credentials are present
+        shell: bash
+        env:
+          GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.GOOGLE_OAUTH_CLIENT_ID }}
+          GOOGLE_OAUTH_CLIENT_SECRET: ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
+        run: |
+          missing=0
+          if [ -z "$GOOGLE_OAUTH_CLIENT_ID" ]; then
+            echo "::error::GOOGLE_OAUTH_CLIENT_ID secret is not set. Add it under Settings → Secrets → Actions in the GitHub repo." >&2
+            missing=1
+          fi
+          if [ -z "$GOOGLE_OAUTH_CLIENT_SECRET" ]; then
+            echo "::error::GOOGLE_OAUTH_CLIENT_SECRET secret is not set. Add it under Settings → Secrets → Actions in the GitHub repo." >&2
+            missing=1
+          fi
+          if [ "$missing" -eq 1 ]; then
+            echo "::error::Google OAuth credentials are required — packaged users would not be able to sign in with Google." >&2
+            exit 1
+          fi
+          echo "✓ Google OAuth credentials are present"
+
       - name: Build and publish installer (GitHub Release)
         run: pnpm --filter @workspace/sniper-bot run ${{ matrix.target }} -- --publish always
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.GOOGLE_OAUTH_CLIENT_ID }}
+          GOOGLE_OAUTH_CLIENT_SECRET: ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
 
       - name: List built artifacts
         shell: bash
