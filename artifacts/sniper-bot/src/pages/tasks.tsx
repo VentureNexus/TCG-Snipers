@@ -159,7 +159,7 @@ function LogPanel({
   enabled: boolean;
   onStatusChange?: (s: string) => void;
 }) {
-  const { logs, liveStatus, isReconnecting, clear, copyLogs } = useTaskLogs(taskId, enabled);
+  const { logs, liveStatus, retryProgress, isReconnecting, clear, copyLogs } = useTaskLogs(taskId, enabled);
   const bottomRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [isAtBottom, setIsAtBottom] = useState(true);
@@ -200,6 +200,11 @@ function LogPanel({
       <div className="flex items-center justify-between px-4 py-2 border-b border-border/20">
         <div className="flex items-center gap-2">
           <span className="text-xs font-mono text-muted-foreground uppercase tracking-wider">Task Log</span>
+          {retryProgress && retryProgress.attempt > 0 && (
+            <span className="inline-flex items-center gap-1 text-xs font-mono text-orange-400 bg-orange-400/10 border border-orange-400/20 px-2 py-0.5 rounded" data-testid={`badge-retry-progress-${taskId}`}>
+              Retry {retryProgress.attempt} of {retryProgress.total === null ? "∞" : retryProgress.total}
+            </span>
+          )}
           {isReconnecting && (
             <span className="inline-flex items-center gap-1 text-xs font-mono text-yellow-400 bg-yellow-400/10 border border-yellow-400/20 px-2 py-0.5 rounded" data-testid={`badge-reconnecting-${taskId}`}>
               <Loader2 className="w-2.5 h-2.5 animate-spin" />

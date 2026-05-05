@@ -1,6 +1,6 @@
 import { db, tasksTable, checkoutResultsTable, profilesTable, proxiesTable } from "@workspace/db";
 import { eq, inArray } from "drizzle-orm";
-import { broadcastLog, broadcastStatus } from "./websocket";
+import { broadcastLog, broadcastStatus, broadcastRetryProgress } from "./websocket";
 import { dispatchRetailer } from "./retailers";
 import { notifySuccess, notifyFailure } from "./discord";
 import { getOrCreateSettings } from "../routes/settings";
@@ -68,6 +68,10 @@ async function runTaskAutomation(task: TaskRow, token: { cancelled: boolean }) {
     broadcastStatus(task.id, status);
   };
 
+  const setRetryProgress = (attempt: number, total: number | null) => {
+    broadcastRetryProgress(task.id, attempt, total);
+  };
+
   try {
     const profile = task.profileId
       ? (await db.select().from(profilesTable).where(eq(profilesTable.id, task.profileId)))[0] ?? null
@@ -128,6 +132,7 @@ async function runTaskAutomation(task: TaskRow, token: { cancelled: boolean }) {
       token,
       log,
       setStatus,
+      setRetryProgress,
       globalImapConfig,
     });
 

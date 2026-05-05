@@ -10,9 +10,15 @@ export interface TaskLogEntry {
   seq: number;
 }
 
+export interface RetryProgress {
+  attempt: number;
+  total: number | null;
+}
+
 export interface UseTaskLogsResult {
   logs: TaskLogEntry[];
   liveStatus: string | null;
+  retryProgress: RetryProgress | null;
   isReconnecting: boolean;
   clear: () => void;
   copyLogs: () => void;
@@ -24,6 +30,7 @@ const BASE_BACKOFF_MS = 500;
 export function useTaskLogs(taskId: number, enabled: boolean): UseTaskLogsResult {
   const [logs, setLogs] = useState<TaskLogEntry[]>([]);
   const [liveStatus, setLiveStatus] = useState<string | null>(null);
+  const [retryProgress, setRetryProgress] = useState<RetryProgress | null>(null);
   const [isReconnecting, setIsReconnecting] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
   const retryCountRef = useRef(0);
@@ -57,6 +64,8 @@ export function useTaskLogs(taskId: number, enabled: boolean): UseTaskLogsResult
           timestamp?: string;
           seq?: number;
           status?: string;
+          attempt?: number;
+          total?: number | null;
         };
         if (msg.type === "log" && msg.level && msg.message && msg.timestamp) {
           const seq = typeof msg.seq === "number" ? msg.seq : -1;
@@ -75,6 +84,11 @@ export function useTaskLogs(taskId: number, enabled: boolean): UseTaskLogsResult
           ]);
         } else if (msg.type === "status" && msg.status) {
           setLiveStatus(msg.status);
+          if (["idle", "success", "failed", "stopped"].includes(msg.status)) {
+            setRetryProgress(null);
+          }
+        } else if (msg.type === "retry_progress" && typeof msg.attempt === "number") {
+          setRetryProgress({ attempt: msg.attempt, total: msg.total ?? null });
         }
       } catch {
         // ignore malformed messages
@@ -132,6 +146,7 @@ export function useTaskLogs(taskId: number, enabled: boolean): UseTaskLogsResult
   const clear = useCallback(() => {
     setLogs([]);
     setLiveStatus(null);
+    setRetryProgress(null);
     lastSeqRef.current = -1;
   }, []);
 
@@ -149,5 +164,5 @@ export function useTaskLogs(taskId: number, enabled: boolean): UseTaskLogsResult
     });
   }, [logs]);
 
-  return { logs, liveStatus, isReconnecting, clear, copyLogs };
+  return { logs, liveStatus, retryProgress, isReconnecting, clear, copyLogs };
 }

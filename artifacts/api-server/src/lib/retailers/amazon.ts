@@ -9,7 +9,7 @@ import { eq } from "drizzle-orm";
 const RETAILER = "Amazon";
 
 export async function runAmazon(ctx: RetailerContext): Promise<RetailerResult> {
-  const { task, profile, proxy, token, log, setStatus } = ctx;
+  const { task, profile, proxy, token, log, setStatus, setRetryProgress } = ctx;
   let browser: Browser | null = null;
 
   const fail = (msg: string): RetailerResult => ({
@@ -44,6 +44,7 @@ export async function runAmazon(ctx: RetailerContext): Promise<RetailerResult> {
       if (token.cancelled) return fail("Task cancelled");
       if (stopAt !== null && Date.now() >= stopAt) return fail("Time limit reached — task timed out");
       if (attempt > 0) {
+        setRetryProgress(attempt, isUnlimited ? null : task.retryCount);
         const delayMax = task.monitorDelayMax ?? task.monitorDelay + 500;
         log("WARN", `[${RETAILER}] OOS — waiting ${task.monitorDelay}–${delayMax}ms before retry ${attempt}/${isUnlimited ? "∞" : task.retryCount}...`);
         await humanDelay(task.monitorDelay, delayMax);

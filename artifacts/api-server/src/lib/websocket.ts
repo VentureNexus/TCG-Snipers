@@ -18,13 +18,24 @@ export interface StatusMessage {
   status: string;
 }
 
-export type WsMessage = LogMessage | StatusMessage;
+export interface RetryProgressMessage {
+  type: "retry_progress";
+  taskId: number;
+  attempt: number;
+  total: number | null;
+}
+
+export type WsMessage = LogMessage | StatusMessage | RetryProgressMessage;
 
 const subscribers = new Map<number, Set<WebSocket>>();
 
 const LOG_RING_BUFFER_SIZE = 200;
 const logBuffers = new Map<number, LogMessage[]>();
 let globalSeq = 0;
+
+const retryProgressCache = new Map<number, RetryProgressMessage>();
+
+const TERMINAL_STATUSES = new Set(["idle", "success", "failed", "stopped"]);
 
 function appendToBuffer(taskId: number, msg: LogMessage): void {
   if (!logBuffers.has(taskId)) {
@@ -39,6 +50,7 @@ function appendToBuffer(taskId: number, msg: LogMessage): void {
 
 export function clearLogBuffer(taskId: number): void {
   logBuffers.delete(taskId);
+  retryProgressCache.delete(taskId);
 }
 
 export function createWebSocketServer(server: Server): WebSocketServer {
@@ -73,6 +85,12 @@ export function createWebSocketServer(server: Server): WebSocketServer {
                 ws.send(JSON.stringify(entry));
               }
             }
+          }
+
+          // Replay last known retry progress so late-connecting clients see current count
+          const cachedRetry = retryProgressCache.get(subscribedTaskId);
+          if (cachedRetry && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify(cachedRetry));
           }
         }
       } catch {
@@ -123,9 +141,18 @@ export function broadcastLog(
 }
 
 export function broadcastStatus(taskId: number, status: string): void {
+  if (TERMINAL_STATUSES.has(status)) {
+    retryProgressCache.delete(taskId);
+  }
   sendToTaskSubscribers(taskId, {
     type: "status",
     taskId,
     status,
   });
+}
+
+export function broadcastRetryProgress(taskId: number, attempt: number, total: number | null): void {
+  const msg: RetryProgressMessage = { type: "retry_progress", taskId, attempt, total };
+  retryProgressCache.set(taskId, msg);
+  sendToTaskSubscribers(taskId, msg);
 }

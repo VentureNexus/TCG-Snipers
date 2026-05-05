@@ -23,6 +23,7 @@ export interface RetailerContext {
   token: { cancelled: boolean };
   log: (level: "INFO" | "SUCCESS" | "WARN" | "ERROR", msg: string) => void;
   setStatus: (status: string) => Promise<void>;
+  setRetryProgress: (attempt: number, total: number | null) => void;
   /** Global IMAP config (from app Settings), used when the profile has no per-profile IMAP. */
   globalImapConfig: ImapConfig | null;
 }
