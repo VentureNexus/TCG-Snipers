@@ -257,6 +257,7 @@ export const CreateTaskBodyRetailer = {
   Best_Buy: "Best Buy",
   Costco: "Costco",
   Pokemon_Center: "Pokemon Center",
+  Sams_Club: "Sam's Club",
 } as const;
 
 export interface CreateTaskBody {
@@ -281,6 +282,7 @@ export const UpdateTaskBodyRetailer = {
   Best_Buy: "Best Buy",
   Costco: "Costco",
   Pokemon_Center: "Pokemon Center",
+  Sams_Club: "Sam's Club",
 } as const;
 
 export interface UpdateTaskBody {
