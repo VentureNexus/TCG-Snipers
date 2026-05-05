@@ -14,7 +14,6 @@ import { Button } from "@/components/ui/button";
 
 const RAM_SETTINGS_KEY = "ram-settings";
 const DEBOUNCE_MS = 60_000;
-const HYSTERESIS_PCT = 5;
 const AUTO_STOP_INTERVAL_MS = 3_000;
 
 export interface RamGuardSettings {
