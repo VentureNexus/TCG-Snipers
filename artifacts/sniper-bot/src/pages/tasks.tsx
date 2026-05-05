@@ -13,6 +13,7 @@ import {
   useListProxies,
   getListTasksQueryKey,
   SUPPORTED_RETAILERS,
+  ApiError,
 } from "@workspace/api-client-react";
 import type { Task, Profile, SupportedRetailer, BulkActionResult } from "@workspace/api-client-react";
 import { isProfileIncomplete } from "./profiles";
@@ -1200,7 +1201,21 @@ export default function TasksPage() {
                         toast({ title: "Profile incomplete", description: "This profile is missing required shipping fields. Edit the profile and fill in the shipping address before starting.", variant: "destructive" });
                         return;
                       }
-                      startTask.mutate({ id: task.id }, { onSuccess: () => { queryClient.invalidateQueries({ queryKey: getListTasksQueryKey() }); setExpandedTaskId(task.id); }, onError: (err: unknown) => toast({ title: "Failed to start task", description: err instanceof Error ? err.message : undefined, variant: "destructive" }) });
+                      startTask.mutate({ id: task.id }, { onSuccess: () => { queryClient.invalidateQueries({ queryKey: getListTasksQueryKey() }); setExpandedTaskId(task.id); }, onError: (err: unknown) => {
+                        if (err instanceof ApiError && err.status === 422) {
+                          const apiMsg = (err.data as { error?: string } | null)?.error;
+                          const isDelayError = apiMsg?.toLowerCase().includes("delay");
+                          toast({
+                            title: "Cannot start task",
+                            description: isDelayError
+                              ? `${apiMsg} — edit this task and fix the Min/Max Delay values before retrying.`
+                              : (apiMsg ?? err.message),
+                            variant: "destructive",
+                          });
+                        } else {
+                          toast({ title: "Failed to start task", description: err instanceof Error ? err.message : undefined, variant: "destructive" });
+                        }
+                      } });
                     }}
                     onStop={() => stopTask.mutate({ id: task.id }, { onSuccess: () => { queryClient.invalidateQueries({ queryKey: getListTasksQueryKey() }); setLiveStatuses((prev) => ({ ...prev, [task.id]: "stopped" })); }, onError: (err: unknown) => toast({ title: "Failed to stop task", description: err instanceof Error ? err.message : undefined, variant: "destructive" }) })}
                     onDelete={() => deleteTask.mutate({ id: task.id }, { onSuccess: () => queryClient.invalidateQueries({ queryKey: getListTasksQueryKey() }), onError: (err: unknown) => toast({ title: "Failed to delete task", description: err instanceof Error ? err.message : undefined, variant: "destructive" }) })}
