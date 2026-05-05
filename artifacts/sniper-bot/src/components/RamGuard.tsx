@@ -67,7 +67,7 @@ export function RamGuard() {
   const ramPctRef = useRef(current.ramPercent);
   ramPctRef.current = current.ramPercent;
 
-  const { data: tasks = [] } = useListTasks(undefined, {
+  const { data: tasks = [], isSuccess: tasksLoaded } = useListTasks(undefined, {
     query: { refetchInterval: 3000, queryKey: getListTasksQueryKey() },
   });
 
@@ -113,7 +113,7 @@ export function RamGuard() {
     const ramPct = current.ramPercent;
     const threshold = settings.threshold;
 
-    if (ramPct >= threshold && !alertFiredRef.current && Date.now() >= nextAlertRef.current) {
+    if (ramPct >= threshold && !alertFiredRef.current && Date.now() >= nextAlertRef.current && tasksLoaded) {
       alertFiredRef.current = true;
       nextAlertRef.current = Date.now() + DEBOUNCE_MS;
       if (settings.autoStop) {
@@ -125,7 +125,7 @@ export function RamGuard() {
       alertFiredRef.current = false;
       setDialogOpen(false);
     }
-  }, [current.ramPercent, settings, isElectron, runAutoStop]);
+  }, [current.ramPercent, settings, isElectron, runAutoStop, tasksLoaded]);
 
   const handleClose = () => {
     nextAlertRef.current = Date.now() + DEBOUNCE_MS;
