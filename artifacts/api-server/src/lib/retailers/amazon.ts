@@ -89,11 +89,23 @@ export async function runAmazon(ctx: RetailerContext): Promise<RetailerResult> {
 
     await setStatus("adding_to_cart");
     log("INFO", `[${RETAILER}] Adding to cart...`);
-    await page.click('#add-to-cart-button', { timeout: 5000 });
+    // Amazon's sticky header frequently pushes the ATC button outside the viewport.
+    // scrollIntoViewIfNeeded + JS click bypasses the "element is outside of the viewport" error.
+    const atcEl = await page.$('#add-to-cart-button');
+    if (atcEl) {
+      await atcEl.scrollIntoViewIfNeeded();
+      await humanDelay(200, 400);
+      await page.evaluate(el => (el as HTMLElement).click(), atcEl);
+    } else {
+      await page.click('#add-to-cart-button', { timeout: 5000, force: true });
+    }
     await humanDelay(1500, 2500);
 
     const proceedToCart = await page.$('a:has-text("Cart"), a[href*="/cart"]');
-    if (proceedToCart) await proceedToCart.click();
+    if (proceedToCart) {
+      await proceedToCart.scrollIntoViewIfNeeded();
+      await page.evaluate(el => (el as HTMLElement).click(), proceedToCart);
+    }
     await page.goto("https://www.amazon.com/gp/cart/view.html", { waitUntil: "domcontentloaded" });
     await humanDelay(1000, 1800);
     if (token.cancelled) return fail("Task cancelled");
@@ -105,7 +117,9 @@ export async function runAmazon(ctx: RetailerContext): Promise<RetailerResult> {
     await setStatus("checking_out");
     const checkoutBtn = await page.$('[name="proceedToRetailCheckout"], button:has-text("Proceed to checkout")');
     if (!checkoutBtn) return fail("Checkout button not found");
-    await checkoutBtn.click();
+    await checkoutBtn.scrollIntoViewIfNeeded();
+    await humanDelay(200, 400);
+    await page.evaluate(el => (el as HTMLElement).click(), checkoutBtn);
     await humanDelay(2000, 3000);
     if (token.cancelled) return fail("Task cancelled");
 

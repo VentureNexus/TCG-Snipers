@@ -94,10 +94,17 @@ export async function runWalmart(ctx: RetailerContext): Promise<RetailerResult> 
     await setStatus("adding_to_cart");
     log("INFO", `[${RETAILER}] Adding to cart...`);
     try {
-      await page.click(
-        'button[data-automation-id="add-to-cart"]:not([disabled]), button:has-text("Add to cart"):not([disabled])',
-        { timeout: 5000 }
-      );
+      // Re-query the button — Walmart re-renders on hydration so the stock-check
+      // reference may be stale. scrollIntoViewIfNeeded + JS click bypasses overlay issues.
+      const atcForClick = await page.$('button[data-automation-id="add-to-cart"]:not([disabled])')
+        ?? await page.$('button:has-text("Add to cart"):not([disabled])');
+      if (atcForClick) {
+        await atcForClick.scrollIntoViewIfNeeded();
+        await humanDelay(200, 400);
+        await page.evaluate(el => (el as HTMLElement).click(), atcForClick);
+      } else {
+        await page.click('button[data-automation-id="add-to-cart"]', { timeout: 5000, force: true });
+      }
     } catch (_) {
       return fail("Could not click Add to Cart button");
     }
