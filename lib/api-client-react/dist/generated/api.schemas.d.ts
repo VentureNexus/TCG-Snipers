@@ -235,6 +235,7 @@ export declare const CreateTaskBodyRetailer: {
     readonly Best_Buy: "Best Buy";
     readonly Costco: "Costco";
     readonly Pokemon_Center: "Pokemon Center";
+    readonly Sams_Club: "Sam's Club";
 };
 export interface CreateTaskBody {
     groupId?: number;
@@ -255,6 +256,7 @@ export declare const UpdateTaskBodyRetailer: {
     readonly Best_Buy: "Best Buy";
     readonly Costco: "Costco";
     readonly Pokemon_Center: "Pokemon Center";
+    readonly Sams_Club: "Sam's Club";
 };
 export interface UpdateTaskBody {
     groupId?: number;

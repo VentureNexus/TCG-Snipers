@@ -1,0 +1,181 @@
+import type { Browser } from "playwright";
+import { createBrowser, createStealthContext, humanDelay, humanType } from "../browser";
+import type { RetailerContext, RetailerResult } from "./types";
+import { decrypt } from "../crypto";
+import { db, creditCardsTable } from "@workspace/db";
+import { eq } from "drizzle-orm";
+
+const RETAILER = "Sam's Club";
+
+export async function runSamsClub(ctx: RetailerContext): Promise<RetailerResult> {
+  const { task, profile, proxy, token, log, setStatus } = ctx;
+  let browser: Browser | null = null;
+
+  const fail = (msg: string): RetailerResult => ({
+    success: false,
+    productName: task.productUrl || task.productKeywords || "Unknown Product",
+    productImage: "",
+    price: null,
+    orderNumber: "",
+    errorMessage: msg,
+  });
+
+  try {
+    log("INFO", `[${RETAILER}] Launching stealth browser...`);
+    browser = await createBrowser(proxy);
+    const context = await createStealthContext(browser);
+    const page = await context.newPage();
+    await page.setDefaultNavigationTimeout(30000);
+
+    if (profile?.samsMembershipId) {
+      log("INFO", `[${RETAILER}] Membership ID on file: ****${profile.samsMembershipId.slice(-4)}`);
+    } else {
+      log("WARN", `[${RETAILER}] No Sam's Club membership ID in profile — checkout may fail`);
+    }
+
+    const targetUrl = task.productUrl ||
+      `https://www.samsclub.com/search?q=${encodeURIComponent(task.productKeywords)}`;
+
+    await setStatus("monitoring");
+    let inStock = false;
+    let productName = task.productUrl || task.productKeywords || "Sam's Club Product";
+    let productPrice = "";
+
+    for (let attempt = 0; attempt <= task.retryCount; attempt++) {
+      if (token.cancelled) return fail("Task cancelled");
+      if (attempt > 0) {
+        log("WARN", `[${RETAILER}] OOS — waiting ${task.monitorDelay}ms before retry ${attempt}/${task.retryCount}...`);
+        await humanDelay(task.monitorDelay, task.monitorDelay + 500);
+      }
+      try {
+        log("INFO", `[${RETAILER}] Checking stock: ${targetUrl}`);
+        await page.goto(targetUrl, { waitUntil: "domcontentloaded" });
+        await humanDelay(800, 1500);
+        if (token.cancelled) return fail("Task cancelled");
+
+        // Sign in if prompted
+        const signInBtn = await page.$('a[href*="login"], button:has-text("Sign In"), a:has-text("Sign in")');
+        if (signInBtn && profile) {
+          log("INFO", `[${RETAILER}] Sign-in prompt detected — logging in...`);
+          await signInBtn.click();
+          await humanDelay(1200, 2000);
+          try {
+            await humanType(page, 'input[name="email"], input[id*="email"]', profile.email);
+            await humanDelay(300, 600);
+            const nextBtn = await page.$('button:has-text("Continue"), button:has-text("Next")');
+            if (nextBtn) { await nextBtn.click(); await humanDelay(800, 1400); }
+            const loginBtn = await page.$('button:has-text("Sign In"), button[type="submit"]');
+            if (loginBtn) { await loginBtn.click(); await humanDelay(2000, 3000); }
+          } catch (_) {}
+        }
+
+        const titleEl = await page.$('h1[data-automation="product-title"], h1.sc-product-title, h1');
+        if (titleEl) productName = (await titleEl.textContent())?.trim() ?? productName;
+
+        const priceEl = await page.$('[data-automation="product-price"] span, .sc-product-price');
+        if (priceEl) productPrice = (await priceEl.textContent())?.trim().replace(/[^0-9.]/g, "") ?? "";
+
+        const atcBtn = await page.$(
+          'button[data-automation="add-to-cart"]:not([disabled]), button:has-text("Add to cart"):not([disabled])'
+        );
+        if (atcBtn) {
+          log("SUCCESS", `[${RETAILER}] In stock: ${productName}${productPrice ? " @ $" + productPrice : ""}`);
+          inStock = true;
+          break;
+        }
+        log("WARN", `[${RETAILER}] Product not available for purchase`);
+      } catch (err) {
+        log("WARN", `[${RETAILER}] Navigation error: ${String(err)}`);
+      }
+    }
+
+    if (!inStock) return fail("Product out of stock after all retries");
+    if (token.cancelled) return fail("Task cancelled");
+
+    await setStatus("adding_to_cart");
+    log("INFO", `[${RETAILER}] Adding to cart...`);
+    try {
+      await page.click(
+        'button[data-automation="add-to-cart"]:not([disabled]), button:has-text("Add to cart"):not([disabled])',
+        { timeout: 5000 }
+      );
+    } catch (_) {
+      return fail("Could not click Add to Cart button");
+    }
+    await humanDelay(1500, 2500);
+
+    log("INFO", `[${RETAILER}] Navigating to cart...`);
+    await page.goto("https://www.samsclub.com/cart", { waitUntil: "domcontentloaded" });
+    await humanDelay(1000, 1800);
+    if (token.cancelled) return fail("Task cancelled");
+
+    log("INFO", `[${RETAILER}] Proceeding to checkout...`);
+    await setStatus("checking_out");
+    const checkoutBtn = await page.$('button:has-text("Checkout"), a:has-text("Proceed to Checkout")');
+    if (!checkoutBtn) return fail("Checkout button not found");
+    await checkoutBtn.click();
+    await humanDelay(2000, 3000);
+    if (token.cancelled) return fail("Task cancelled");
+
+    if (profile) {
+      log("INFO", `[${RETAILER}] Filling shipping for profile: ${profile.name}`);
+      const addrFields: Array<[string, string]> = [
+        ['input[name="firstName"], input[id*="firstName"]', profile.shipFirstName || profile.name],
+        ['input[name="lastName"], input[id*="lastName"]', profile.shipLastName || ""],
+        ['input[name="addressLine1"], input[id*="address1"]', profile.shipAddress1],
+        ['input[name="city"], input[id*="city"]', profile.shipCity],
+        ['input[name="state"], input[id*="state"]', profile.shipState],
+        ['input[name="zipCode"], input[id*="zip"]', profile.shipZip],
+        ['input[name="phone"], input[id*="phone"]', profile.phone],
+      ];
+      for (const [sel, val] of addrFields) {
+        if (!val) continue;
+        try { await humanType(page, sel, val); await humanDelay(80, 150); } catch (_) {}
+      }
+
+      const continueBtn = await page.$('button:has-text("Continue"), button:has-text("Save & Continue")');
+      if (continueBtn) { await continueBtn.click(); await humanDelay(2000, 3000); }
+      if (token.cancelled) return fail("Task cancelled");
+
+      const cards = await db.select().from(creditCardsTable).where(eq(creditCardsTable.profileId, profile.id));
+      if (cards.length > 0) {
+        const card = cards[0];
+        log("INFO", `[${RETAILER}] Entering payment (${card.cardType} ****${card.lastFour})...`);
+        try {
+          const cardNumber = decrypt(card.encryptedNumber);
+          const cvv = decrypt(card.encryptedCvv);
+          const payFields: Array<[string, string]> = [
+            ['input[name="cardNumber"], input[id*="cardNumber"]', cardNumber],
+            ['input[name="expirationMonth"]', card.expiryMonth],
+            ['input[name="expirationYear"]', card.expiryYear],
+            ['input[name="cvv"], input[name="securityCode"]', cvv],
+          ];
+          for (const [sel, val] of payFields) {
+            try { await humanType(page, sel, val); await humanDelay(80, 150); } catch (_) {}
+          }
+        } catch (decryptErr) {
+          log("WARN", `[${RETAILER}] Could not decrypt card: ${String(decryptErr)}`);
+        }
+      }
+    }
+
+    log("INFO", `[${RETAILER}] Submitting order...`);
+    const placeOrder = await page.$('button:has-text("Place Order"), button:has-text("Place order")');
+    if (!placeOrder) return fail("Place order button not found");
+    await placeOrder.click();
+    await humanDelay(3000, 5000);
+
+    const confirmation = await page.$(
+      '[class*="confirmation"], h1:has-text("Thank you"), h1:has-text("Order Confirmed"), h2:has-text("Order placed")'
+    );
+    if (!confirmation) return fail("Order confirmation not detected");
+
+    const orderNumber = `SAM-${Date.now()}`;
+    log("SUCCESS", `[${RETAILER}] Order placed! ${productName}${productPrice ? " @ $" + productPrice : ""}`);
+    return { success: true, productName, productImage: "", price: productPrice || null, orderNumber, errorMessage: "" };
+  } catch (err) {
+    return fail(String(err));
+  } finally {
+    if (browser) await browser.close().catch(() => {});
+  }
+}
