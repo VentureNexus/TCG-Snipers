@@ -14,7 +14,8 @@ import {
   getListTasksQueryKey,
   SUPPORTED_RETAILERS,
 } from "@workspace/api-client-react";
-import type { Task, SupportedRetailer, BulkActionResult } from "@workspace/api-client-react";
+import type { Task, Profile, SupportedRetailer, BulkActionResult } from "@workspace/api-client-react";
+import { isProfileIncomplete } from "./profiles";
 import { Button } from "@/components/ui/button";
 import {
   Play,
@@ -30,6 +31,7 @@ import {
   Loader2,
   Pencil,
   ArrowDown,
+  AlertTriangle,
 } from "lucide-react";
 import { RetailerBadge } from "@/components/shared/RetailerBadge";
 import { useQueryClient } from "@tanstack/react-query";
@@ -48,7 +50,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import {
   Form,
   FormControl,
@@ -246,10 +248,14 @@ function TaskFormFields({
   proxies,
 }: {
   form: ReturnType<typeof useForm<TaskFormValues>>;
-  profiles: { id: number; name: string }[];
+  profiles: Profile[];
   groups: { id: number; name: string }[];
   proxies: { id: number; label: string }[];
 }) {
+  const selectedProfileId = useWatch({ control: form.control, name: "profileId" });
+  const selectedProfile = profiles.find((p) => p.id === Number(selectedProfileId));
+  const selectedIncomplete = selectedProfile ? isProfileIncomplete(selectedProfile) : false;
+
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
@@ -286,9 +292,24 @@ function TaskFormFields({
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {profiles.map((p) => <SelectItem key={p.id} value={p.id.toString()}>{p.name}</SelectItem>)}
+                  {profiles.map((p) => (
+                    <SelectItem key={p.id} value={p.id.toString()}>
+                      <span className="flex items-center gap-1.5">
+                        {isProfileIncomplete(p) && (
+                          <AlertTriangle className="w-3.5 h-3.5 text-yellow-500 shrink-0" />
+                        )}
+                        {p.name}
+                      </span>
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
+              {selectedIncomplete && (
+                <p className="flex items-center gap-1.5 text-xs text-yellow-500 mt-1">
+                  <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                  This profile is missing required shipping details.
+                </p>
+              )}
               <FormMessage />
             </FormItem>
           )}
@@ -459,6 +480,11 @@ export default function TasksPage() {
   };
 
   const onCreateSubmit = (values: TaskFormValues) => {
+    const chosenProfile = profiles.find((p) => p.id === values.profileId);
+    if (chosenProfile && isProfileIncomplete(chosenProfile)) {
+      createForm.setError("profileId", { message: "Complete the shipping details on this profile before assigning it." });
+      return;
+    }
     createTask.mutate(
       { data: formValuesToPayload(values) },
       {
@@ -474,6 +500,11 @@ export default function TasksPage() {
 
   const onEditSubmit = (values: TaskFormValues) => {
     if (!editingTask) return;
+    const chosenProfile = profiles.find((p) => p.id === values.profileId);
+    if (chosenProfile && isProfileIncomplete(chosenProfile)) {
+      editForm.setError("profileId", { message: "Complete the shipping details on this profile before assigning it." });
+      return;
+    }
     updateTask.mutate(
       {
         id: editingTask.id,

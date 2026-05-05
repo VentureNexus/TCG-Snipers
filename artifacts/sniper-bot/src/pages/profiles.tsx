@@ -148,7 +148,7 @@ const EMPTY_PROFILE: ProfileFormValues = {
   samsMembershipId: "",
 };
 
-function isProfileIncomplete(profile: Profile): boolean {
+export function isProfileIncomplete(profile: Profile): boolean {
   return (
     !profile.shipFirstName ||
     !profile.shipLastName ||
