@@ -229,6 +229,19 @@ const LOG_COLORS: Record<string, string> = {
   ERROR: "text-red-400",
 };
 
+function TaskRetryBadge({ taskId, enabled }: { taskId: number; enabled: boolean }) {
+  const { retryProgress } = useTaskLogs(taskId, enabled);
+  if (!enabled || !retryProgress || retryProgress.attempt <= 0) return null;
+  return (
+    <span
+      className="inline-flex items-center gap-1 text-[10px] font-mono text-orange-400 bg-orange-400/10 border border-orange-400/20 px-1.5 py-0.5 rounded"
+      data-testid={`badge-row-retry-progress-${taskId}`}
+    >
+      Retry {retryProgress.attempt} of {retryProgress.total === null ? "∞" : retryProgress.total}
+    </span>
+  );
+}
+
 function LogPanel({
   taskId,
   enabled,
@@ -998,6 +1011,7 @@ export default function TasksPage() {
                             {cfg.label}
                           </span>
                           <TimeLimitBadge task={task} isRunning={isRunning} />
+                          <TaskRetryBadge taskId={task.id} enabled={isRunning} />
                         </div>
                       </td>
                       <td className="px-4 py-3 text-right space-x-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
