@@ -8,6 +8,7 @@ import tasksRouter from "./tasks";
 import checkoutResultsRouter from "./checkoutResults";
 import analyticsRouter from "./analytics";
 import settingsRouter from "./settings";
+import authRouter from "./auth";
 
 const router: IRouter = Router();
 
@@ -20,5 +21,6 @@ router.use(tasksRouter);
 router.use(checkoutResultsRouter);
 router.use(analyticsRouter);
 router.use(settingsRouter);
+router.use(authRouter);
 
 export default router;

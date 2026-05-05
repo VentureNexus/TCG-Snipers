@@ -177,54 +177,109 @@ export default function SettingsPage() {
   };
 
   const handleGoogleSignIn = async () => {
-    if (!window.electronAPI?.google) return;
     setGoogleConnecting(true);
-    try {
-      const result = await window.electronAPI.google.signIn();
-      updateSettingsMutation.mutate(
-        {
-          data: {
-            googleEmail: result.email,
-            googleAccessToken: result.accessToken,
-            googleRefreshToken: result.refreshToken,
-            googleTokenExpiry: result.expiresAt,
-            imapHost: "imap.gmail.com",
-            imapPort: "993",
-            imapEmail: result.email,
-          },
-        },
-        {
-          onSuccess: (updated) => {
-            queryClient.setQueryData(getGetSettingsQueryKey(), updated);
-            setSettings((s) => ({
-              ...s,
+
+    if (isElectron && window.electronAPI?.google) {
+      try {
+        const result = await window.electronAPI.google.signIn();
+        updateSettingsMutation.mutate(
+          {
+            data: {
+              googleEmail: result.email,
+              googleAccessToken: result.accessToken,
+              googleRefreshToken: result.refreshToken,
+              googleTokenExpiry: result.expiresAt,
               imapHost: "imap.gmail.com",
               imapPort: "993",
               imapEmail: result.email,
-            }));
-            toast({
-              title: "Google account connected",
-              description: `Signed in as ${result.email}. IMAP fields auto-filled.`,
-            });
+            },
           },
-          onError: (err) => {
-            toast({
-              title: "Failed to save Google credentials",
-              description: err instanceof Error ? err.message : "Could not save settings.",
-              variant: "destructive",
-            });
-          },
-        }
-      );
-    } catch (err) {
+          {
+            onSuccess: (updated) => {
+              queryClient.setQueryData(getGetSettingsQueryKey(), updated);
+              setSettings((s) => ({
+                ...s,
+                imapHost: "imap.gmail.com",
+                imapPort: "993",
+                imapEmail: result.email,
+              }));
+              toast({
+                title: "Google account connected",
+                description: `Signed in as ${result.email}. IMAP fields auto-filled.`,
+              });
+            },
+            onError: (err) => {
+              toast({
+                title: "Failed to save Google credentials",
+                description: err instanceof Error ? err.message : "Could not save settings.",
+                variant: "destructive",
+              });
+            },
+          }
+        );
+      } catch (err) {
+        toast({
+          title: "Google sign-in failed",
+          description: err instanceof Error ? err.message : "Could not connect to Google.",
+          variant: "destructive",
+        });
+      } finally {
+        setGoogleConnecting(false);
+      }
+      return;
+    }
+
+    // Web (non-Electron) flow: open OAuth popup, wait for postMessage
+    const origin = window.location.origin;
+    const startUrl = `/api/auth/google/start?redirect_origin=${encodeURIComponent(origin)}`;
+    const popup = window.open(startUrl, "google_oauth", "width=520,height=620,left=200,top=100");
+    if (!popup) {
       toast({
-        title: "Google sign-in failed",
-        description: err instanceof Error ? err.message : "Could not connect to Google.",
+        title: "Popup blocked",
+        description: "Please allow popups for this site and try again.",
         variant: "destructive",
       });
-    } finally {
       setGoogleConnecting(false);
+      return;
     }
+
+    const onMessage = (event: MessageEvent) => {
+      if (event.origin !== origin) return;
+      const data = event.data as { type?: string; email?: string; error?: string };
+      if (data?.type === "google_auth_success") {
+        window.removeEventListener("message", onMessage);
+        queryClient.invalidateQueries({ queryKey: getGetSettingsQueryKey() });
+        setSettings((s) => ({
+          ...s,
+          imapHost: "imap.gmail.com",
+          imapPort: "993",
+          imapEmail: data.email ?? s.imapEmail,
+        }));
+        toast({
+          title: "Google account connected",
+          description: `Signed in as ${data.email}. IMAP fields auto-filled.`,
+        });
+        setGoogleConnecting(false);
+      } else if (data?.type === "google_auth_error") {
+        window.removeEventListener("message", onMessage);
+        toast({
+          title: "Google sign-in failed",
+          description: data.error ?? "Could not connect to Google.",
+          variant: "destructive",
+        });
+        setGoogleConnecting(false);
+      }
+    };
+    window.addEventListener("message", onMessage);
+
+    // Fallback: if popup closed without postMessage, stop spinner
+    const poll = setInterval(() => {
+      if (popup.closed) {
+        clearInterval(poll);
+        window.removeEventListener("message", onMessage);
+        setGoogleConnecting(false);
+      }
+    }, 500);
   };
 
   const handleGoogleDisconnect = () => {
@@ -360,8 +415,7 @@ export default function SettingsPage() {
               <CardDescription>Email connection for automatic OTP interception and order confirmations.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {isElectron && (
-                <div>
+              <div>
                   {googleEmail ? (
                     <div className="flex items-center justify-between rounded-lg border border-green-500/20 bg-green-500/10 px-4 py-3">
                       <div className="flex items-center gap-3">
@@ -403,7 +457,6 @@ export default function SettingsPage() {
                     </div>
                   </div>
                 </div>
-              )}
 
               <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-2">
