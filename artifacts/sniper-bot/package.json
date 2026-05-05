@@ -1,6 +1,6 @@
 {
   "name": "@workspace/sniper-bot",
-  "version": "1.0.34",
+  "version": "1.0.35",
   "private": true,
   "type": "module",
   "description": "TCG Snipers desktop app for automated retail sniping",
@@ -97,6 +97,7 @@
     "zod": "catalog:"
   },
   "dependencies": {
-    "electron-updater": "^6.8.3"
+    "electron-updater": "^6.8.3",
+    "playwright-core": "^1.59.1"
   }
 }

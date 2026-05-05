@@ -80,10 +80,15 @@ const sharedExternals = [
   "wrangler",
   "zeromq",
   "zeromq-prebuilt",
+  // playwright-core must NOT be bundled by esbuild — it uses internal relative
+  // require('../../../package.json') paths that break when flattened into a
+  // single bundle. It is kept external here and included as a real node_module
+  // via sniper-bot/package.json dependencies so electron-builder ships it.
+  "playwright-core",
+  // playwright-core's optional BiDi sub-dependency — not used (we use CDP via executablePath)
+  "chromium-bidi",
   "puppeteer",
   "puppeteer-core",
-  // playwright-core optional sub-dependency (BiDi protocol) — not used; cannot be bundled
-  "chromium-bidi",
 ];
 
 // ── Bake Discord OAuth credentials into the main-process bundle ───────────────

@@ -688,6 +688,9 @@ importers:
       electron-updater:
         specifier: ^6.8.3
         version: 6.8.3
+      playwright-core:
+        specifier: ^1.59.1
+        version: 1.59.1
     devDependencies:
       '@electron/notarize':
         specifier: ^3.1.1
