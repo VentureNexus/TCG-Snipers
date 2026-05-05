@@ -269,7 +269,8 @@ export default function SettingsPage() {
               <CardTitle>IMAP Settings</CardTitle>
               <CardDescription>
                 Used to intercept OTP verification codes sent by retailers mid-checkout.
-                For Gmail, use <strong>imap.gmail.com</strong> port <strong>993</strong> and an{" "}
+                We recommend a <strong>dedicated Gmail account</strong> rather than your personal inbox — it keeps your
+                main email secure and makes polling faster. Use <strong>imap.gmail.com</strong> port <strong>993</strong> with an{" "}
                 <a
                   href="https://myaccount.google.com/apppasswords"
                   target="_blank"
@@ -278,7 +279,7 @@ export default function SettingsPage() {
                 >
                   App Password
                 </a>{" "}
-                — not your regular Gmail password.
+                (not your regular password). Enable 2-Step Verification on the account first, then generate the App Password.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">

@@ -56,7 +56,25 @@ export default function Privacy() {
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold mb-3">5. Discord Account Access</h2>
+          <h2 className="text-xl font-semibold mb-3">5. Email / IMAP Access</h2>
+          <p className="mb-3">
+            To intercept one-time passwords (OTPs) sent by retailers mid-checkout, TCG Snipers
+            connects to your email account via IMAP using credentials you provide (host, email
+            address, and an App Password). We recommend using a{" "}
+            <strong>dedicated email account</strong> rather than your personal inbox for this
+            purpose — it limits the blast radius if credentials are ever compromised and keeps
+            polling fast on a clean inbox.
+          </p>
+          <p>
+            The IMAP connection runs entirely on your local machine. Your email credentials and any
+            messages read are never transmitted to our servers. TCG Snipers only reads messages to
+            extract OTP codes and does not store, upload, or share email content with any third
+            party.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="text-xl font-semibold mb-3">6. Discord Account Access</h2>
           <p className="mb-3">
             TCG Snipers offers optional sign-in with Discord via OAuth 2.0. If you choose to
             connect your Discord account, the Software requests the following access:
@@ -93,7 +111,7 @@ export default function Privacy() {
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold mb-3">6. License Verification</h2>
+          <h2 className="text-xl font-semibold mb-3">7. License Verification</h2>
           <p>
             To validate your subscription, the Software communicates with our license server. This
             request includes your license key and a device fingerprint used to enforce the
@@ -104,7 +122,7 @@ export default function Privacy() {
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold mb-3">7. Payment Information</h2>
+          <h2 className="text-xl font-semibold mb-3">8. Payment Information</h2>
           <p>
             All payment processing is handled by{" "}
             <a
@@ -122,7 +140,7 @@ export default function Privacy() {
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold mb-3">8. Analytics &amp; Crash Reporting</h2>
+          <h2 className="text-xl font-semibold mb-3">9. Analytics &amp; Crash Reporting</h2>
           <p>
             TCG Snipers does not embed any third-party analytics, tracking pixels, or crash
             reporting SDKs. We do not monitor your usage patterns, session duration, or in-app
@@ -131,7 +149,7 @@ export default function Privacy() {
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold mb-3">9. Third-Party Retailer Interactions</h2>
+          <h2 className="text-xl font-semibold mb-3">10. Third-Party Retailer Interactions</h2>
           <p>
             When TCG Snipers interacts with retailer websites on your behalf, those requests
             originate from your IP address (or the proxy address you configure). You are
@@ -142,7 +160,7 @@ export default function Privacy() {
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold mb-3">10. Children's Privacy</h2>
+          <h2 className="text-xl font-semibold mb-3">11. Children's Privacy</h2>
           <p>
             TCG Snipers is not directed to children under the age of 13. We do not knowingly
             collect personal information from children. If you believe a child under 13 has
@@ -152,7 +170,7 @@ export default function Privacy() {
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold mb-3">11. Your Rights</h2>
+          <h2 className="text-xl font-semibold mb-3">12. Your Rights</h2>
           <p className="mb-3">
             Because we do not collect or store your personal data on our servers, most traditional
             data subject requests (access, deletion, portability) are fulfilled automatically —
@@ -163,7 +181,7 @@ export default function Privacy() {
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold mb-3">12. Changes to This Policy</h2>
+          <h2 className="text-xl font-semibold mb-3">13. Changes to This Policy</h2>
           <p>
             We may update this Privacy Policy from time to time. When we do, we will update the
             "Last updated" date at the top of this page. Continued use of the Software after
@@ -172,7 +190,7 @@ export default function Privacy() {
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold mb-3">13. Contact</h2>
+          <h2 className="text-xl font-semibold mb-3">14. Contact</h2>
           <p>
             Questions about this Privacy Policy? Contact us at{" "}
             <a href="mailto:support@tcgsnipers.com" className="text-primary hover:underline">
