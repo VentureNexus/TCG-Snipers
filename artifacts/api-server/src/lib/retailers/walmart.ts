@@ -4,6 +4,7 @@ import type { RetailerContext, RetailerResult } from "./types";
 import { decrypt } from "../crypto";
 import { applyCartQuantity } from "./cartHelpers";
 import { smartClick, smartFind } from "../checkoutLearner";
+import { imapFetchCode } from "../imap";
 
 const RETAILER = "Walmart";
 
@@ -131,8 +132,56 @@ export async function runWalmart(ctx: RetailerContext): Promise<RetailerResult> 
       "a[href*='/checkout']:not([href*='help']):not([href*='account'])",
     ]);
     if (!checkoutClicked) return fail("Checkout button not found");
-    await humanDelay(1500, 2500);
+    await humanDelay(2000, 3000);
     if (token.cancelled) return fail("Task cancelled");
+
+    // Walmart always requires sign-in — detect the login page and handle it
+    const walmartSignInEmail = await page.$('input[name="email"], input[type="email"], input[id*="email"]');
+    if (walmartSignInEmail && profile) {
+      log("INFO", `[${RETAILER}] Sign-in required — logging in as ${profile.email}...`);
+      try { await humanType(page, 'input[name="email"], input[type="email"]', profile.email); } catch (_) {}
+      await humanDelay(300, 600);
+
+      // Click Continue / Sign in button
+      const signInContinue = await page.$(
+        'button:has-text("Continue"), button:has-text("Sign in"), ' +
+        'button[type="submit"], input[type="submit"]',
+      );
+      if (signInContinue) {
+        await signInContinue.click();
+        await humanDelay(2000, 3000);
+      }
+      if (token.cancelled) return fail("Task cancelled");
+
+      // Walmart may ask for password or send a one-time code
+      const otpField = await page.$('input[name="code"], input[name="otpCode"], input[placeholder*="code" i], input[aria-label*="code" i]');
+      const walmartImapConfig = profile.imapHost
+        ? { host: profile.imapHost, port: parseInt(profile.imapPort, 10), user: profile.imapUser, password: profile.imapPassword }
+        : ctx.globalImapConfig;
+
+      if (otpField && walmartImapConfig) {
+        log("INFO", `[${RETAILER}] OTP prompt — fetching code from IMAP...`);
+        const code = await imapFetchCode(walmartImapConfig, /walmart|verification|sign.?in|code/i, 30000);
+        if (code) {
+          log("SUCCESS", `[${RETAILER}] OTP code retrieved`);
+          await humanType(page, 'input[name="code"], input[name="otpCode"]', code);
+          await humanDelay(300, 600);
+          const submitOtp = await page.$('button[type="submit"], button:has-text("Verify"), button:has-text("Continue")');
+          if (submitOtp) { await submitOtp.click(); await humanDelay(2000, 3000); }
+        } else {
+          log("WARN", `[${RETAILER}] OTP code not found in IMAP within timeout — continuing anyway`);
+        }
+      } else if (!otpField) {
+        // Walmart may have already signed in (saved session) or skipped OTP
+        log("INFO", `[${RETAILER}] No OTP prompt detected — proceeding`);
+      } else {
+        log("WARN", `[${RETAILER}] OTP prompt visible but no IMAP config set on profile — cannot fetch code`);
+      }
+      await humanDelay(1500, 2500);
+      if (token.cancelled) return fail("Task cancelled");
+    } else if (walmartSignInEmail && !profile) {
+      return fail("Walmart requires sign-in but no profile is assigned to this task");
+    }
 
     if (profile) {
       log("INFO", `[${RETAILER}] Filling shipping for profile: ${profile.name}`);
