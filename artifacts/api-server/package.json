@@ -8,7 +8,8 @@
     "build": "node ./build.mjs",
     "start": "node --enable-source-maps ./dist/index.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "smoke-test": "node ./scripts/smoke-test-pglite.mjs"
+    "smoke-test": "node ./scripts/smoke-test-pglite.mjs",
+    "test": "node --test ./scripts/test-token-refresh.mjs"
   },
   "dependencies": {
     "@workspace/api-zod": "workspace:*",
