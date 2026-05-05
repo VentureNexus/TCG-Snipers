@@ -324,6 +324,7 @@ ipcMain.handle("google:oauthSignIn", async (): Promise<{
 
   const codeVerifier = crypto.randomBytes(64).toString("base64url");
   const codeChallenge = crypto.createHash("sha256").update(codeVerifier).digest("base64url");
+  const oauthState = crypto.randomBytes(16).toString("hex");
 
   let oauthPort = 0;
 
@@ -338,8 +339,14 @@ ipcMain.handle("google:oauthSignIn", async (): Promise<{
 
     const cbServer = http.createServer((req, res) => {
       const reqUrl = new URL(req.url ?? "/", `http://127.0.0.1:${oauthPort}`);
+      if (reqUrl.pathname !== "/oauth/callback") {
+        res.writeHead(404);
+        res.end();
+        return;
+      }
       const code = reqUrl.searchParams.get("code");
       const error = reqUrl.searchParams.get("error");
+      const returnedState = reqUrl.searchParams.get("state");
       res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
       res.end(
         `<!doctype html><html><body style="font-family:sans-serif;text-align:center;padding-top:80px">` +
@@ -349,8 +356,10 @@ ipcMain.handle("google:oauthSignIn", async (): Promise<{
       cbServer.close();
       if (error) {
         settle(() => reject(new Error(`Google sign-in was denied: ${error}`)));
+      } else if (returnedState !== oauthState) {
+        settle(() => reject(new Error("OAuth state mismatch — possible CSRF. Please try again.")));
       } else if (code) {
-        settle(() => resolve({ authCode: code, redirectUri: `http://127.0.0.1:${oauthPort}/callback` }));
+        settle(() => resolve({ authCode: code, redirectUri: `http://127.0.0.1:${oauthPort}/oauth/callback` }));
       } else {
         settle(() => reject(new Error("No authorization code received from Google")));
       }
@@ -358,7 +367,7 @@ ipcMain.handle("google:oauthSignIn", async (): Promise<{
 
     cbServer.listen(0, "127.0.0.1", () => {
       oauthPort = (cbServer.address() as { port: number }).port;
-      const redir = `http://127.0.0.1:${oauthPort}/callback`;
+      const redir = `http://127.0.0.1:${oauthPort}/oauth/callback`;
       const authUrl = new URL("https://accounts.google.com/o/oauth2/v2/auth");
       authUrl.searchParams.set("client_id", clientId);
       authUrl.searchParams.set("redirect_uri", redir);
@@ -366,6 +375,7 @@ ipcMain.handle("google:oauthSignIn", async (): Promise<{
       authUrl.searchParams.set("scope", "email openid https://mail.google.com/");
       authUrl.searchParams.set("access_type", "offline");
       authUrl.searchParams.set("prompt", "consent");
+      authUrl.searchParams.set("state", oauthState);
       authUrl.searchParams.set("code_challenge", codeChallenge);
       authUrl.searchParams.set("code_challenge_method", "S256");
       shell.openExternal(authUrl.toString());
@@ -416,6 +426,19 @@ ipcMain.handle("google:oauthSignIn", async (): Promise<{
       const parts = tokenData.id_token.split(".");
       const payload = JSON.parse(Buffer.from(parts[1], "base64url").toString("utf-8")) as { email?: string };
       email = payload.email ?? "";
+    } catch (_) {}
+  }
+
+  // Fallback: call userinfo endpoint if id_token parsing didn't yield an email.
+  if (!email && tokenData.access_token) {
+    try {
+      const userinfoRes = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+        headers: { Authorization: `Bearer ${tokenData.access_token}` },
+      });
+      if (userinfoRes.ok) {
+        const userinfo = await userinfoRes.json() as { email?: string };
+        email = userinfo.email ?? "";
+      }
     } catch (_) {}
   }
 
