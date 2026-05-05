@@ -1,5 +1,6 @@
-import { app, BrowserWindow, shell, ipcMain, dialog } from "electron";
+import { app, BrowserWindow, shell, ipcMain, dialog, safeStorage } from "electron";
 import http from "http";
+import crypto from "crypto";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
@@ -92,6 +93,55 @@ function recordServerRequest(entry: ServerRequestEntry) {
   if (serverRequestLog.length > REQUEST_BUF_SIZE) serverRequestLog.shift();
 }
 
+// ── Per-installation encryption key ──────────────────────────────────────────
+// The api-server needs ENCRYPTION_KEY to AES-encrypt card numbers at rest.
+// In the packaged app there are no Replit secrets, so we generate a random
+// 32-byte key on first launch, persist it to userData encrypted with the OS
+// secure storage (same mechanism as the license token), and inject it into
+// process.env before the api-server module is imported.
+function getOrCreateEncryptionKey(): string {
+  const keyFile = path.join(app.getPath("userData"), "enc.bin");
+
+  // Attempt to read an existing key.
+  if (fs.existsSync(keyFile)) {
+    try {
+      const buf = fs.readFileSync(keyFile);
+      if (safeStorage.isEncryptionAvailable()) {
+        const hex = safeStorage.decryptString(buf);
+        if (hex && hex.length >= 32) {
+          writeLog("INFO", "Encryption key loaded from secure store");
+          return hex;
+        }
+      } else {
+        // Fallback: stored as plain text (rare — safeStorage unavailable).
+        const hex = buf.toString("utf8").trim();
+        if (hex && hex.length >= 32) {
+          writeLog("INFO", "Encryption key loaded (plain fallback)");
+          return hex;
+        }
+      }
+    } catch (err) {
+      writeLog("WARN", `Could not read encryption key file, regenerating: ${err}`);
+    }
+  }
+
+  // Generate a fresh key.
+  const hex = crypto.randomBytes(32).toString("hex"); // 64 hex chars = 256 bits
+  try {
+    if (safeStorage.isEncryptionAvailable()) {
+      fs.writeFileSync(keyFile, safeStorage.encryptString(hex));
+      writeLog("INFO", "Encryption key generated and stored securely");
+    } else {
+      // Plain fallback — userData is user-private on all supported OSes.
+      fs.writeFileSync(keyFile, hex, { mode: 0o600 });
+      writeLog("WARN", "safeStorage unavailable — encryption key stored as plain file (mode 600)");
+    }
+  } catch (err) {
+    writeLog("WARN", `Could not persist encryption key: ${err} — using in-memory key (cards won't survive restart)`);
+  }
+  return hex;
+}
+
 // ── Start Express API server in-process ────────────────────────────────────
 async function startApiServer(): Promise<void> {
   const CANDIDATE_PORTS = [8080, 8081, 8082, 8083];
@@ -107,6 +157,12 @@ async function startApiServer(): Promise<void> {
     process.env.NODE_ENV = isDev ? "development" : "production";
     writeLog("INFO", `NODE_ENV set to: ${process.env.NODE_ENV}`);
 
+    // Inject the per-installation encryption key so the api-server can
+    // encrypt/decrypt card numbers. Must be set before app.js is imported.
+    if (!process.env.ENCRYPTION_KEY) {
+      process.env.ENCRYPTION_KEY = getOrCreateEncryptionKey();
+    }
+
     // Verify that the electron/dist directory exists and list chunk files
     try {
       const distFiles = fs.readdirSync(__dirname);
@@ -116,7 +172,6 @@ async function startApiServer(): Promise<void> {
     }
 
     writeLog("INFO", "Step 1: importing API server module…");
-    // @ts-expect-error – cross-package import resolved by esbuild at build time
     const apiModule = await import("../../api-server/src/app.js");
     writeLog("INFO", "Step 1 OK: module imported");
 
