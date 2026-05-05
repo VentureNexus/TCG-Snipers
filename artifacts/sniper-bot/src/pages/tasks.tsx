@@ -229,9 +229,12 @@ const LOG_COLORS: Record<string, string> = {
   ERROR: "text-red-400",
 };
 
+const RETRY_ACTIVE_STATUSES = new Set(["monitoring"]);
+
 function TaskRetryBadge({ taskId, enabled }: { taskId: number; enabled: boolean }) {
-  const { retryProgress } = useTaskLogs(taskId, enabled);
+  const { retryProgress, liveStatus } = useTaskLogs(taskId, enabled);
   if (!enabled || !retryProgress || retryProgress.attempt <= 0) return null;
+  if (liveStatus && !RETRY_ACTIVE_STATUSES.has(liveStatus)) return null;
   return (
     <span
       className="inline-flex items-center gap-1 text-[10px] font-mono text-orange-400 bg-orange-400/10 border border-orange-400/20 px-1.5 py-0.5 rounded"
@@ -292,7 +295,7 @@ function LogPanel({
       <div className="flex items-center justify-between px-4 py-2 border-b border-border/20">
         <div className="flex items-center gap-2">
           <span className="text-xs font-mono text-muted-foreground uppercase tracking-wider">Task Log</span>
-          {retryProgress && retryProgress.attempt > 0 && (
+          {retryProgress && retryProgress.attempt > 0 && (!liveStatus || RETRY_ACTIVE_STATUSES.has(liveStatus)) && (
             <span className="inline-flex items-center gap-1 text-xs font-mono text-orange-400 bg-orange-400/10 border border-orange-400/20 px-2 py-0.5 rounded" data-testid={`badge-retry-progress-${taskId}`}>
               Retry {retryProgress.attempt} of {retryProgress.total === null ? "∞" : retryProgress.total}
             </span>
