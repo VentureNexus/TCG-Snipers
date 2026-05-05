@@ -33,10 +33,11 @@ export async function runBestBuy(ctx: RetailerContext): Promise<RetailerResult> 
     let productName = task.productUrl || task.productKeywords || "Best Buy Product";
     let productPrice = "";
 
-    for (let attempt = 0; attempt <= task.retryCount; attempt++) {
+    const isUnlimited = task.retryCount === -1;
+    for (let attempt = 0; isUnlimited || attempt <= task.retryCount; attempt++) {
       if (token.cancelled) return fail("Task cancelled");
       if (attempt > 0) {
-        log("WARN", `[${RETAILER}] OOS — waiting ${task.monitorDelay}ms before retry ${attempt}/${task.retryCount}...`);
+        log("WARN", `[${RETAILER}] OOS — waiting ${task.monitorDelay}ms before retry ${attempt}/${isUnlimited ? "∞" : task.retryCount}...`);
         await humanDelay(task.monitorDelay, task.monitorDelay + 500);
       }
       try {

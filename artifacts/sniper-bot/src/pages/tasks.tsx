@@ -32,6 +32,7 @@ import {
   Pencil,
   ArrowDown,
   AlertTriangle,
+  Info,
 } from "lucide-react";
 import { RetailerBadge } from "@/components/shared/RetailerBadge";
 import { useQueryClient } from "@tanstack/react-query";
@@ -66,8 +67,10 @@ import { useToast } from "@/hooks/use-toast";
 import {
   Tooltip,
   TooltipContent,
+  TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const NO_PROXY_SENTINEL = "__none__";
 
@@ -80,7 +83,7 @@ const taskSchema = z.object({
   groupId: z.string().optional(),
   quantity: z.coerce.number().min(1).default(1),
   monitorDelay: z.coerce.number().min(100).default(3000),
-  retryCount: z.coerce.number().min(0).default(3),
+  retryCount: z.coerce.number().min(-1).default(3),
   maxPrice: z.coerce.number().min(0).optional(),
 });
 
@@ -259,6 +262,17 @@ function TaskFormFields({
 }) {
   const selectedProfileId = useWatch({ control: form.control, name: "profileId" });
   const selectedProfile = profiles.find((p) => p.id === Number(selectedProfileId));
+  const retryCountValue = useWatch({ control: form.control, name: "retryCount" });
+  const [isUnlimited, setIsUnlimited] = useState(retryCountValue === -1);
+  const [prevRetryCount, setPrevRetryCount] = useState(retryCountValue === -1 ? 3 : (retryCountValue ?? 3));
+
+  useEffect(() => {
+    if (retryCountValue === -1) {
+      setIsUnlimited(true);
+    } else if (retryCountValue >= 0) {
+      setIsUnlimited(false);
+    }
+  }, [retryCountValue]);
   const selectedIncomplete = selectedProfile ? isProfileIncomplete(selectedProfile) : false;
 
   return (
@@ -424,7 +438,19 @@ function TaskFormFields({
           name="monitorDelay"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Delay (ms)</FormLabel>
+              <FormLabel className="flex items-center gap-1">
+                Delay (ms)
+                <TooltipProvider delayDuration={200}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-[220px] text-xs">
+                      How long the bot waits between each stock check attempt (in milliseconds). e.g. 3000 = 3 seconds.
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </FormLabel>
               <FormControl><Input type="number" data-testid="input-delay" {...field} /></FormControl>
               <FormMessage />
             </FormItem>
@@ -435,8 +461,54 @@ function TaskFormFields({
           name="retryCount"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Retries</FormLabel>
-              <FormControl><Input type="number" data-testid="input-retries" {...field} /></FormControl>
+              <FormLabel className="flex items-center gap-1">
+                Retries
+                <TooltipProvider delayDuration={200}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-[240px] text-xs">
+                      Maximum number of re-checks after the first attempt. e.g. 3 = 4 total stock checks. Set to Unlimited to keep retrying until the item is found or the task is stopped.
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </FormLabel>
+              <FormControl>
+                <Input
+                  type="number"
+                  data-testid="input-retries"
+                  disabled={isUnlimited}
+                  {...field}
+                  value={isUnlimited ? "" : field.value}
+                  onChange={(e) => {
+                    field.onChange(e);
+                    const parsed = parseInt(e.target.value, 10);
+                    if (Number.isFinite(parsed) && parsed >= 0) setPrevRetryCount(parsed);
+                  }}
+                />
+              </FormControl>
+              <div className="flex items-center gap-2 mt-1.5">
+                <Checkbox
+                  id="unlimited-retries"
+                  checked={isUnlimited}
+                  onCheckedChange={(checked) => {
+                    if (checked) {
+                      const safeVal = Number.isFinite(field.value) && field.value >= 0 ? Math.round(field.value) : 3;
+                      setPrevRetryCount(safeVal);
+                      form.setValue("retryCount", -1);
+                      setIsUnlimited(true);
+                    } else {
+                      const restore = Number.isFinite(prevRetryCount) && prevRetryCount >= 0 ? prevRetryCount : 3;
+                      form.setValue("retryCount", restore);
+                      setIsUnlimited(false);
+                    }
+                  }}
+                />
+                <label htmlFor="unlimited-retries" className="text-sm text-muted-foreground cursor-pointer select-none">
+                  Unlimited
+                </label>
+              </div>
               <FormMessage />
             </FormItem>
           )}
