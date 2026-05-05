@@ -1,6 +1,6 @@
 import { Link } from "wouter";
 
-const INSTALLER_VERSION = "1.0.22";
+const INSTALLER_VERSION = "1.0.23";
 const GITHUB_RELEASE_BASE =
   `https://github.com/VentureNexus/TCG-Snipers/releases/download/v${INSTALLER_VERSION}`;
 

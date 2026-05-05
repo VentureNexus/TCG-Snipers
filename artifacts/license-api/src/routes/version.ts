@@ -12,11 +12,11 @@ const MARKETING_URL = (process.env.MARKETING_SITE_URL ?? "https://tcgsnipers.com
 // the new version automatically (cached 5 min in-process).
 //
 // Env var fallbacks (used only if the GitHub API is unreachable):
-//   LATEST_APP_VERSION         default "1.0.22"
+//   LATEST_APP_VERSION         default "1.0.23"
 //   MIN_SUPPORTED_APP_VERSION  default "1.0.0"
 router.get("/version", async (_req, res) => {
   const release = await getLatestRelease();
-  const latest = release?.version ?? process.env.LATEST_APP_VERSION ?? "1.0.22";
+  const latest = release?.version ?? process.env.LATEST_APP_VERSION ?? "1.0.23";
   const minSupported = process.env.MIN_SUPPORTED_APP_VERSION ?? "1.0.0";
 
   // 5 min fresh + 10 min stale-while-revalidate so a brief GitHub outage

@@ -35,6 +35,38 @@ and macOS arm64 installers, and publishes them to GitHub Releases via
 
 ---
 
+## v1.0.23 — 2026-05-05
+
+**GitHub Release:** https://github.com/VentureNexus/TCG-Snipers/releases/tag/v1.0.23
+
+### Assets (9 files)
+
+| File | Size |
+|---|---|
+| [TCGSnipers-1.0.23-x64-win.exe](https://github.com/VentureNexus/TCG-Snipers/releases/download/v1.0.23/TCGSnipers-1.0.23-x64-win.exe) | — |
+| TCGSnipers-1.0.23-x64-win.exe.blockmap | — |
+| TCGSnipers-1.0.23-x64-win.zip | — |
+| [TCGSnipers-1.0.23-arm64.dmg](https://github.com/VentureNexus/TCG-Snipers/releases/download/v1.0.23/TCGSnipers-1.0.23-arm64.dmg) | — |
+| TCGSnipers-1.0.23-arm64.dmg.blockmap | — |
+| TCGSnipers-1.0.23-arm64.zip | — |
+| TCGSnipers-1.0.23-arm64.zip.blockmap | — |
+| latest.yml (Windows auto-update) | — |
+| latest-mac.yml (macOS auto-update) | — |
+
+### Changes
+- Add randomized min/max monitor delay to reduce bot detection
+- Add wall-clock stop time picker for unlimited tasks (e.g. "stop at noon")
+- Show live countdown timer on task cards for time-limited tasks
+- Show live "Retry X of Y" badge in the log panel header
+- Show live "Retry X of Y" badge directly on the task row
+- Clear retry badge when a task stops, succeeds, or finishes
+- Add live CPU & RAM usage indicators in the top bar (Electron only)
+- Add CPU & RAM performance graph on the Tasks page (Electron only)
+- Persist performance graph history across page navigation
+- Restore "Sign in with Google" button on the Settings page for web builds
+
+---
+
 ## v1.0.22 — 2026-05-05
 
 **GitHub Release:** https://github.com/VentureNexus/TCG-Snipers/releases/tag/v1.0.22
