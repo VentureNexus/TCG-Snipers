@@ -132,6 +132,13 @@ if (process.env.DISCORD_OAUTH_CLIENT_ID) {
     "⚠ DISCORD_OAUTH_CLIENT_ID is not set — packaged app will not support Discord notifications"
   );
 }
+if (process.env.DISCORD_OAUTH_CLIENT_SECRET) {
+  console.log("✓ DISCORD_OAUTH_CLIENT_SECRET will be baked into the bundle");
+} else {
+  console.warn(
+    "⚠ DISCORD_OAUTH_CLIENT_SECRET is not set — packaged app will not support Discord notifications"
+  );
+}
 
 // ── Main process build (ESM with code-splitting for lazy imports) ─────────────
 await build({

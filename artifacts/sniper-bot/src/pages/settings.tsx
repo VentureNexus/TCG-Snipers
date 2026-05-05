@@ -59,6 +59,7 @@ export default function SettingsPage() {
 
   const isElectron = typeof window !== "undefined" && !!window.electronAPI;
   const googleEmail = settingsData?.googleEmail ?? null;
+  const discordConnected = !!(settingsData?.discordGuildName || settingsData?.webhookUrl);
   const discordGuildName = settingsData?.discordGuildName ?? null;
   const discordChannelName = settingsData?.discordChannelName ?? null;
 
@@ -297,13 +298,17 @@ export default function SettingsPage() {
               <CardDescription>Connect Discord to receive checkout alerts in your server.</CardDescription>
             </CardHeader>
             <CardContent>
-              {discordGuildName ? (
+              {discordConnected ? (
                 <div className="flex items-center justify-between rounded-lg border px-4 py-3" style={{ borderColor: "rgba(88,101,242,0.35)", background: "rgba(88,101,242,0.08)" }}>
                   <div className="flex items-center gap-3">
                     <div className="h-2 w-2 rounded-full bg-[#23a55a]" />
                     <span className="text-[#5865F2]"><DiscordIcon /></span>
                     <div>
-                      <p className="text-sm font-medium">{discordGuildName} · #{discordChannelName}</p>
+                      <p className="text-sm font-medium">
+                        {discordGuildName
+                          ? `${discordGuildName} · #${discordChannelName ?? "unknown"}`
+                          : "Connected"}
+                      </p>
                       <p className="text-xs text-muted-foreground">Connected via Discord OAuth</p>
                     </div>
                   </div>
