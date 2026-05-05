@@ -20,6 +20,9 @@ export interface Settings {
     imapPassword: string;
     discordGuildName?: string | null;
     discordChannelName?: string | null;
+    systemCores?: number;
+    recommendedMin?: number;
+    recommendedMax?: number;
 }
 export interface UpdateSettingsBody {
     concurrency?: number;

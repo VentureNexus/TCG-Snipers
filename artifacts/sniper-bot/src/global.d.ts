@@ -105,6 +105,7 @@ declare global {
           guildName: string;
           channelName: string;
         }>;
+        cancel: () => Promise<void>;
       };
       /** System performance metrics — CPU and RAM usage. */
       system: {

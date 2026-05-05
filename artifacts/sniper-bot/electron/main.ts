@@ -337,6 +337,15 @@ ipcMain.handle("license:clear", () => {
 ipcMain.handle("app:openExternal", (_e, url: string) => shell.openExternal(url));
 
 // ── Discord OAuth IPC ─────────────────────────────────────────────────────────
+let _discordCancelFn: (() => void) | null = null;
+
+ipcMain.handle("discord:cancelConnect", () => {
+  if (_discordCancelFn) {
+    _discordCancelFn();
+    _discordCancelFn = null;
+  }
+});
+
 ipcMain.handle("discord:oauthConnect", async (): Promise<{
   webhookUrl: string;
   guildName: string;
@@ -358,14 +367,29 @@ ipcMain.handle("discord:oauthConnect", async (): Promise<{
 
   const { authCode, redirectUri } = await new Promise<{ authCode: string; redirectUri: string }>((resolve, reject) => {
     let settled = false;
-    const settle = (fn: () => void) => { if (!settled) { settled = true; fn(); } };
+    const settle = (fn: () => void) => {
+      if (!settled) {
+        settled = true;
+        _discordCancelFn = null;
+        fn();
+      }
+    };
 
-    const timeoutId = setTimeout(() => {
+    let timeoutId: ReturnType<typeof setTimeout>;
+    let cbServer: ReturnType<typeof http.createServer>;
+
+    _discordCancelFn = () => {
+      clearTimeout(timeoutId);
+      cbServer?.close();
+      settle(() => reject(new Error("cancelled")));
+    };
+
+    timeoutId = setTimeout(() => {
       cbServer.close();
       settle(() => reject(new Error("Discord connection timed out — please try again")));
     }, 300_000);
 
-    const cbServer = http.createServer((req, res) => {
+    cbServer = http.createServer((req, res) => {
       const reqUrl = new URL(req.url ?? "/", `http://127.0.0.1:${DISCORD_CALLBACK_PORT}`);
       if (reqUrl.pathname !== "/oauth/callback") {
         res.writeHead(404);

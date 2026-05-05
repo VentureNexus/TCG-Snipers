@@ -158,10 +158,18 @@ export default function SettingsPage() {
         }
       );
     } catch (err) {
-      toast({ title: "Discord connection failed", description: err instanceof Error ? err.message : "Could not connect to Discord.", variant: "destructive" });
+      const msg = err instanceof Error ? err.message : "Could not connect to Discord.";
+      if (msg !== "cancelled") {
+        toast({ title: "Discord connection failed", description: msg, variant: "destructive" });
+      }
     } finally {
       setDiscordConnecting(false);
     }
+  };
+
+  const handleDiscordCancel = () => {
+    window.electronAPI?.discord?.cancel?.();
+    setDiscordConnecting(false);
   };
 
   const handleDiscordDisconnect = () => {
@@ -274,10 +282,20 @@ export default function SettingsPage() {
                     Disconnect
                   </Button>
                 </div>
+              ) : discordConnecting ? (
+                <div className="flex gap-2">
+                  <Button className="flex-1 gap-2 text-white" style={{ background: "#5865F2" }} disabled>
+                    <DiscordIcon />
+                    Connecting to Discord…
+                  </Button>
+                  <Button variant="outline" size="default" onClick={handleDiscordCancel} className="shrink-0">
+                    Cancel
+                  </Button>
+                </div>
               ) : (
-                <Button className="w-full gap-2 text-white" style={{ background: "#5865F2" }} onClick={handleDiscordConnect} disabled={!isElectron || discordConnecting || saving}>
+                <Button className="w-full gap-2 text-white" style={{ background: "#5865F2" }} onClick={handleDiscordConnect} disabled={!isElectron || saving}>
                   <DiscordIcon />
-                  {discordConnecting ? "Connecting to Discord…" : "Connect Discord"}
+                  Connect Discord
                 </Button>
               )}
               {!isElectron && !discordGuildName && (

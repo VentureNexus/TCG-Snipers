@@ -111,6 +111,7 @@ const api = {
       guildName: string;
       channelName: string;
     }> => ipcRenderer.invoke("discord:oauthConnect"),
+    cancel: (): Promise<void> => ipcRenderer.invoke("discord:cancelConnect"),
   },
 
   /** System performance metrics — CPU and RAM usage. */
