@@ -2,10 +2,14 @@ import { useEffect, useRef, useState } from "react";
 
 interface ApiFailure {
   reason: string;
+  kind: "startup" | "mid-session";
 }
 
 const HEALTH_PROBE_DELAY_MS = 10_000;
 const HEALTH_PROBE_INTERVAL_MS = 30_000;
+const HEALTH_PROBE_FAIL_THRESHOLD = 2;
+
+const MID_SESSION_REASON = "The database process stopped responding.";
 
 export function DbErrorBanner() {
   const [failure, setFailure] = useState<ApiFailure | null>(null);
@@ -13,6 +17,7 @@ export function DbErrorBanner() {
   const [showLogs, setShowLogs] = useState(false);
   const probeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const probeIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const consecutiveFailsRef = useRef(0);
 
   useEffect(() => {
     const diag = window.electronAPI?.diagnostics;
@@ -20,38 +25,52 @@ export function DbErrorBanner() {
 
     let cancelled = false;
 
+    let startupOk = false;
+
     void (async () => {
       const status = await diag.getStartStatus();
-      if (!cancelled && !status.ok && status.reason) {
-        setFailure({ reason: status.reason });
+      if (cancelled) return;
+      if (!status.ok && status.reason) {
+        setFailure({ reason: status.reason, kind: "startup" });
+      } else if (status.ok) {
+        startupOk = true;
       }
     })();
 
     const offFailed = diag.onStartFailed((info) => {
-      if (!cancelled) setFailure({ reason: info.reason });
+      if (!cancelled) setFailure({ reason: info.reason, kind: "startup" });
     });
 
     const offCrashed = diag.onCrashed((info) => {
-      if (!cancelled) setFailure({ reason: info.reason });
+      if (!cancelled) setFailure({ reason: info.reason, kind: "startup" });
     });
 
     const offRecovered = diag.onRecovered(() => {
-      if (!cancelled) setFailure(null);
+      if (!cancelled) {
+        startupOk = true;
+        consecutiveFailsRef.current = 0;
+        setFailure(null);
+      }
     });
 
     const startPolling = () => {
       probeIntervalRef.current = setInterval(async () => {
-        if (cancelled) return;
+        if (cancelled || !startupOk) return;
         const health = await diag.getHealth();
-        if (!cancelled && !health.alive) {
+        if (cancelled) return;
+
+        if (!health.alive) {
+          consecutiveFailsRef.current += 1;
+          if (consecutiveFailsRef.current >= HEALTH_PROBE_FAIL_THRESHOLD) {
+            setFailure((prev) =>
+              prev ?? { reason: MID_SESSION_REASON, kind: "mid-session" }
+            );
+          }
+        } else {
+          consecutiveFailsRef.current = 0;
           setFailure((prev) =>
-            prev ?? { reason: "The database process stopped unexpectedly." }
+            prev?.kind === "mid-session" ? null : prev
           );
-        } else if (!cancelled && health.alive) {
-          setFailure((prev) => {
-            if (prev?.reason === "The database process stopped unexpectedly.") return null;
-            return prev;
-          });
         }
       }, HEALTH_PROBE_INTERVAL_MS);
     };
@@ -83,6 +102,9 @@ export function DbErrorBanner() {
 
   if (!failure) return null;
 
+  const bannerTitle =
+    failure.kind === "mid-session" ? "Database unreachable" : "API startup failed";
+
   return (
     <>
       <div
@@ -91,7 +113,7 @@ export function DbErrorBanner() {
         className="flex flex-col gap-1 px-4 py-2.5 text-sm border-b bg-destructive/15 border-destructive/40 text-foreground"
       >
         <div className="flex items-center gap-3">
-          <span className="font-semibold text-destructive">API startup failed</span>
+          <span className="font-semibold text-destructive">{bannerTitle}</span>
           <span className="text-muted-foreground flex-1 truncate">
             {failure.reason}
           </span>
