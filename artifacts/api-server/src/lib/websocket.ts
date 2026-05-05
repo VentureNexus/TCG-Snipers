@@ -34,6 +34,7 @@ const logBuffers = new Map<number, LogMessage[]>();
 let globalSeq = 0;
 
 const retryProgressCache = new Map<number, RetryProgressMessage>();
+const statusCache = new Map<number, StatusMessage>();
 
 const TERMINAL_STATUSES = new Set(["idle", "success", "failed", "stopped"]);
 
@@ -51,6 +52,7 @@ function appendToBuffer(taskId: number, msg: LogMessage): void {
 export function clearLogBuffer(taskId: number): void {
   logBuffers.delete(taskId);
   retryProgressCache.delete(taskId);
+  statusCache.delete(taskId);
 }
 
 export function createWebSocketServer(server: Server): WebSocketServer {
@@ -85,6 +87,12 @@ export function createWebSocketServer(server: Server): WebSocketServer {
                 ws.send(JSON.stringify(entry));
               }
             }
+          }
+
+          // Replay last known status so late-connecting clients see the current status badge
+          const cachedStatus = statusCache.get(subscribedTaskId);
+          if (cachedStatus && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify(cachedStatus));
           }
 
           // Replay last known retry progress so late-connecting clients see current count
@@ -144,11 +152,9 @@ export function broadcastStatus(taskId: number, status: string): void {
   if (TERMINAL_STATUSES.has(status)) {
     retryProgressCache.delete(taskId);
   }
-  sendToTaskSubscribers(taskId, {
-    type: "status",
-    taskId,
-    status,
-  });
+  const msg: StatusMessage = { type: "status", taskId, status };
+  statusCache.set(taskId, msg);
+  sendToTaskSubscribers(taskId, msg);
 }
 
 export function broadcastRetryProgress(taskId: number, attempt: number, total: number | null): void {
