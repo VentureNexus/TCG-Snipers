@@ -73,11 +73,11 @@ export function Sidebar() {
 
   return (
     <div className={`flex flex-col h-full bg-sidebar border-r border-sidebar-border transition-all duration-200 ${collapsed ? 'w-16' : 'w-64'}`}>
-      <div className="flex items-center justify-center p-2 border-b border-sidebar-border h-16">
+      <div className="flex items-center justify-center p-2 border-b border-sidebar-border h-14">
         <img
           src={theme.logo}
           alt="TCG Snipers"
-          className={collapsed ? "h-12 w-auto object-contain" : "h-14 w-auto object-contain"}
+          className={collapsed ? "h-9 w-auto object-contain" : "h-10 w-auto object-contain"}
           style={{ aspectRatio: "832 / 1248" }}
           data-testid="img-sidebar-logo"
         />
