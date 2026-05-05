@@ -464,8 +464,13 @@ ipcMain.handle("discord:oauthConnect", async (): Promise<{
     throw new Error("Discord OAuth is not configured. Please contact support.");
   }
 
+  // Discord requires an exact redirect URI match (no port wildcard like Google).
+  // We use a fixed high port so the URI registered in the Discord Developer Portal
+  // can be a stable, predictable value: http://127.0.0.1:47842/oauth/callback
+  const DISCORD_CALLBACK_PORT = 47842;
+  const DISCORD_REDIRECT_URI = `http://127.0.0.1:${DISCORD_CALLBACK_PORT}/oauth/callback`;
+
   const oauthState = crypto.randomBytes(16).toString("hex");
-  let oauthPort = 0;
 
   const { authCode, redirectUri } = await new Promise<{ authCode: string; redirectUri: string }>((resolve, reject) => {
     let settled = false;
@@ -477,7 +482,7 @@ ipcMain.handle("discord:oauthConnect", async (): Promise<{
     }, 300_000);
 
     const cbServer = http.createServer((req, res) => {
-      const reqUrl = new URL(req.url ?? "/", `http://127.0.0.1:${oauthPort}`);
+      const reqUrl = new URL(req.url ?? "/", `http://127.0.0.1:${DISCORD_CALLBACK_PORT}`);
       if (reqUrl.pathname !== "/oauth/callback") {
         res.writeHead(404);
         res.end();
@@ -498,28 +503,30 @@ ipcMain.handle("discord:oauthConnect", async (): Promise<{
       } else if (returnedState !== oauthState) {
         settle(() => reject(new Error("OAuth state mismatch — possible CSRF. Please try again.")));
       } else if (code) {
-        settle(() => resolve({ authCode: code, redirectUri: `http://127.0.0.1:${oauthPort}/oauth/callback` }));
+        settle(() => resolve({ authCode: code, redirectUri: DISCORD_REDIRECT_URI }));
       } else {
         settle(() => reject(new Error("No authorization code received from Discord")));
       }
     });
 
-    cbServer.listen(0, "127.0.0.1", () => {
-      oauthPort = (cbServer.address() as { port: number }).port;
-      const redir = `http://127.0.0.1:${oauthPort}/oauth/callback`;
+    cbServer.listen(DISCORD_CALLBACK_PORT, "127.0.0.1", () => {
       const authUrl = new URL("https://discord.com/api/oauth2/authorize");
       authUrl.searchParams.set("client_id", clientId);
-      authUrl.searchParams.set("redirect_uri", redir);
+      authUrl.searchParams.set("redirect_uri", DISCORD_REDIRECT_URI);
       authUrl.searchParams.set("response_type", "code");
       authUrl.searchParams.set("scope", "webhook.incoming");
       authUrl.searchParams.set("state", oauthState);
       shell.openExternal(authUrl.toString());
-      writeLog("INFO", `[discord:oauthConnect] OAuth server listening on port ${oauthPort}`);
+      writeLog("INFO", `[discord:oauthConnect] OAuth callback server listening on port ${DISCORD_CALLBACK_PORT}`);
     });
 
     cbServer.on("error", (err) => {
       clearTimeout(timeoutId);
-      settle(() => reject(err));
+      settle(() => reject(new Error(
+        err.message.includes("EADDRINUSE")
+          ? `Port ${DISCORD_CALLBACK_PORT} is already in use. Close other apps and try again.`
+          : err.message
+      )));
     });
   });
 
