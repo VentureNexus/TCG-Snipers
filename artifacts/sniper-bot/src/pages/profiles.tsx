@@ -472,22 +472,20 @@ function ProfileFormDialog({
                     <FormMessage />
                   </FormItem>
                 )} />
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField control={form.control} name="costcoMembershipId" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Costco Membership ID <span className="text-muted-foreground text-xs">(optional)</span></FormLabel>
-                      <FormControl><Input placeholder="Optional" {...field} data-testid="input-costco-membership" /></FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
-                  <FormField control={form.control} name="samsMembershipId" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Sam's Club Membership ID <span className="text-muted-foreground text-xs">(optional)</span></FormLabel>
-                      <FormControl><Input placeholder="Optional" {...field} data-testid="input-sams-membership" /></FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
-                </div>
+                <FormField control={form.control} name="costcoMembershipId" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Costco Membership ID <span className="text-muted-foreground text-xs">(optional)</span></FormLabel>
+                    <FormControl><Input placeholder="Optional" {...field} data-testid="input-costco-membership" /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                <FormField control={form.control} name="samsMembershipId" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Sam's Club Membership ID <span className="text-muted-foreground text-xs">(optional)</span></FormLabel>
+                    <FormControl><Input placeholder="Optional" {...field} data-testid="input-sams-membership" /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
               </div>
             </div>
 
