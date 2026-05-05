@@ -98,15 +98,6 @@ declare global {
         write: (value: { token: string; email: string }) => Promise<{ ok: true }>;
         clear: () => Promise<{ ok: true }>;
       };
-      /** Google OAuth — opens the browser for Google sign-in and returns tokens. */
-      google: {
-        signIn: () => Promise<{
-          email: string;
-          accessToken: string;
-          refreshToken: string;
-          expiresAt: number;
-        }>;
-      };
       /** Discord OAuth — opens the browser for channel picker and returns webhook info. */
       discord: {
         connect: () => Promise<{

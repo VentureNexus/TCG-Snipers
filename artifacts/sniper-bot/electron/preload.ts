@@ -104,16 +104,6 @@ const api = {
     clear: (): Promise<{ ok: true }> => ipcRenderer.invoke("license:clear"),
   },
 
-  /** Google OAuth — opens the browser for Google sign-in and returns tokens. */
-  google: {
-    signIn: (): Promise<{
-      email: string;
-      accessToken: string;
-      refreshToken: string;
-      expiresAt: number;
-    }> => ipcRenderer.invoke("google:oauthSignIn"),
-  },
-
   /** Discord OAuth — opens the browser for channel picker and returns webhook info. */
   discord: {
     connect: (): Promise<{

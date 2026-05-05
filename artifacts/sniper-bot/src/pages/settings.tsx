@@ -36,23 +36,11 @@ function DiscordIcon() {
   );
 }
 
-function GoogleIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <path d="M17.64 9.20455C17.64 8.56636 17.5827 7.95272 17.4764 7.36364H9V10.845H13.8436C13.635 11.97 13.0009 12.9232 12.0477 13.5614V15.8195H14.9564C16.6582 14.2527 17.64 11.9455 17.64 9.20455Z" fill="#4285F4" />
-      <path d="M9 18C11.43 18 13.4673 17.1941 14.9564 15.8195L12.0477 13.5614C11.2418 14.1014 10.2109 14.4205 9 14.4205C6.65591 14.4205 4.67182 12.8373 3.96409 10.71H0.957275V13.0418C2.43818 15.9832 5.48182 18 9 18Z" fill="#34A853" />
-      <path d="M3.96409 10.71C3.78409 10.17 3.68182 9.59318 3.68182 9C3.68182 8.40682 3.78409 7.83 3.96409 7.29V4.95818H0.957275C0.347727 6.17318 0 7.54773 0 9C0 10.4523 0.347727 11.8268 0.957275 13.0418L3.96409 10.71Z" fill="#FBBC05" />
-      <path d="M9 3.57955C10.3214 3.57955 11.5077 4.03364 12.4405 4.92545L15.0218 2.34409C13.4632 0.891818 11.4259 0 9 0C5.48182 0 2.43818 2.01682 0.957275 4.95818L3.96409 7.29C4.67182 5.16273 6.65591 3.57955 9 3.57955Z" fill="#EA4335" />
-    </svg>
-  );
-}
-
 export default function SettingsPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [settings, setSettings] = useState<SettingsForm>(DEFAULT_SETTINGS);
   const [formInitialized, setFormInitialized] = useState(false);
-  const [googleConnecting, setGoogleConnecting] = useState(false);
   const [discordConnecting, setDiscordConnecting] = useState(false);
 
   const { data: settingsData, isLoading: loading, isError } = useGetSettings();
@@ -60,7 +48,6 @@ export default function SettingsPage() {
   const saving = updateSettingsMutation.isPending;
 
   const isElectron = typeof window !== "undefined" && !!window.electronAPI;
-  const googleEmail = settingsData?.googleEmail ?? null;
   const discordConnected = !!(settingsData?.discordGuildName || settingsData?.webhookUrl);
   const discordGuildName = settingsData?.discordGuildName ?? null;
   const discordChannelName = settingsData?.discordChannelName ?? null;
@@ -164,138 +151,6 @@ export default function SettingsPage() {
         onSuccess: (updated) => {
           queryClient.setQueryData(getGetSettingsQueryKey(), updated);
           toast({ title: "Discord disconnected" });
-        },
-        onError: (err) => {
-          toast({
-            title: "Failed to disconnect",
-            description: err instanceof Error ? err.message : "Could not update settings.",
-            variant: "destructive",
-          });
-        },
-      }
-    );
-  };
-
-  const handleGoogleSignIn = async () => {
-    setGoogleConnecting(true);
-
-    if (isElectron && window.electronAPI?.google) {
-      try {
-        const result = await window.electronAPI.google.signIn();
-        updateSettingsMutation.mutate(
-          {
-            data: {
-              googleEmail: result.email,
-              googleAccessToken: result.accessToken,
-              googleRefreshToken: result.refreshToken,
-              googleTokenExpiry: result.expiresAt,
-              imapHost: "imap.gmail.com",
-              imapPort: "993",
-              imapEmail: result.email,
-            },
-          },
-          {
-            onSuccess: (updated) => {
-              queryClient.setQueryData(getGetSettingsQueryKey(), updated);
-              setSettings((s) => ({
-                ...s,
-                imapHost: "imap.gmail.com",
-                imapPort: "993",
-                imapEmail: result.email,
-              }));
-              toast({
-                title: "Google account connected",
-                description: `Signed in as ${result.email}. IMAP fields auto-filled.`,
-              });
-            },
-            onError: (err) => {
-              toast({
-                title: "Failed to save Google credentials",
-                description: err instanceof Error ? err.message : "Could not save settings.",
-                variant: "destructive",
-              });
-            },
-          }
-        );
-      } catch (err) {
-        toast({
-          title: "Google sign-in failed",
-          description: err instanceof Error ? err.message : "Could not connect to Google.",
-          variant: "destructive",
-        });
-      } finally {
-        setGoogleConnecting(false);
-      }
-      return;
-    }
-
-    // Web (non-Electron) flow: open OAuth popup, wait for postMessage
-    const origin = window.location.origin;
-    const startUrl = `/api/auth/google/start?redirect_origin=${encodeURIComponent(origin)}`;
-    const popup = window.open(startUrl, "google_oauth", "width=520,height=620,left=200,top=100");
-    if (!popup) {
-      toast({
-        title: "Popup blocked",
-        description: "Please allow popups for this site and try again.",
-        variant: "destructive",
-      });
-      setGoogleConnecting(false);
-      return;
-    }
-
-    const onMessage = (event: MessageEvent) => {
-      if (event.origin !== origin) return;
-      const data = event.data as { type?: string; email?: string; error?: string };
-      if (data?.type === "google_auth_success") {
-        window.removeEventListener("message", onMessage);
-        queryClient.invalidateQueries({ queryKey: getGetSettingsQueryKey() });
-        setSettings((s) => ({
-          ...s,
-          imapHost: "imap.gmail.com",
-          imapPort: "993",
-          imapEmail: data.email ?? s.imapEmail,
-        }));
-        toast({
-          title: "Google account connected",
-          description: `Signed in as ${data.email}. IMAP fields auto-filled.`,
-        });
-        setGoogleConnecting(false);
-      } else if (data?.type === "google_auth_error") {
-        window.removeEventListener("message", onMessage);
-        toast({
-          title: "Google sign-in failed",
-          description: data.error ?? "Could not connect to Google.",
-          variant: "destructive",
-        });
-        setGoogleConnecting(false);
-      }
-    };
-    window.addEventListener("message", onMessage);
-
-    // Fallback: if popup closed without postMessage, stop spinner
-    const poll = setInterval(() => {
-      if (popup.closed) {
-        clearInterval(poll);
-        window.removeEventListener("message", onMessage);
-        setGoogleConnecting(false);
-      }
-    }, 500);
-  };
-
-  const handleGoogleDisconnect = () => {
-    updateSettingsMutation.mutate(
-      {
-        data: {
-          googleEmail: null,
-          googleAccessToken: null,
-          googleRefreshToken: null,
-          googleTokenExpiry: null,
-        },
-      },
-      {
-        onSuccess: (updated) => {
-          queryClient.setQueryData(getGetSettingsQueryKey(), updated);
-          toast({ title: "Google account disconnected" });
         },
         onError: (err) => {
           toast({
@@ -412,52 +267,21 @@ export default function SettingsPage() {
           <Card className="glass-card">
             <CardHeader>
               <CardTitle>IMAP Settings</CardTitle>
-              <CardDescription>Email connection for automatic OTP interception and order confirmations.</CardDescription>
+              <CardDescription>
+                Used to intercept OTP verification codes sent by retailers mid-checkout.
+                For Gmail, use <strong>imap.gmail.com</strong> port <strong>993</strong> and an{" "}
+                <a
+                  href="https://myaccount.google.com/apppasswords"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="underline hover:text-foreground"
+                >
+                  App Password
+                </a>{" "}
+                — not your regular Gmail password.
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div>
-                  {googleEmail ? (
-                    <div className="flex items-center justify-between rounded-lg border border-green-500/20 bg-green-500/10 px-4 py-3">
-                      <div className="flex items-center gap-3">
-                        <div className="h-2 w-2 rounded-full bg-green-500" />
-                        <GoogleIcon />
-                        <div>
-                          <p className="text-sm font-medium">{googleEmail}</p>
-                          <p className="text-xs text-muted-foreground">Connected via Google OAuth</p>
-                        </div>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleGoogleDisconnect}
-                        disabled={saving}
-                        className="text-muted-foreground hover:text-foreground"
-                      >
-                        Disconnect
-                      </Button>
-                    </div>
-                  ) : (
-                    <Button
-                      variant="outline"
-                      className="w-full gap-2"
-                      onClick={handleGoogleSignIn}
-                      disabled={googleConnecting || saving}
-                    >
-                      <GoogleIcon />
-                      {googleConnecting ? "Connecting to Google…" : "Sign in with Google"}
-                    </Button>
-                  )}
-
-                  <div className="relative my-5">
-                    <div className="absolute inset-0 flex items-center">
-                      <span className="w-full border-t border-border" />
-                    </div>
-                    <div className="relative flex justify-center text-xs uppercase">
-                      <span className="bg-card px-2 text-muted-foreground">or enter manually</span>
-                    </div>
-                  </div>
-                </div>
-
               <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <Label htmlFor="imapHost">IMAP Host</Label>
@@ -469,20 +293,17 @@ export default function SettingsPage() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="imapEmail">Email Address</Label>
-                  <Input id="imapEmail" name="imapEmail" type="email" placeholder="bot@example.com" value={settings.imapEmail} onChange={handleChange} />
+                  <Input id="imapEmail" name="imapEmail" type="email" placeholder="you@gmail.com" value={settings.imapEmail} onChange={handleChange} />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="imapPassword">
-                    {googleEmail ? "App Password (not used — Google OAuth active)" : "App Password"}
-                  </Label>
+                  <Label htmlFor="imapPassword">App Password</Label>
                   <Input
                     id="imapPassword"
                     name="imapPassword"
                     type="password"
                     value={settings.imapPassword}
                     onChange={handleChange}
-                    disabled={!!googleEmail}
-                    placeholder={googleEmail ? "Using OAuth token" : ""}
+                    placeholder="xxxx xxxx xxxx xxxx"
                   />
                 </div>
               </div>

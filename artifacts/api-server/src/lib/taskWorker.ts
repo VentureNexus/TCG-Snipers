@@ -4,7 +4,6 @@ import { broadcastLog, broadcastStatus, broadcastRetryProgress } from "./websock
 import { dispatchRetailer } from "./retailers";
 import { notifySuccess, notifyFailure } from "./discord";
 import { getOrCreateSettings } from "../routes/settings";
-import { getFreshGoogleAccessToken } from "./googleTokenManager";
 import type { ImapConfig } from "./imap";
 
 interface TaskRow {
@@ -114,19 +113,9 @@ async function runTaskAutomation(task: TaskRow, token: { cancelled: boolean }) {
 
     const settings = await getOrCreateSettings();
 
-    // Build global IMAP config from app Settings, refreshing Google token if needed.
+    // Build global IMAP config from app Settings.
     let globalImapConfig: ImapConfig | null = null;
-    if (settings.googleEmail && settings.googleAccessToken) {
-      const accessToken = await getFreshGoogleAccessToken(settings.id);
-      if (accessToken) {
-        globalImapConfig = {
-          host: "imap.gmail.com",
-          port: 993,
-          user: settings.googleEmail,
-          accessToken,
-        };
-      }
-    } else if (settings.imapHost && settings.imapEmail) {
+    if (settings.imapHost && settings.imapEmail) {
       globalImapConfig = {
         host: settings.imapHost,
         port: parseInt(settings.imapPort, 10) || 993,
