@@ -352,9 +352,6 @@ export default function SettingsPage() {
                   <p className="text-xs text-muted-foreground">Stop monitoring after this many minutes. Set 0 to run indefinitely.</p>
                 </div>
               </div>
-              <div className="flex justify-end">
-                <Button variant="outline" size="sm" onClick={handleSaveDefaults}>Save Task Defaults</Button>
-              </div>
             </CardContent>
           </Card>
 
