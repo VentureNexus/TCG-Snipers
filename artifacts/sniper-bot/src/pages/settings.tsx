@@ -287,15 +287,14 @@ export default function SettingsPage() {
                   <p className="text-xs text-muted-foreground">Maximum simultaneous tasks running at once.</p>
                 </div>
                 <div className="space-y-2">
-                  <Label>Monitor Delay Range (ms)</Label>
                   <div className="flex items-center gap-2">
                     <div className="flex-1 space-y-1">
-                      <Label htmlFor="monitorDelay" className="text-xs text-muted-foreground">Min</Label>
+                      <Label htmlFor="monitorDelay">Min Delay (ms)</Label>
                       <Input id="monitorDelay" name="monitorDelay" type="number" min={1} value={settings.monitorDelay} onChange={handleChange} />
                     </div>
                     <span className="mt-5 text-muted-foreground">–</span>
                     <div className="flex-1 space-y-1">
-                      <Label htmlFor="monitorDelayMax" className="text-xs text-muted-foreground">Max</Label>
+                      <Label htmlFor="monitorDelayMax">Max Delay (ms)</Label>
                       <Input id="monitorDelayMax" name="monitorDelayMax" type="number" min={1} value={settings.monitorDelayMax} onChange={handleChange} />
                     </div>
                   </div>

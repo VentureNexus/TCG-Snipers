@@ -16,6 +16,7 @@ interface TaskRow {
   profileId: number | null;
   proxyId: number | null;
   monitorDelay: number;
+  monitorDelayMax: number | null;
   retryCount: number;
   quantity: number;
   maxPrice: number | null;

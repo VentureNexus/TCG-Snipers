@@ -488,6 +488,7 @@ function TaskFormFields({
           )}
         />
       </div>
+      <p className="text-xs text-muted-foreground -mt-2">Recommended: 200–800ms. Values under 150ms may trigger bot detection on some retailers.</p>
 
       <div className="grid grid-cols-2 gap-4">
         <FormField
