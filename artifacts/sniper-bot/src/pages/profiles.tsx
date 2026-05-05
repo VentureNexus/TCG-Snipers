@@ -859,12 +859,12 @@ function ProfileCard({
 
         <div className="flex flex-wrap gap-1.5 mt-2">
           {isProfileIncomplete(profile) && (
-            <Badge variant="outline" className="text-[var(--appearance-color)] border-[color:var(--appearance-color)]/30 bg-[color:var(--appearance-color)]/10 text-[10px] gap-1">
+            <Badge variant="outline" className="text-[#ff9f1a] border-[#ff9f1a]/30 bg-[#ff9f1a]/10 text-[10px] gap-1">
               <AlertTriangle className="w-2.5 h-2.5" /> Incomplete
             </Badge>
           )}
           {profile.addressJigEnabled && (
-            <Badge variant="outline" className="text-[var(--appearance-color)] border-[color:var(--appearance-color)]/20 bg-[color:var(--appearance-color)]/5 text-[10px] gap-1">
+            <Badge variant="outline" className="text-[#ff9f1a] border-[#ff9f1a]/20 bg-[#ff9f1a]/5 text-[10px] gap-1">
               <Zap className="w-2.5 h-2.5" /> Jig On
             </Badge>
           )}
