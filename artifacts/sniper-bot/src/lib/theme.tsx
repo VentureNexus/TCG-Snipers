@@ -64,6 +64,7 @@ function applyTheme(theme: ThemeDef) {
   root.style.setProperty("--sidebar-ring", theme.ringHsl);
   root.style.setProperty("--chart-1", theme.primaryHsl);
   root.style.setProperty("--glow-accent", theme.glowRgba);
+  root.style.setProperty("--appearance-color", theme.swatchHex);
 }
 
 interface ThemeContextValue {
