@@ -14,6 +14,9 @@ const pkg = JSON.parse(
 // — fall back to sane defaults so `vite build` and `vite dev` both work.
 const port = Number(process.env.PORT ?? 5173);
 const basePath = process.env.BASE_PATH ?? "/";
+// API_PORT must match the PORT used by the api-server dev workflow (default 8080).
+// Set API_PORT in the environment if the api-server is running on a different port.
+const apiPort = Number(process.env.API_PORT ?? 8080);
 
 export default defineConfig(async ({ command }) => ({
   define: {
@@ -67,11 +70,11 @@ export default defineConfig(async ({ command }) => ({
     },
     proxy: {
       "/api": {
-        target: "http://localhost:8080",
+        target: `http://localhost:${apiPort}`,
         changeOrigin: true,
       },
       "/ws": {
-        target: "ws://localhost:8080",
+        target: `ws://localhost:${apiPort}`,
         ws: true,
         changeOrigin: true,
       },
