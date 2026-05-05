@@ -166,7 +166,7 @@ export function RamGuard() {
               >
                 <div className="flex items-center gap-2 min-w-0">
                   <PriorityBadge priority={t.priority} />
-                  <span className="truncate text-foreground">{t.name}</span>
+                  <span className="truncate text-foreground">{t.productKeywords || t.retailer || `Task #${t.id}`}</span>
                 </div>
                 <Button
                   size="sm"

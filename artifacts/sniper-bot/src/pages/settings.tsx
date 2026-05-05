@@ -69,6 +69,7 @@ export default function SettingsPage() {
   const [clearing, setClearing] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [ramSettings, setRamSettings] = useState<RamGuardSettings>(loadRamGuardSettings);
+  const [ramDisableConfirm, setRamDisableConfirm] = useState(false);
 
   const { data: settingsData, isLoading: loading, isError } = useGetSettings();
   const { data: checkouts = [] } = useListCheckoutResults();
@@ -339,73 +340,106 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
 
-          {isElectron && (
-            <Card className="glass-card">
-              <CardHeader>
-                <CardTitle>RAM Guard</CardTitle>
-                <CardDescription>
-                  Alert when system memory usage exceeds a threshold. Optionally auto-stop low-priority tasks to free up RAM.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-5">
+          <Card className="glass-card">
+            <CardHeader>
+              <CardTitle>RAM Guard</CardTitle>
+              <CardDescription>
+                Alert when system memory usage exceeds a threshold. Optionally auto-stop low-priority tasks to free up RAM.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium">Enable RAM Guard</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Show an alert when RAM usage exceeds the threshold.</p>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={ramSettings.enabled}
+                  onClick={() => {
+                    if (ramSettings.enabled) {
+                      setRamDisableConfirm(true);
+                    } else {
+                      setRamDisableConfirm(false);
+                      handleRamSettingsChange({ enabled: true });
+                    }
+                  }}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${ramSettings.enabled ? "bg-primary" : "bg-muted"}`}
+                >
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${ramSettings.enabled ? "translate-x-6" : "translate-x-1"}`} />
+                </button>
+              </div>
+
+              {ramDisableConfirm && (
+                <div className="rounded-lg border border-destructive/60 bg-destructive/10 px-4 py-3 space-y-3">
+                  <p className="text-sm font-semibold text-destructive">Warning: Performance Risk</p>
+                  <p className="text-xs text-destructive/90">
+                    Disabling RAM Guard turns off all memory monitoring, alerts, and auto-stop protection. Your tasks may experience slowdowns or crashes if system RAM is exhausted.
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setRamDisableConfirm(false);
+                        handleRamSettingsChange({ enabled: false });
+                      }}
+                      className="px-3 py-1.5 text-xs font-semibold rounded bg-destructive text-white hover:bg-destructive/90 transition-colors"
+                    >
+                      Confirm Disable
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setRamDisableConfirm(false)}
+                      className="px-3 py-1.5 text-xs font-medium rounded border border-border hover:bg-muted/30 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium">Enable RAM Guard</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">Show an alert when RAM usage exceeds the threshold.</p>
-                  </div>
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={ramSettings.enabled}
-                    onClick={() => handleRamSettingsChange({ enabled: !ramSettings.enabled })}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${ramSettings.enabled ? "bg-primary" : "bg-muted"}`}
-                  >
-                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${ramSettings.enabled ? "translate-x-6" : "translate-x-1"}`} />
-                  </button>
+                  <Label>RAM Threshold</Label>
+                  <span className="text-sm font-mono font-semibold text-primary">{ramSettings.threshold}%</span>
                 </div>
+                <Slider
+                  min={30}
+                  max={95}
+                  step={5}
+                  value={[ramSettings.threshold]}
+                  onValueChange={([v]) => handleRamSettingsChange({ threshold: v })}
+                  disabled={!ramSettings.enabled}
+                  className="w-full"
+                />
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>30%</span>
+                  <span>95%</span>
+                </div>
+                <p className="text-xs text-muted-foreground">Alert triggers when RAM usage is at or above this percentage.</p>
+              </div>
 
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <Label>RAM Threshold</Label>
-                    <span className="text-sm font-mono font-semibold text-primary">{ramSettings.threshold}%</span>
-                  </div>
-                  <Slider
-                    min={30}
-                    max={95}
-                    step={5}
-                    value={[ramSettings.threshold]}
-                    onValueChange={([v]) => handleRamSettingsChange({ threshold: v })}
-                    disabled={!ramSettings.enabled}
-                    className="w-full"
-                  />
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>30%</span>
-                    <span>95%</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground">Alert triggers when RAM usage is at or above this percentage.</p>
+              <div className="flex items-center justify-between rounded-lg border border-border/50 px-4 py-3 bg-muted/10">
+                <div>
+                  <p className="text-sm font-medium">Auto-stop tasks when threshold exceeded</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Automatically stop running tasks in order of priority (Low first, then Normal). High-priority tasks are never auto-stopped.
+                  </p>
                 </div>
-
-                <div className="flex items-center justify-between rounded-lg border border-border/50 px-4 py-3 bg-muted/10">
-                  <div>
-                    <p className="text-sm font-medium">Auto-stop tasks when threshold exceeded</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      Automatically stop running tasks in order of priority (Low first, then Normal). High-priority tasks are never auto-stopped.
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={ramSettings.autoStop}
-                    onClick={() => handleRamSettingsChange({ autoStop: !ramSettings.autoStop })}
-                    disabled={!ramSettings.enabled}
-                    className={`ml-4 relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus:outline-none disabled:opacity-40 ${ramSettings.autoStop ? "bg-primary" : "bg-muted"}`}
-                  >
-                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${ramSettings.autoStop ? "translate-x-6" : "translate-x-1"}`} />
-                  </button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={ramSettings.autoStop}
+                  onClick={() => handleRamSettingsChange({ autoStop: !ramSettings.autoStop })}
+                  disabled={!ramSettings.enabled}
+                  className={`ml-4 relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus:outline-none disabled:opacity-40 ${ramSettings.autoStop ? "bg-primary" : "bg-muted"}`}
+                >
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${ramSettings.autoStop ? "translate-x-6" : "translate-x-1"}`} />
+                </button>
+              </div>
+            </CardContent>
+          </Card>
 
           <Card className="glass-card">
             <CardHeader>
