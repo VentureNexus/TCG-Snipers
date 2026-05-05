@@ -617,6 +617,7 @@ export const ListTasksResponseItem = zod.object({
   retryCount: zod.number(),
   maxPrice: zod.number().nullish(),
   stopAfterMs: zod.number().nullish(),
+  stopAtTime: zod.string().nullish(),
   status: zod.string(),
   createdAt: zod.string(),
   updatedAt: zod.string(),
@@ -647,6 +648,7 @@ export const CreateTaskBody = zod.object({
   retryCount: zod.number().optional(),
   maxPrice: zod.number().int().min(0).optional(),
   stopAfterMs: zod.number().int().min(0).nullable().optional(),
+  stopAtTime: zod.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/).nullable().optional(),
 });
 
 /**
@@ -671,6 +673,7 @@ export const GetTaskResponse = zod.object({
   retryCount: zod.number(),
   maxPrice: zod.number().nullish(),
   stopAfterMs: zod.number().nullish(),
+  stopAtTime: zod.string().nullish(),
   status: zod.string(),
   createdAt: zod.string(),
   updatedAt: zod.string(),
@@ -699,6 +702,7 @@ export const UpdateTaskBody = zod.object({
   retryCount: zod.number().optional(),
   maxPrice: zod.number().int().min(0).nullable().optional(),
   stopAfterMs: zod.number().int().min(0).nullable().optional(),
+  stopAtTime: zod.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/).nullable().optional(),
   status: zod.string().optional(),
 });
 
@@ -717,6 +721,7 @@ export const UpdateTaskResponse = zod.object({
   retryCount: zod.number(),
   maxPrice: zod.number().nullish(),
   stopAfterMs: zod.number().nullish(),
+  stopAtTime: zod.string().nullish(),
   status: zod.string(),
   createdAt: zod.string(),
   updatedAt: zod.string(),
@@ -751,6 +756,7 @@ export const StartTaskResponse = zod.object({
   retryCount: zod.number(),
   maxPrice: zod.number().nullish(),
   stopAfterMs: zod.number().nullish(),
+  stopAtTime: zod.string().nullish(),
   status: zod.string(),
   createdAt: zod.string(),
   updatedAt: zod.string(),
@@ -778,6 +784,7 @@ export const StopTaskResponse = zod.object({
   retryCount: zod.number(),
   maxPrice: zod.number().nullish(),
   stopAfterMs: zod.number().nullish(),
+  stopAtTime: zod.string().nullish(),
   status: zod.string(),
   createdAt: zod.string(),
   updatedAt: zod.string(),

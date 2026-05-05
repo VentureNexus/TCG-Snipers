@@ -73,6 +73,10 @@ export async function runPgliteMigrations(client: PGlite): Promise<void> {
   `).catch(() => { /* table may not exist yet — CREATE below will include it */ });
 
   await client.exec(`
+    ALTER TABLE tasks ADD COLUMN IF NOT EXISTS stop_at_time TEXT;
+  `).catch(() => { /* table may not exist yet — CREATE below will include it */ });
+
+  await client.exec(`
     CREATE TABLE IF NOT EXISTS profiles (
       id SERIAL PRIMARY KEY,
       name TEXT NOT NULL,
@@ -158,6 +162,7 @@ export async function runPgliteMigrations(client: PGlite): Promise<void> {
       retry_count INTEGER NOT NULL DEFAULT 3,
       max_price INTEGER,
       stop_after_ms INTEGER,
+      stop_at_time TEXT,
       status TEXT NOT NULL DEFAULT 'idle',
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()

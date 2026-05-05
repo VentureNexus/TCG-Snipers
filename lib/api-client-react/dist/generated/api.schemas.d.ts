@@ -244,6 +244,8 @@ export interface Task {
     maxPrice?: number | null;
     /** @nullable */
     stopAfterMs?: number | null;
+    /** @nullable */
+    stopAtTime?: string | null;
     status: string;
     createdAt: string;
     updatedAt: string;
@@ -271,6 +273,7 @@ export interface CreateTaskBody {
     retryCount?: number;
     maxPrice?: number;
     stopAfterMs?: number | null;
+    stopAtTime?: string | null;
 }
 export type UpdateTaskBodyRetailer = (typeof UpdateTaskBodyRetailer)[keyof typeof UpdateTaskBodyRetailer];
 export declare const UpdateTaskBodyRetailer: {
@@ -295,6 +298,7 @@ export interface UpdateTaskBody {
     retryCount?: number;
     maxPrice?: number | null;
     stopAfterMs?: number | null;
+    stopAtTime?: string | null;
     status?: string;
 }
 export interface BulkActionResult {

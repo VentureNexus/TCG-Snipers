@@ -21,6 +21,7 @@ interface TaskRow {
   quantity: number;
   maxPrice: number | null;
   stopAfterMs: number | null;
+  stopAtTime: string | null;
 }
 
 let maxConcurrency = 5;
@@ -41,13 +42,27 @@ export function isTaskRunning(taskId: number): boolean {
   return cancellationTokens.has(taskId);
 }
 
+function resolveStopAfterMs(task: TaskRow): number | null {
+  if (task.stopAtTime) {
+    const [hours, minutes] = task.stopAtTime.split(":").map(Number);
+    const now = new Date();
+    const target = new Date(now);
+    target.setHours(hours, minutes, 0, 0);
+    if (target.getTime() <= now.getTime()) {
+      target.setDate(target.getDate() + 1);
+    }
+    return target.getTime() - now.getTime();
+  }
+  return task.stopAfterMs;
+}
+
 function launchTask(task: TaskRow): void {
   const existing = cancellationTokens.get(task.id);
   if (existing) existing.cancelled = true;
   const token = { cancelled: false };
   cancellationTokens.set(task.id, token);
   activeConcurrency++;
-  runTaskAutomation(task, token).catch(() => {});
+  runTaskAutomation({ ...task, stopAfterMs: resolveStopAfterMs(task) }, token).catch(() => {});
 }
 
 function drainQueue(): void {

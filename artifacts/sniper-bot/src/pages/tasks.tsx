@@ -87,11 +87,13 @@ const taskSchema = z.object({
   retryCount: z.coerce.number().min(-1).default(3),
   maxPrice: z.coerce.number().min(0).optional(),
   stopAfterHours: z.coerce.number().min(0.1).optional(),
+  stopAtTime: z.string().optional(),
 });
 
 type TaskFormValues = z.infer<typeof taskSchema>;
 
 function formValuesToPayload(values: TaskFormValues) {
+  const isUnlimited = values.retryCount === -1;
   return {
     retailer: values.retailer,
     productUrl: values.productUrl,
@@ -110,9 +112,10 @@ function formValuesToPayload(values: TaskFormValues) {
     maxPrice: values.maxPrice !== undefined && values.maxPrice !== null
       ? Math.round(values.maxPrice * 100)
       : undefined,
-    stopAfterMs: values.retryCount === -1 && values.stopAfterHours
+    stopAfterMs: isUnlimited && values.stopAfterHours
       ? Math.round(values.stopAfterHours * 3_600_000)
       : null,
+    stopAtTime: isUnlimited && values.stopAtTime ? values.stopAtTime : null,
   };
 }
 
@@ -129,7 +132,10 @@ function taskToFormValues(task: Task): TaskFormValues {
     monitorDelayMax: task.monitorDelayMax ?? 800,
     retryCount: task.retryCount,
     maxPrice: task.maxPrice != null ? task.maxPrice / 100 : undefined,
-    stopAfterHours: task.stopAfterMs != null ? task.stopAfterMs / 3_600_000 : undefined,
+    stopAfterHours: task.stopAfterMs != null && !task.stopAtTime
+      ? task.stopAfterMs / 3_600_000
+      : undefined,
+    stopAtTime: task.stopAtTime ?? undefined,
   };
 }
 
@@ -276,8 +282,12 @@ function TaskFormFields({
   const selectedProfileId = useWatch({ control: form.control, name: "profileId" });
   const selectedProfile = profiles.find((p) => p.id === Number(selectedProfileId));
   const retryCountValue = useWatch({ control: form.control, name: "retryCount" });
+  const stopAtTimeValue = useWatch({ control: form.control, name: "stopAtTime" });
   const [isUnlimited, setIsUnlimited] = useState(retryCountValue === -1);
   const [prevRetryCount, setPrevRetryCount] = useState(retryCountValue === -1 ? 3 : (retryCountValue ?? 3));
+  const [stopMode, setStopMode] = useState<"hours" | "time">(() =>
+    form.getValues("stopAtTime") ? "time" : "hours"
+  );
 
   useEffect(() => {
     if (retryCountValue === -1) {
@@ -286,6 +296,14 @@ function TaskFormFields({
       setIsUnlimited(false);
     }
   }, [retryCountValue]);
+
+  useEffect(() => {
+    if (stopAtTimeValue) {
+      setStopMode("time");
+    } else if (!stopAtTimeValue && form.getValues("stopAfterHours") !== undefined) {
+      setStopMode("hours");
+    }
+  }, [stopAtTimeValue, form]);
   const selectedIncomplete = selectedProfile ? isProfileIncomplete(selectedProfile) : false;
 
   return (
@@ -542,7 +560,9 @@ function TaskFormFields({
                       const restore = Number.isFinite(prevRetryCount) && prevRetryCount >= 0 ? prevRetryCount : 3;
                       form.setValue("retryCount", restore);
                       form.setValue("stopAfterHours", undefined);
+                      form.setValue("stopAtTime", undefined);
                       setIsUnlimited(false);
+                      setStopMode("hours");
                     }
                   }}
                 />
@@ -555,40 +575,89 @@ function TaskFormFields({
           )}
         />
         {isUnlimited && (
-          <FormField
-            control={form.control}
-            name="stopAfterHours"
-            render={({ field }) => (
-              <FormItem className="col-span-2">
-                <FormLabel className="flex items-center gap-1">
-                  Stop after (hours)
-                  <TooltipProvider delayDuration={200}>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Info className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
-                      </TooltipTrigger>
-                      <TooltipContent className="max-w-[260px] text-xs">
-                        Automatically stop the task after this many hours if nothing is found. Leave blank to run indefinitely.
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </FormLabel>
-                <FormControl>
-                  <Input
-                    type="number"
-                    step="0.5"
-                    min="0.1"
-                    placeholder="No limit"
-                    data-testid="input-stop-after-hours"
-                    {...field}
-                    value={field.value ?? ""}
-                    onChange={(e) => field.onChange(e.target.value === "" ? undefined : e.target.valueAsNumber)}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
+          <div className="col-span-2 space-y-2">
+            <div className="flex items-center gap-1 mb-1">
+              <span className="text-sm font-medium leading-none">Auto-stop</span>
+              <TooltipProvider delayDuration={200}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-[280px] text-xs">
+                    Optionally stop the task after a set duration or at a specific wall-clock time. Leave blank to run indefinitely.
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+            <div className="flex gap-1 p-0.5 bg-muted/40 border border-border/40 rounded-md w-fit">
+              <button
+                type="button"
+                data-testid="stop-mode-hours"
+                onClick={() => {
+                  setStopMode("hours");
+                  form.setValue("stopAtTime", undefined);
+                }}
+                className={`px-3 py-1 text-xs rounded transition-colors ${stopMode === "hours" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+              >
+                Duration
+              </button>
+              <button
+                type="button"
+                data-testid="stop-mode-time"
+                onClick={() => {
+                  setStopMode("time");
+                  form.setValue("stopAfterHours", undefined);
+                }}
+                className={`px-3 py-1 text-xs rounded transition-colors ${stopMode === "time" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+              >
+                At time
+              </button>
+            </div>
+            {stopMode === "hours" ? (
+              <FormField
+                control={form.control}
+                name="stopAfterHours"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs text-muted-foreground">Stop after (hours)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        step="0.5"
+                        min="0.1"
+                        placeholder="No limit"
+                        data-testid="input-stop-after-hours"
+                        {...field}
+                        value={field.value ?? ""}
+                        onChange={(e) => field.onChange(e.target.value === "" ? undefined : e.target.valueAsNumber)}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            ) : (
+              <FormField
+                control={form.control}
+                name="stopAtTime"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs text-muted-foreground">Stop at (wall-clock time)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="time"
+                        data-testid="input-stop-at-time"
+                        {...field}
+                        value={field.value ?? ""}
+                        onChange={(e) => field.onChange(e.target.value || undefined)}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             )}
-          />
+          </div>
         )}
       </div>
     </div>
