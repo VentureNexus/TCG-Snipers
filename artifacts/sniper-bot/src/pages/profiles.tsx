@@ -752,7 +752,17 @@ function ProfileFormDialog({
                 )} />
                 <FormField control={form.control} name="imapPassword" render={({ field }) => (
                   <FormItem>
-                    <FormLabel>App Password</FormLabel>
+                    <FormLabel>
+                      <a
+                        href="https://myaccount.google.com/apppasswords"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 hover:underline"
+                        style={{ color: "var(--appearance-color)" }}
+                      >
+                        App Password ↗
+                      </a>
+                    </FormLabel>
                     <FormControl><Input type="password" placeholder="xxxx xxxx xxxx xxxx" {...field} data-testid="input-profile-imap-password" /></FormControl>
                     <FormMessage />
                   </FormItem>
