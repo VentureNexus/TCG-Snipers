@@ -7,7 +7,7 @@ Use the `scripts/publish-release.sh` script:
 ```bash
 # 1. Bump version in artifacts/sniper-bot/package.json, commit it
 # 2. Run the release script — it tags HEAD and pushes, triggering the build
-./scripts/publish-release.sh 1.0.21
+./scripts/publish-release.sh 1.0.22
 ```
 
 The `release.yml` workflow triggers on `push` to `refs/tags/v*`, builds Windows x64
@@ -16,6 +16,24 @@ and macOS arm64 installers, and publishes them to GitHub Releases via
 
 > **Note:** Do not use workflow_dispatch to trigger builds — without a git tag,
 > electron-builder cannot anchor the GitHub Release and no release will be created.
+
+---
+
+## v1.0.22 — 2026-05-05
+
+**GitHub Release:** https://github.com/VentureNexus/TCG-Snipers/releases/tag/v1.0.22
+
+### Assets
+
+| File | Size |
+|---|---|
+| [TCGSnipers-Setup-1.0.22.exe](https://github.com/VentureNexus/TCG-Snipers/releases/download/v1.0.22/TCGSnipers-Setup-1.0.22.exe) | — |
+| [TCGSnipers-1.0.22-arm64.dmg](https://github.com/VentureNexus/TCG-Snipers/releases/download/v1.0.22/TCGSnipers-1.0.22-arm64.dmg) | — |
+| latest.yml (Windows auto-update) | — |
+| latest-mac.yml (macOS auto-update) | — |
+
+### Changes
+- Bump to v1.0.22
 
 ---
 
