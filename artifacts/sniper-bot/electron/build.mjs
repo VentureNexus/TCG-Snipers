@@ -86,8 +86,8 @@ const sharedExternals = [
 ];
 
 // ── Bake Discord OAuth credentials into the main-process bundle ───────────────
-// Same rationale as Google: desktop OAuth client credentials are not truly
-// secret for distributed apps — Discord explicitly supports this model.
+// Desktop OAuth client credentials are not truly secret for distributed apps —
+// Discord explicitly supports this model.
 // CI: set DISCORD_OAUTH_CLIENT_ID and DISCORD_OAUTH_CLIENT_SECRET as repository
 // secrets and expose them to the "electron:compile" step via `env:`.
 const discordOAuthDefines = {

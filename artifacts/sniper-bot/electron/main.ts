@@ -348,9 +348,9 @@ ipcMain.handle("discord:oauthConnect", async (): Promise<{
     throw new Error("Discord OAuth is not configured. Please contact support.");
   }
 
-  // Discord requires an exact redirect URI match (no port wildcard like Google).
-  // We use a fixed high port so the URI registered in the Discord Developer Portal
-  // can be a stable, predictable value: http://127.0.0.1:47842/oauth/callback
+  // Discord requires an exact redirect URI match, so we use a fixed high port
+  // so the URI registered in the Discord Developer Portal can be a stable,
+  // predictable value: http://127.0.0.1:47842/oauth/callback
   const DISCORD_CALLBACK_PORT = 47842;
   const DISCORD_REDIRECT_URI = `http://127.0.0.1:${DISCORD_CALLBACK_PORT}/oauth/callback`;
 
