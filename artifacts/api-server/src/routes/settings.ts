@@ -1,8 +1,18 @@
 import { Router, type IRouter } from "express";
 import { eq } from "drizzle-orm";
+import os from "os";
 import { db, settingsTable } from "@workspace/db";
 import { updateSettingsSchema } from "@workspace/db";
 import { setMaxConcurrency } from "../lib/taskWorker";
+
+const CONCURRENCY_HARD_MAX = 50;
+
+function getSystemConcurrencyHint() {
+  const cores = os.cpus().length;
+  const recommendedMin = Math.min(cores, CONCURRENCY_HARD_MAX);
+  const recommendedMax = Math.min(cores * 2, CONCURRENCY_HARD_MAX);
+  return { systemCores: cores, recommendedMin, recommendedMax };
+}
 
 const router: IRouter = Router();
 
@@ -15,7 +25,7 @@ async function getOrCreateSettings() {
 
 router.get("/settings", async (_req, res): Promise<void> => {
   const settings = await getOrCreateSettings();
-  res.json(settings);
+  res.json({ ...settings, ...getSystemConcurrencyHint() });
 });
 
 router.put("/settings", async (req, res): Promise<void> => {
@@ -38,7 +48,7 @@ router.put("/settings", async (req, res): Promise<void> => {
   if (updated.concurrency !== undefined) {
     setMaxConcurrency(updated.concurrency);
   }
-  res.json(updated);
+  res.json({ ...updated, ...getSystemConcurrencyHint() });
 });
 
 export { getOrCreateSettings };

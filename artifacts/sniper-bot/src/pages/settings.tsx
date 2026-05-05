@@ -297,6 +297,13 @@ export default function SettingsPage() {
                   <Label htmlFor="concurrency">Global Concurrency Limit</Label>
                   <Input id="concurrency" name="concurrency" type="number" min={1} max={50} value={settings.concurrency} onChange={handleChange} />
                   <p className="text-xs text-muted-foreground">Maximum simultaneous tasks running at once.</p>
+                  {settingsData?.recommendedMin != null && settingsData?.recommendedMax != null && (
+                    <p className={`text-xs font-medium ${settings.concurrency > settingsData.recommendedMax ? "text-amber-400" : "text-muted-foreground"}`}>
+                      {settings.concurrency > settingsData.recommendedMax
+                        ? `Above recommended range for your system (${settingsData.recommendedMin}–${settingsData.recommendedMax} tasks). May impact system performance.`
+                        : `Recommended for your system: ${settingsData.recommendedMin}–${settingsData.recommendedMax} tasks (${settingsData.systemCores} CPU cores detected).`}
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">

@@ -871,6 +871,15 @@ components:
           type: string
         imapPassword:
           type: string
+        systemCores:
+          type: integer
+          description: Number of logical CPU cores detected on the server.
+        recommendedMin:
+          type: integer
+          description: Recommended minimum concurrency (equals systemCores).
+        recommendedMax:
+          type: integer
+          description: Recommended maximum concurrency (systemCores × 2, capped at 50).
       required:
         - id
         - concurrency
