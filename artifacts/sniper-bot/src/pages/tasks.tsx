@@ -326,7 +326,7 @@ function TaskFormFields({
               {selectedIncomplete && (
                 <p className="flex items-center gap-1.5 text-xs text-yellow-500 mt-1">
                   <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
-                  This profile is missing required shipping details.
+                  This profile is missing required shipping details — fix the profile before saving this task.
                 </p>
               )}
               <FormMessage />
@@ -551,6 +551,15 @@ export default function TasksPage() {
     defaultValues: { productUrl: "", productKeywords: "", quantity: 1, monitorDelay: 3000, retryCount: 3 },
   });
 
+  const createProfileId = useWatch({ control: createForm.control, name: "profileId" });
+  const editProfileId = useWatch({ control: editForm.control, name: "profileId" });
+
+  const createSelectedProfile = profiles.find((p) => p.id === Number(createProfileId));
+  const editSelectedProfile = profiles.find((p) => p.id === Number(editProfileId));
+
+  const isCreateProfileIncomplete = createSelectedProfile ? isProfileIncomplete(createSelectedProfile) : false;
+  const isEditProfileIncomplete = editSelectedProfile ? isProfileIncomplete(editSelectedProfile) : false;
+
   const openEdit = (task: Task) => {
     editForm.reset(taskToFormValues(task));
     setEditingTask(task);
@@ -667,7 +676,7 @@ export default function TasksPage() {
             <Form {...createForm}>
               <form onSubmit={createForm.handleSubmit(onCreateSubmit, () => toast({ title: "Please fill in all required fields", variant: "destructive" }))} className="space-y-4">
                 <TaskFormFields form={createForm} profiles={profiles} groups={groups} proxies={proxies} />
-                <Button type="submit" className="w-full" disabled={createTask.isPending} data-testid="button-submit-create-task">
+                <Button type="submit" className="w-full" disabled={createTask.isPending || isCreateProfileIncomplete} data-testid="button-submit-create-task">
                   {createTask.isPending ? "Creating..." : "Create Task"}
                 </Button>
               </form>
@@ -683,7 +692,7 @@ export default function TasksPage() {
             <Form {...editForm}>
               <form onSubmit={editForm.handleSubmit(onEditSubmit, () => toast({ title: "Please fill in all required fields", variant: "destructive" }))} className="space-y-4">
                 <TaskFormFields form={editForm} profiles={profiles} groups={groups} proxies={proxies} />
-                <Button type="submit" className="w-full" disabled={updateTask.isPending} data-testid="button-submit-edit-task">
+                <Button type="submit" className="w-full" disabled={updateTask.isPending || isEditProfileIncomplete} data-testid="button-submit-edit-task">
                   {updateTask.isPending ? "Saving..." : "Save Changes"}
                 </Button>
               </form>
