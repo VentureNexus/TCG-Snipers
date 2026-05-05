@@ -11,6 +11,7 @@ import { DiagnosticsPanel } from "@/components/DiagnosticsPanel";
 interface SettingsForm {
   concurrency: number;
   monitorDelay: number;
+  monitorDelayMax: number;
   imapHost: string;
   imapPort: string;
   imapEmail: string;
@@ -19,7 +20,8 @@ interface SettingsForm {
 
 const DEFAULT_SETTINGS: SettingsForm = {
   concurrency: 5,
-  monitorDelay: 3000,
+  monitorDelay: 200,
+  monitorDelayMax: 800,
   imapHost: "",
   imapPort: "993",
   imapEmail: "",
@@ -68,6 +70,7 @@ export default function SettingsPage() {
       setSettings({
         concurrency: settingsData.concurrency,
         monitorDelay: settingsData.monitorDelay,
+        monitorDelayMax: settingsData.monitorDelayMax ?? 800,
         imapHost: settingsData.imapHost,
         imapPort: settingsData.imapPort,
         imapEmail: settingsData.imapEmail,
@@ -284,9 +287,22 @@ export default function SettingsPage() {
                   <p className="text-xs text-muted-foreground">Maximum simultaneous tasks running at once.</p>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="monitorDelay">Default Monitor Delay (ms)</Label>
-                  <Input id="monitorDelay" name="monitorDelay" type="number" min={500} value={settings.monitorDelay} onChange={handleChange} />
-                  <p className="text-xs text-muted-foreground">Time between stock checks per task.</p>
+                  <Label>Monitor Delay Range (ms)</Label>
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 space-y-1">
+                      <Label htmlFor="monitorDelay" className="text-xs text-muted-foreground">Min</Label>
+                      <Input id="monitorDelay" name="monitorDelay" type="number" min={1} value={settings.monitorDelay} onChange={handleChange} />
+                    </div>
+                    <span className="mt-5 text-muted-foreground">–</span>
+                    <div className="flex-1 space-y-1">
+                      <Label htmlFor="monitorDelayMax" className="text-xs text-muted-foreground">Max</Label>
+                      <Input id="monitorDelayMax" name="monitorDelayMax" type="number" min={1} value={settings.monitorDelayMax} onChange={handleChange} />
+                    </div>
+                  </div>
+                  {settings.monitorDelay < 150 && (
+                    <p className="text-xs text-amber-400 font-medium">Very low delays can get your IP flagged. We recommend keeping min delay above 150ms.</p>
+                  )}
+                  <p className="text-xs text-muted-foreground">Recommended: 200–800ms. Values under 150ms may trigger bot detection on some retailers.</p>
                 </div>
               </div>
             </CardContent>

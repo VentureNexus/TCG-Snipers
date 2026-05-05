@@ -10,6 +10,7 @@ export interface TaskInfo {
   size: string;
   quantity: number;
   monitorDelay: number;
+  monitorDelayMax: number | null;
   retryCount: number;
   maxPrice: number | null;
   stopAfterMs: number | null;

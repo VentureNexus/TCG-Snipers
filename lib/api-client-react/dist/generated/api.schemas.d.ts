@@ -12,6 +12,7 @@ export interface Settings {
     id: number;
     concurrency: number;
     monitorDelay: number;
+    monitorDelayMax?: number | null;
     webhookUrl: string;
     imapHost: string;
     imapPort: string;
@@ -27,6 +28,7 @@ export interface Settings {
 export interface UpdateSettingsBody {
     concurrency?: number;
     monitorDelay?: number;
+    monitorDelayMax?: number | null;
     webhookUrl?: string;
     imapHost?: string;
     imapPort?: string;
@@ -235,9 +237,13 @@ export interface Task {
     size: string;
     quantity: number;
     monitorDelay: number;
+    /** @nullable */
+    monitorDelayMax?: number | null;
     retryCount: number;
     /** @nullable */
     maxPrice?: number | null;
+    /** @nullable */
+    stopAfterMs?: number | null;
     status: string;
     createdAt: string;
     updatedAt: string;
@@ -261,8 +267,10 @@ export interface CreateTaskBody {
     size?: string;
     quantity?: number;
     monitorDelay?: number;
+    monitorDelayMax?: number | null;
     retryCount?: number;
     maxPrice?: number;
+    stopAfterMs?: number | null;
 }
 export type UpdateTaskBodyRetailer = (typeof UpdateTaskBodyRetailer)[keyof typeof UpdateTaskBodyRetailer];
 export declare const UpdateTaskBodyRetailer: {
@@ -283,8 +291,10 @@ export interface UpdateTaskBody {
     size?: string;
     quantity?: number;
     monitorDelay?: number;
+    monitorDelayMax?: number | null;
     retryCount?: number;
     maxPrice?: number | null;
+    stopAfterMs?: number | null;
     status?: string;
 }
 export interface BulkActionResult {

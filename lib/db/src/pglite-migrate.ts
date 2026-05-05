@@ -65,6 +65,14 @@ export async function runPgliteMigrations(client: PGlite): Promise<void> {
   `).catch(() => { /* table may not exist yet — CREATE below will include it */ });
 
   await client.exec(`
+    ALTER TABLE settings ADD COLUMN IF NOT EXISTS monitor_delay_max INTEGER DEFAULT 800;
+  `).catch(() => { /* table may not exist yet — CREATE below will include it */ });
+
+  await client.exec(`
+    ALTER TABLE tasks ADD COLUMN IF NOT EXISTS monitor_delay_max INTEGER;
+  `).catch(() => { /* table may not exist yet — CREATE below will include it */ });
+
+  await client.exec(`
     CREATE TABLE IF NOT EXISTS profiles (
       id SERIAL PRIMARY KEY,
       name TEXT NOT NULL,
@@ -145,7 +153,8 @@ export async function runPgliteMigrations(client: PGlite): Promise<void> {
       product_keywords TEXT NOT NULL DEFAULT '',
       size TEXT NOT NULL DEFAULT '',
       quantity INTEGER NOT NULL DEFAULT 1,
-      monitor_delay INTEGER NOT NULL DEFAULT 3000,
+      monitor_delay INTEGER NOT NULL DEFAULT 200,
+      monitor_delay_max INTEGER,
       retry_count INTEGER NOT NULL DEFAULT 3,
       max_price INTEGER,
       stop_after_ms INTEGER,
@@ -171,7 +180,8 @@ export async function runPgliteMigrations(client: PGlite): Promise<void> {
     CREATE TABLE IF NOT EXISTS settings (
       id SERIAL PRIMARY KEY,
       concurrency INTEGER NOT NULL DEFAULT 5,
-      monitor_delay INTEGER NOT NULL DEFAULT 3000,
+      monitor_delay INTEGER NOT NULL DEFAULT 200,
+      monitor_delay_max INTEGER DEFAULT 800,
       webhook_url TEXT NOT NULL DEFAULT '',
       imap_host TEXT NOT NULL DEFAULT '',
       imap_port TEXT NOT NULL DEFAULT '993',

@@ -82,7 +82,8 @@ const taskSchema = z.object({
   proxyId: z.string().optional(),
   groupId: z.string().optional(),
   quantity: z.coerce.number().min(1).default(1),
-  monitorDelay: z.coerce.number().min(100).default(3000),
+  monitorDelay: z.coerce.number().min(1).default(200),
+  monitorDelayMax: z.coerce.number().min(1).default(800),
   retryCount: z.coerce.number().min(-1).default(3),
   maxPrice: z.coerce.number().min(0).optional(),
   stopAfterHours: z.coerce.number().min(0.1).optional(),
@@ -104,6 +105,7 @@ function formValuesToPayload(values: TaskFormValues) {
       : undefined,
     quantity: values.quantity,
     monitorDelay: values.monitorDelay,
+    monitorDelayMax: values.monitorDelayMax,
     retryCount: values.retryCount,
     maxPrice: values.maxPrice !== undefined && values.maxPrice !== null
       ? Math.round(values.maxPrice * 100)
@@ -124,6 +126,7 @@ function taskToFormValues(task: Task): TaskFormValues {
     groupId: task.groupId != null ? String(task.groupId) : "0",
     quantity: task.quantity,
     monitorDelay: task.monitorDelay,
+    monitorDelayMax: task.monitorDelayMax ?? 800,
     retryCount: task.retryCount,
     maxPrice: task.maxPrice != null ? task.maxPrice / 100 : undefined,
     stopAfterHours: task.stopAfterMs != null ? task.stopAfterMs / 3_600_000 : undefined,
@@ -444,23 +447,49 @@ function TaskFormFields({
           render={({ field }) => (
             <FormItem>
               <FormLabel className="flex items-center gap-1">
-                Delay (ms)
+                Min Delay (ms)
                 <TooltipProvider delayDuration={200}>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Info className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
                     </TooltipTrigger>
                     <TooltipContent className="max-w-[220px] text-xs">
-                      How long the bot waits between each stock check attempt (in milliseconds). e.g. 3000 = 3 seconds.
+                      Minimum wait between stock checks. The bot picks a random delay between Min and Max each check. Recommended: 200–800ms.
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
               </FormLabel>
-              <FormControl><Input type="number" data-testid="input-delay" {...field} /></FormControl>
+              <FormControl><Input type="number" min={1} data-testid="input-delay-min" {...field} /></FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
+        <FormField
+          control={form.control}
+          name="monitorDelayMax"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="flex items-center gap-1">
+                Max Delay (ms)
+                <TooltipProvider delayDuration={200}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-[220px] text-xs">
+                      Maximum wait between stock checks. Recommended: 200–800ms. Values under 150ms may trigger bot detection.
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </FormLabel>
+              <FormControl><Input type="number" min={1} data-testid="input-delay-max" {...field} /></FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
         <FormField
           control={form.control}
           name="retryCount"
@@ -585,12 +614,12 @@ export default function TasksPage() {
 
   const createForm = useForm<TaskFormValues, unknown, TaskFormValues>({
     resolver: zodResolver(taskSchema),
-    defaultValues: { productUrl: "", productKeywords: "", quantity: 1, monitorDelay: 3000, retryCount: 3 },
+    defaultValues: { productUrl: "", productKeywords: "", quantity: 1, monitorDelay: 200, monitorDelayMax: 800, retryCount: 3 },
   });
 
   const editForm = useForm<TaskFormValues, unknown, TaskFormValues>({
     resolver: zodResolver(taskSchema),
-    defaultValues: { productUrl: "", productKeywords: "", quantity: 1, monitorDelay: 3000, retryCount: 3 },
+    defaultValues: { productUrl: "", productKeywords: "", quantity: 1, monitorDelay: 200, monitorDelayMax: 800, retryCount: 3 },
   });
 
   const createProfileId = useWatch({ control: createForm.control, name: "profileId" });

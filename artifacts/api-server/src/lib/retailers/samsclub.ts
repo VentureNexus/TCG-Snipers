@@ -51,8 +51,9 @@ export async function runSamsClub(ctx: RetailerContext): Promise<RetailerResult>
       if (token.cancelled) return fail("Task cancelled");
       if (stopAt !== null && Date.now() >= stopAt) return fail("Time limit reached — task timed out");
       if (attempt > 0) {
-        log("WARN", `[${RETAILER}] OOS — waiting ${task.monitorDelay}ms before retry ${attempt}/${isUnlimited ? "∞" : task.retryCount}...`);
-        await humanDelay(task.monitorDelay, task.monitorDelay + 500);
+        const delayMax = task.monitorDelayMax ?? task.monitorDelay + 500;
+        log("WARN", `[${RETAILER}] OOS — waiting ${task.monitorDelay}–${delayMax}ms before retry ${attempt}/${isUnlimited ? "∞" : task.retryCount}...`);
+        await humanDelay(task.monitorDelay, delayMax);
       }
       try {
         log("INFO", `[${RETAILER}] Checking stock: ${targetUrl}`);
