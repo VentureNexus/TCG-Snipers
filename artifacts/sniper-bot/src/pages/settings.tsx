@@ -235,39 +235,6 @@ export default function SettingsPage() {
         <>
           <Card className="glass-card">
             <CardHeader>
-              <CardTitle>Engine Settings</CardTitle>
-              <CardDescription>Core performance and execution parameters.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="concurrency">Global Concurrency Limit</Label>
-                  <Input id="concurrency" name="concurrency" type="number" min={1} max={50} value={settings.concurrency} onChange={handleChange} />
-                  <p className="text-xs text-muted-foreground">Maximum simultaneous tasks running at once.</p>
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 space-y-1">
-                      <Label htmlFor="monitorDelay">Min Delay (ms)</Label>
-                      <Input id="monitorDelay" name="monitorDelay" type="number" min={1} value={settings.monitorDelay} onChange={handleChange} />
-                    </div>
-                    <span className="mt-5 text-muted-foreground">–</span>
-                    <div className="flex-1 space-y-1">
-                      <Label htmlFor="monitorDelayMax">Max Delay (ms)</Label>
-                      <Input id="monitorDelayMax" name="monitorDelayMax" type="number" min={1} value={settings.monitorDelayMax} onChange={handleChange} />
-                    </div>
-                  </div>
-                  {settings.monitorDelay < 150 && (
-                    <p className="text-xs text-amber-400 font-medium">Very low delays can get your IP flagged. We recommend keeping min delay above 150ms.</p>
-                  )}
-                  <p className="text-xs text-muted-foreground">Recommended: 200–800ms. Values under 150ms may trigger bot detection on some retailers.</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="glass-card">
-            <CardHeader>
               <CardTitle>Notifications</CardTitle>
               <CardDescription>Connect Discord to receive checkout alerts in your server.</CardDescription>
             </CardHeader>
@@ -297,6 +264,39 @@ export default function SettingsPage() {
               {!isElectron && !discordGuildName && (
                 <p className="mt-2 text-xs text-muted-foreground text-center">Discord connection is only available in the desktop app.</p>
               )}
+            </CardContent>
+          </Card>
+
+          <Card className="glass-card">
+            <CardHeader>
+              <CardTitle>Engine Settings</CardTitle>
+              <CardDescription>Core performance and execution parameters.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="concurrency">Global Concurrency Limit</Label>
+                  <Input id="concurrency" name="concurrency" type="number" min={1} max={50} value={settings.concurrency} onChange={handleChange} />
+                  <p className="text-xs text-muted-foreground">Maximum simultaneous tasks running at once.</p>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 space-y-1">
+                      <Label htmlFor="monitorDelay">Min Delay (ms)</Label>
+                      <Input id="monitorDelay" name="monitorDelay" type="number" min={1} value={settings.monitorDelay} onChange={handleChange} />
+                    </div>
+                    <span className="mt-5 text-muted-foreground">–</span>
+                    <div className="flex-1 space-y-1">
+                      <Label htmlFor="monitorDelayMax">Max Delay (ms)</Label>
+                      <Input id="monitorDelayMax" name="monitorDelayMax" type="number" min={1} value={settings.monitorDelayMax} onChange={handleChange} />
+                    </div>
+                  </div>
+                  {settings.monitorDelay < 150 && (
+                    <p className="text-xs text-amber-400 font-medium">Very low delays can get your IP flagged. We recommend keeping min delay above 150ms.</p>
+                  )}
+                  <p className="text-xs text-muted-foreground">Recommended: 200–800ms. Values under 150ms may trigger bot detection on some retailers.</p>
+                </div>
+              </div>
             </CardContent>
           </Card>
 
