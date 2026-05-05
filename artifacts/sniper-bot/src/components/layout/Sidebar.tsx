@@ -93,7 +93,7 @@ export function Sidebar() {
         {navItems.map((item) => {
           const isActive = location === item.href;
           return (
-            <Link key={item.href} href={item.href} className={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${isActive ? 'bg-primary/10 text-primary' : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'} ${collapsed ? 'justify-center' : ''}`} data-testid={`link-sidebar-${item.label.toLowerCase().replace(' ', '-')}`}>
+            <Link key={item.href} href={item.href} className={`flex items-center gap-3 py-2 rounded-md transition-colors ${isActive ? 'bg-primary/10 text-primary' : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'} ${collapsed ? 'justify-center px-0' : 'px-3'}`} data-testid={`link-sidebar-${item.label.toLowerCase().replace(' ', '-')}`}>
               <item.icon className="w-5 h-5 shrink-0" />
               <span className={`text-sm font-medium whitespace-nowrap overflow-hidden transition-all duration-200 ${collapsed ? 'w-0 opacity-0' : 'w-auto opacity-100'}`}>{item.label}</span>
             </Link>
@@ -102,7 +102,7 @@ export function Sidebar() {
       </nav>
 
       <div className="p-4 border-t border-sidebar-border flex flex-col gap-2">
-        <Link href="/support" className={`flex items-center gap-3 text-muted-foreground hover:text-foreground transition-colors ${collapsed ? 'justify-center' : ''}`}>
+        <Link href="/support" className={`flex items-center gap-3 text-muted-foreground hover:text-foreground transition-colors ${collapsed ? 'justify-center px-0' : 'px-3'}`}>
           <HelpCircle className="w-5 h-5" />
           <span className={`text-sm whitespace-nowrap overflow-hidden transition-all duration-200 ${collapsed ? 'w-0 opacity-0' : 'w-auto opacity-100'}`}>Support</span>
         </Link>
