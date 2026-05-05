@@ -389,6 +389,7 @@ function TaskRow({
   task,
   isExpanded,
   profiles,
+  initialStatus,
   onToggle,
   onStatusChange,
   onStart,
@@ -399,6 +400,7 @@ function TaskRow({
   task: Task;
   isExpanded: boolean;
   profiles: Profile[];
+  initialStatus?: string | null;
   onToggle: () => void;
   onStatusChange: (s: string) => void;
   onStart: () => void;
@@ -408,12 +410,21 @@ function TaskRow({
 }) {
   const baseIsRunning = !["idle", "stopped", "failed", "success"].includes(task.status);
   const logsEnabled = baseIsRunning || isExpanded;
-  const { logs, liveStatus, retryProgress, isReconnecting, clear, copyLogs } = useTaskLogs(task.id, logsEnabled);
+  const lastLiveStatusRef = useRef<string | null>(initialStatus ?? null);
+  const { logs, liveStatus, retryProgress, isReconnecting, clear: clearLogs, copyLogs } = useTaskLogs(task.id, logsEnabled, lastLiveStatusRef.current);
+
+  const clear = useCallback(() => {
+    lastLiveStatusRef.current = null;
+    clearLogs();
+  }, [clearLogs]);
 
   const onStatusChangeRef = useRef(onStatusChange);
   useEffect(() => { onStatusChangeRef.current = onStatusChange; });
   useEffect(() => {
-    if (liveStatus) onStatusChangeRef.current(liveStatus);
+    if (liveStatus) {
+      lastLiveStatusRef.current = liveStatus;
+      onStatusChangeRef.current(liveStatus);
+    }
   }, [liveStatus]);
 
   const effectiveStatus = liveStatus ?? task.status;
@@ -1180,6 +1191,7 @@ export default function TasksPage() {
                     task={task}
                     isExpanded={isExpanded}
                     profiles={profiles}
+                    initialStatus={liveStatuses[task.id] ?? null}
                     onToggle={() => setExpandedTaskId(isExpanded ? null : task.id)}
                     onStatusChange={handleStatusChange(task.id)}
                     onStart={() => {

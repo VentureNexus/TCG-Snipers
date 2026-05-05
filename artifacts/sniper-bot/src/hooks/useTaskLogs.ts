@@ -27,9 +27,9 @@ export interface UseTaskLogsResult {
 const MAX_BACKOFF_MS = 30_000;
 const BASE_BACKOFF_MS = 500;
 
-export function useTaskLogs(taskId: number, enabled: boolean): UseTaskLogsResult {
+export function useTaskLogs(taskId: number, enabled: boolean, initialStatus?: string | null): UseTaskLogsResult {
   const [logs, setLogs] = useState<TaskLogEntry[]>([]);
-  const [liveStatus, setLiveStatus] = useState<string | null>(null);
+  const [liveStatus, setLiveStatus] = useState<string | null>(initialStatus ?? null);
   const [retryProgress, setRetryProgress] = useState<RetryProgress | null>(null);
   const [isReconnecting, setIsReconnecting] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
