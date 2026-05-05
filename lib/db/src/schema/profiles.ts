@@ -26,6 +26,7 @@ export const profilesTable = pgTable("profiles", {
   billCountry: text("bill_country").notNull().default("US"),
   addressJigEnabled: boolean("address_jig_enabled").notNull().default(false),
   costcoMembershipId: text("costco_membership_id").notNull().default(""),
+  samsMembershipId: text("sams_membership_id").notNull().default(""),
   imapHost: text("imap_host").notNull().default(""),
   imapPort: text("imap_port").notNull().default("993"),
   imapUser: text("imap_user").notNull().default(""),
