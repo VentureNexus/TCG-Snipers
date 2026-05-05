@@ -3,7 +3,7 @@ import { createBrowser, createStealthContext, humanDelay, humanType } from "../b
 import type { RetailerContext, RetailerResult } from "./types";
 import { decrypt } from "../crypto";
 import { applyCartQuantity } from "./cartHelpers";
-import { smartClick, smartFind } from "../checkoutLearner";
+import { smartClick } from "../checkoutLearner";
 import { imapFetchCode } from "../imap";
 import { emitScreenshot } from "./screenshotUtil";
 
@@ -37,6 +37,7 @@ export async function runWalmart(ctx: RetailerContext): Promise<RetailerResult> 
 
     await setStatus("monitoring");
     let inStock = false;
+    let buyNowAvailable = false;
     let productName = task.productUrl || task.productKeywords || "Walmart Product";
     let productPrice = "";
     let productImage = "";
@@ -73,10 +74,17 @@ export async function runWalmart(ctx: RetailerContext): Promise<RetailerResult> 
           productImage = await page.$eval('meta[property="og:image"]', el => el.getAttribute("content") ?? "").catch(() => "");
         }
 
+        // Check Buy Now first, then ATC
+        const buyNowBtn = await page.$(
+          'button[data-automation-id="buy-now"]:not([disabled]), ' +
+          'a[link-identifier="buyNow"]:not([disabled])'
+        );
         const atcBtn = await page.$(
           'button[data-automation-id="add-to-cart"]:not([disabled]), button:has-text("Add to cart"):not([disabled])'
         );
-        if (atcBtn) {
+        const purchaseBtn = buyNowBtn ?? atcBtn;
+
+        if (purchaseBtn) {
           if (task.maxPrice != null && productPrice) {
             const priceCents = Math.round(parseFloat(productPrice) * 100);
             if (Number.isFinite(priceCents) && priceCents > task.maxPrice) {
@@ -84,7 +92,8 @@ export async function runWalmart(ctx: RetailerContext): Promise<RetailerResult> 
               continue;
             }
           }
-          log("SUCCESS", `[${RETAILER}] In stock: ${productName}${productPrice ? " @ $" + productPrice : ""}`);
+          buyNowAvailable = !!buyNowBtn;
+          log("SUCCESS", `[${RETAILER}] In stock${buyNowAvailable ? " (Buy Now available)" : ""}: ${productName}${productPrice ? " @ $" + productPrice : ""}`);
           inStock = true;
           break;
         }
@@ -97,50 +106,68 @@ export async function runWalmart(ctx: RetailerContext): Promise<RetailerResult> 
     if (!inStock) return fail("Product out of stock after all retries");
     if (token.cancelled) return fail("Task cancelled");
 
-    await setStatus("adding_to_cart");
-    log("INFO", `[${RETAILER}] Adding to cart...`);
-    // Re-query — Walmart re-renders the button on hydration so the stock-check reference is stale
-    const atcClicked = await smartClick(page, RETAILER, "atc", [
-      "button[data-automation-id='add-to-cart']:not([disabled])",
-      "button:has-text('Add to cart'):not([disabled])",
-      "button[data-automation-id='add-to-cart']",
-    ]);
-    if (!atcClicked) return fail("Could not click Add to Cart button");
-    await humanDelay(1500, 2500);
+    if (buyNowAvailable) {
+      // ── Buy Now path: skip cart entirely ──────────────────────────────────
+      log("INFO", `[${RETAILER}] Clicking Buy Now — skipping cart for faster checkout...`);
+      await setStatus("checking_out");
+      const clicked = await smartClick(page, RETAILER, "buy_now", [
+        "button[data-automation-id='buy-now']:not([disabled])",
+        "a[link-identifier='buyNow']:not([disabled])",
+      ]);
+      if (!clicked) {
+        // Fall back to ATC if Buy Now click fails
+        log("WARN", `[${RETAILER}] Buy Now click failed — falling back to ATC`);
+        buyNowAvailable = false;
+      } else {
+        await humanDelay(2000, 3000);
+        await screenshot(page);
+      }
+    }
 
-    log("INFO", `[${RETAILER}] Navigating to cart...`);
-    await page.goto("https://www.walmart.com/cart", { waitUntil: "domcontentloaded" });
-    await humanDelay(1000, 1800);
-    if (token.cancelled) return fail("Task cancelled");
+    if (!buyNowAvailable) {
+      // ── Standard Add-to-Cart path ──────────────────────────────────────────
+      await setStatus("adding_to_cart");
+      log("INFO", `[${RETAILER}] Adding to cart...`);
+      const atcClicked = await smartClick(page, RETAILER, "atc", [
+        "button[data-automation-id='add-to-cart']:not([disabled])",
+        "button:has-text('Add to cart'):not([disabled])",
+        "button[data-automation-id='add-to-cart']",
+      ]);
+      if (!atcClicked) return fail("Could not click Add to Cart button");
+      await humanDelay(1500, 2500);
 
-    const effectiveQty = await applyCartQuantity(page, task.quantity, log);
-    log("INFO", `[${RETAILER}] Cart quantity: ${effectiveQty}`);
+      log("INFO", `[${RETAILER}] Navigating to cart...`);
+      await page.goto("https://www.walmart.com/cart", { waitUntil: "domcontentloaded" });
+      await humanDelay(1000, 1800);
+      if (token.cancelled) return fail("Task cancelled");
 
-    log("INFO", `[${RETAILER}] Proceeding to checkout...`);
-    await setStatus("checking_out");
-    // Walmart's cart is React — the checkout button renders async after hydration.
-    // Wait up to 10s for any variant to appear before querying.
-    try {
-      await page.waitForSelector(
-        "[data-automation-id='cart-checkout-btn'], button:has-text('Continue to checkout'), button:has-text('Check out'), button:has-text('Checkout')",
-        { timeout: 10000 },
-      );
-    } catch (_) {}
-    const checkoutClicked = await smartClick(page, RETAILER, "checkout_btn", [
-      "[data-automation-id='cart-checkout-btn']",
-      "button:has-text('Continue to checkout')",
-      "button:has-text('Check out')",
-      "button:has-text('Checkout')",
-      "[class*='checkout-btn']",
-      "[class*='checkoutBtn']",
-      "a[href*='/checkout']:not([href*='help']):not([href*='account'])",
-    ]);
-    if (!checkoutClicked) return fail("Checkout button not found");
-    await humanDelay(2000, 3000);
-    if (token.cancelled) return fail("Task cancelled");
-    await screenshot(page);
+      const effectiveQty = await applyCartQuantity(page, task.quantity, log);
+      log("INFO", `[${RETAILER}] Cart quantity: ${effectiveQty}`);
 
-    // Walmart always requires sign-in — detect the login page and handle it
+      log("INFO", `[${RETAILER}] Proceeding to checkout...`);
+      await setStatus("checking_out");
+      try {
+        await page.waitForSelector(
+          "[data-automation-id='cart-checkout-btn'], button:has-text('Continue to checkout'), button:has-text('Check out'), button:has-text('Checkout')",
+          { timeout: 10000 },
+        );
+      } catch (_) {}
+      const checkoutClicked = await smartClick(page, RETAILER, "checkout_btn", [
+        "[data-automation-id='cart-checkout-btn']",
+        "button:has-text('Continue to checkout')",
+        "button:has-text('Check out')",
+        "button:has-text('Checkout')",
+        "[class*='checkout-btn']",
+        "[class*='checkoutBtn']",
+        "a[href*='/checkout']:not([href*='help']):not([href*='account'])",
+      ]);
+      if (!checkoutClicked) return fail("Checkout button not found");
+      await humanDelay(2000, 3000);
+      if (token.cancelled) return fail("Task cancelled");
+      await screenshot(page);
+    }
+
+    // ── Sign-in (if prompted) ──────────────────────────────────────────────
     const walmartSignInEmail = await page.$('input[name="email"], input[type="email"], input[id*="email"]');
     const loginIdentity = retailerAccount ?? (profile ? { email: profile.email, password: null } : null);
     if (walmartSignInEmail && loginIdentity) {
@@ -148,7 +175,6 @@ export async function runWalmart(ctx: RetailerContext): Promise<RetailerResult> 
       try { await humanType(page, 'input[name="email"], input[type="email"]', loginIdentity.email); } catch (_) {}
       await humanDelay(300, 600);
 
-      // Click Continue / Sign in button
       const signInContinue = await page.$(
         'button:has-text("Continue"), button:has-text("Sign in"), ' +
         'button[type="submit"], input[type="submit"]',
@@ -160,7 +186,6 @@ export async function runWalmart(ctx: RetailerContext): Promise<RetailerResult> 
       if (token.cancelled) return fail("Task cancelled");
       await screenshot(page);
 
-      // Try password field if available and we have a password
       const passwordField = await page.$('input[name="password"], input[type="password"]');
       if (passwordField && retailerAccount?.password) {
         log("INFO", `[${RETAILER}] Password prompt — entering credentials...`);
@@ -170,7 +195,6 @@ export async function runWalmart(ctx: RetailerContext): Promise<RetailerResult> 
         if (submitBtn) { await submitBtn.click(); await humanDelay(2000, 3000); }
         await screenshot(page);
       } else {
-        // Fall back to OTP
         const otpField = await page.$('input[name="code"], input[name="otpCode"], input[placeholder*="code" i], input[aria-label*="code" i]');
         const walmartImapConfig = profile?.imapHost
           ? { host: profile.imapHost, port: parseInt(profile.imapPort, 10), user: profile.imapUser, password: profile.imapPassword }
@@ -201,7 +225,9 @@ export async function runWalmart(ctx: RetailerContext): Promise<RetailerResult> 
       return fail("Walmart requires sign-in but no profile or account is assigned to this task");
     }
 
-    if (profile) {
+    // ── Shipping address (skip if saved on account) ───────────────────────
+    const hasAddressForm = await page.$('input[name="addressLineOne"], input[id*="address-1"], input[name="firstName"]');
+    if (hasAddressForm && profile) {
       log("INFO", `[${RETAILER}] Filling shipping for profile: ${profile.name}`);
       const addrFields: Array<[string, string]> = [
         ['input[name="firstName"], input[id*="first-name"]', profile.shipFirstName || profile.name],
@@ -216,13 +242,16 @@ export async function runWalmart(ctx: RetailerContext): Promise<RetailerResult> 
         if (!val) continue;
         try { await humanType(page, sel, val); await humanDelay(80, 150); } catch (_) {}
       }
-
       const continueBtn = await page.$('button:has-text("Continue"), button:has-text("Save & Continue")');
       if (continueBtn) { await continueBtn.click(); await humanDelay(2000, 3000); }
       if (token.cancelled) return fail("Task cancelled");
+    } else if (!hasAddressForm) {
+      log("INFO", `[${RETAILER}] Saved address on file — skipping address entry`);
     }
 
-    if (card) {
+    // ── Payment (skip if saved on account) ───────────────────────────────
+    const hasPaymentForm = await page.$('input[name="cardNumber"], input[id*="card-number"]');
+    if (hasPaymentForm && card) {
       log("INFO", `[${RETAILER}] Entering payment (${card.cardType} ****${card.lastFour})...`);
       try {
         const cardNumber = decrypt(card.encryptedNumber);
@@ -239,6 +268,8 @@ export async function runWalmart(ctx: RetailerContext): Promise<RetailerResult> 
       } catch (decryptErr) {
         log("WARN", `[${RETAILER}] Could not decrypt card: ${String(decryptErr)}`);
       }
+    } else if (!hasPaymentForm) {
+      log("INFO", `[${RETAILER}] Saved payment method on file — skipping card entry`);
     } else {
       log("WARN", `[${RETAILER}] No credit card provided — skipping payment step`);
     }

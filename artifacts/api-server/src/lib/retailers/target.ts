@@ -132,7 +132,7 @@ export async function runTarget(ctx: RetailerContext): Promise<RetailerResult> {
     if (token.cancelled) return fail("Task cancelled");
     await screenshot(page);
 
-    // Detect Target sign-in page and handle it
+    // ── Sign-in (if prompted) ────────────────────────────────────────────────
     const targetSignInEmail = await page.$('input[id="username"], input[name="username"], input[type="email"][id*="email"]');
     const tgtLoginIdentity = retailerAccount ?? (profile ? { email: profile.email, password: null } : null);
     if (targetSignInEmail && tgtLoginIdentity) {
@@ -149,7 +149,9 @@ export async function runTarget(ctx: RetailerContext): Promise<RetailerResult> {
       if (token.cancelled) return fail("Task cancelled");
     }
 
-    if (profile) {
+    // ── Shipping address (skip if saved on account) ──────────────────────────
+    const hasAddressForm = await page.$('input[id="addressLine1"], input[id="firstName"]');
+    if (hasAddressForm && profile) {
       log("INFO", `[${RETAILER}] Filling contact & shipping for profile: ${profile.name}`);
       const contactFields: Array<[string, string]> = [
         ['input[id="email"]', profile.email],
@@ -164,13 +166,17 @@ export async function runTarget(ctx: RetailerContext): Promise<RetailerResult> {
         if (!val) continue;
         try { await humanType(page, sel, val); await humanDelay(80, 150); } catch (_) {}
       }
+    } else if (!hasAddressForm) {
+      log("INFO", `[${RETAILER}] Saved address on file — skipping address entry`);
     }
 
     const continueShipping = await page.$('button:has-text("Save & continue"), button:has-text("Continue")');
     if (continueShipping) { await continueShipping.click(); await humanDelay(2000, 3000); }
     if (token.cancelled) return fail("Task cancelled");
 
-    if (card) {
+    // ── Payment (skip if saved on account) ───────────────────────────────────
+    const hasPaymentForm = await page.$('input[name="cardNumber"], input[id="creditCardInput-cardNumber"]');
+    if (hasPaymentForm && card) {
       log("INFO", `[${RETAILER}] Entering payment (${card.cardType} ****${card.lastFour})...`);
       try {
         const cardNumber = decrypt(card.encryptedNumber);
@@ -186,6 +192,8 @@ export async function runTarget(ctx: RetailerContext): Promise<RetailerResult> {
       } catch (decryptErr) {
         log("WARN", `[${RETAILER}] Could not decrypt card: ${String(decryptErr)}`);
       }
+    } else if (!hasPaymentForm) {
+      log("INFO", `[${RETAILER}] Saved payment method on file — skipping card entry`);
     } else {
       log("WARN", `[${RETAILER}] No credit card provided — skipping payment step`);
     }

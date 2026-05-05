@@ -33,6 +33,7 @@ export async function runPokemonCenter(ctx: RetailerContext): Promise<RetailerRe
     const targetUrl = task.productUrl || `https://www.pokemoncenter.com/search?q=${encodeURIComponent(task.productKeywords)}`;
     await setStatus("monitoring");
     let inStock = false;
+    let buyItNowAvailable = false;
     let productName = task.productUrl || task.productKeywords || "Pokémon Center Product";
     let productPrice = "";
     let productImage = "";
@@ -84,7 +85,14 @@ export async function runPokemonCenter(ctx: RetailerContext): Promise<RetailerRe
 
         const atcBtn = await page.$('button[name="add"]:not([disabled]), button.add-to-cart:not([disabled]), button:has-text("Add to Cart"):not([disabled])');
         const outOfStock = await page.$('button[disabled]:has-text("Sold Out"), .sold-out-badge');
-        if (atcBtn && !outOfStock) {
+
+        // Shopify "Buy it now" button — faster than ATC + checkout flow
+        const buyItNowBtn = await page.$(
+          'button.shopify-payment-button__button:not([disabled]), ' +
+          'button[data-action="instant-checkout"]:not([disabled])'
+        );
+
+        if ((atcBtn || buyItNowBtn) && !outOfStock) {
           if (task.maxPrice != null && productPrice) {
             const priceCents = Math.round(parseFloat(productPrice) * 100);
             if (Number.isFinite(priceCents) && priceCents > task.maxPrice) {
@@ -92,7 +100,8 @@ export async function runPokemonCenter(ctx: RetailerContext): Promise<RetailerRe
               continue;
             }
           }
-          log("SUCCESS", `[${RETAILER}] In stock: ${productName}${productPrice ? " @ $" + productPrice : ""}`);
+          buyItNowAvailable = !!buyItNowBtn && !atcBtn; // prefer ATC+checkout for more control; use BIN only when ATC absent
+          log("SUCCESS", `[${RETAILER}] In stock${buyItNowAvailable ? " (Buy it Now available)" : ""}: ${productName}${productPrice ? " @ $" + productPrice : ""}`);
           inStock = true;
           break;
         }
@@ -105,33 +114,57 @@ export async function runPokemonCenter(ctx: RetailerContext): Promise<RetailerRe
     if (!inStock) return fail("Product out of stock after all retries");
     if (token.cancelled) return fail("Task cancelled");
 
-    await setStatus("adding_to_cart");
-    log("INFO", `[${RETAILER}] Adding to cart (Shopify ATC)...`);
-    try {
-      await page.click('button[name="add"]:not([disabled]), button.add-to-cart:not([disabled])', { timeout: 5000 });
-    } catch (_) {
-      return fail("Could not click Add to Cart button");
+    if (buyItNowAvailable) {
+      // ── Shopify Buy it now path — skips cart ────────────────────────────────
+      log("INFO", `[${RETAILER}] Clicking Buy it Now — skipping cart for faster checkout...`);
+      await setStatus("checking_out");
+      try {
+        await page.click(
+          'button.shopify-payment-button__button:not([disabled]), button[data-action="instant-checkout"]:not([disabled])',
+          { timeout: 5000 }
+        );
+      } catch (_) {
+        log("WARN", `[${RETAILER}] Buy it Now click failed — falling back to ATC`);
+        buyItNowAvailable = false;
+      }
+      if (buyItNowAvailable) {
+        await humanDelay(2000, 3000);
+        await screenshot(page);
+        // Buy it now on Shopify may open Shop Pay or redirect to checkout
+        // If it's already on the checkout page, fall through to sign-in/address/payment
+      }
     }
-    await humanDelay(1500, 2500);
 
-    const viewCart = await page.$('a:has-text("View Cart"), a[href="/cart"]');
-    if (viewCart) { await viewCart.click(); await humanDelay(1000, 1800); }
-    else await page.goto("https://www.pokemoncenter.com/cart", { waitUntil: "domcontentloaded" });
-    if (token.cancelled) return fail("Task cancelled");
+    if (!buyItNowAvailable) {
+      // ── Standard Add-to-Cart path ────────────────────────────────────────────
+      await setStatus("adding_to_cart");
+      log("INFO", `[${RETAILER}] Adding to cart (Shopify ATC)...`);
+      try {
+        await page.click('button[name="add"]:not([disabled]), button.add-to-cart:not([disabled])', { timeout: 5000 });
+      } catch (_) {
+        return fail("Could not click Add to Cart button");
+      }
+      await humanDelay(1500, 2500);
 
-    const effectiveQty = await applyCartQuantity(page, task.quantity, log);
-    log("INFO", `[${RETAILER}] Cart quantity: ${effectiveQty}`);
+      const viewCart = await page.$('a:has-text("View Cart"), a[href="/cart"]');
+      if (viewCart) { await viewCart.click(); await humanDelay(1000, 1800); }
+      else await page.goto("https://www.pokemoncenter.com/cart", { waitUntil: "domcontentloaded" });
+      if (token.cancelled) return fail("Task cancelled");
 
-    log("INFO", `[${RETAILER}] Proceeding to checkout (Shopify)...`);
-    await setStatus("checking_out");
-    const checkoutBtn = await page.$('button:has-text("Check out"), a:has-text("Check out"), input[name="checkout"]');
-    if (!checkoutBtn) return fail("Checkout button not found");
-    await checkoutBtn.click();
-    await humanDelay(2000, 3000);
-    if (token.cancelled) return fail("Task cancelled");
-    await screenshot(page);
+      const effectiveQty = await applyCartQuantity(page, task.quantity, log);
+      log("INFO", `[${RETAILER}] Cart quantity: ${effectiveQty}`);
 
-    // Detect Shopify sign-in page if user has a Pokemon Center account
+      log("INFO", `[${RETAILER}] Proceeding to checkout (Shopify)...`);
+      await setStatus("checking_out");
+      const checkoutBtn = await page.$('button:has-text("Check out"), a:has-text("Check out"), input[name="checkout"]');
+      if (!checkoutBtn) return fail("Checkout button not found");
+      await checkoutBtn.click();
+      await humanDelay(2000, 3000);
+      if (token.cancelled) return fail("Task cancelled");
+      await screenshot(page);
+    }
+
+    // ── Sign-in (if Shopify login page detected) ─────────────────────────────
     const pcSignInEmail = await page.$('input[name="email"][autocomplete*="email"], #checkout_email');
     const pcLoginIdentity = retailerAccount ?? null;
     if (pcSignInEmail && pcLoginIdentity) {
@@ -151,7 +184,9 @@ export async function runPokemonCenter(ctx: RetailerContext): Promise<RetailerRe
       }
     }
 
-    if (profile) {
+    // ── Shipping address (skip if saved on account) ──────────────────────────
+    const hasAddressForm = await page.$('input[name="address1"], #checkout_shipping_address_address1, input[name="firstName"]');
+    if (hasAddressForm && profile) {
       log("INFO", `[${RETAILER}] Filling Shopify contact & shipping for profile: ${profile.name}`);
       const contactFields: Array<[string, string]> = [
         ['input[name="email"], #checkout_email', profile.email],
@@ -166,6 +201,8 @@ export async function runPokemonCenter(ctx: RetailerContext): Promise<RetailerRe
         if (!val) continue;
         try { await humanType(page, sel, val); await humanDelay(80, 150); } catch (_) {}
       }
+    } else if (!hasAddressForm) {
+      log("INFO", `[${RETAILER}] Saved address on file — skipping address entry`);
     }
 
     const continueShipping = await page.$('button#continue_button, button:has-text("Continue to shipping")');
@@ -176,7 +213,10 @@ export async function runPokemonCenter(ctx: RetailerContext): Promise<RetailerRe
     if (continuePayment) { await continuePayment.click(); await humanDelay(2000, 3000); }
     if (token.cancelled) return fail("Task cancelled");
 
-    if (card) {
+    // ── Payment (skip if saved on account — Shopify may show saved card) ─────
+    // Shopify payment fields are in iframes; check for the card number iframe as indicator
+    const hasPaymentIframe = await page.$('[id*="card-fields-number"] iframe, iframe[title*="Card Number"]');
+    if (hasPaymentIframe && card) {
       log("INFO", `[${RETAILER}] Entering payment (${card.cardType} ****${card.lastFour})...`);
       try {
         const cardNumber = decrypt(card.encryptedNumber);
@@ -190,6 +230,8 @@ export async function runPokemonCenter(ctx: RetailerContext): Promise<RetailerRe
       } catch (decryptErr) {
         log("WARN", `[${RETAILER}] Could not decrypt card: ${String(decryptErr)}`);
       }
+    } else if (!hasPaymentIframe) {
+      log("INFO", `[${RETAILER}] Saved payment method on file — skipping card entry`);
     } else {
       log("WARN", `[${RETAILER}] No credit card provided — skipping payment step`);
     }

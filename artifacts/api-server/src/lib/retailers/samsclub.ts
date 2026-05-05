@@ -152,7 +152,9 @@ export async function runSamsClub(ctx: RetailerContext): Promise<RetailerResult>
     if (token.cancelled) return fail("Task cancelled");
     await screenshot(page);
 
-    if (profile) {
+    // ── Shipping address (skip if saved on account) ──────────────────────────
+    const hasAddressForm = await page.$('input[name="addressLine1"], input[id*="address1"], input[name="firstName"]');
+    if (hasAddressForm && profile) {
       log("INFO", `[${RETAILER}] Filling shipping for profile: ${profile.name}`);
       const addrFields: Array<[string, string]> = [
         ['input[name="firstName"], input[id*="firstName"]', profile.shipFirstName || profile.name],
@@ -167,13 +169,16 @@ export async function runSamsClub(ctx: RetailerContext): Promise<RetailerResult>
         if (!val) continue;
         try { await humanType(page, sel, val); await humanDelay(80, 150); } catch (_) {}
       }
-
       const continueBtn = await page.$('button:has-text("Continue"), button:has-text("Save & Continue")');
       if (continueBtn) { await continueBtn.click(); await humanDelay(2000, 3000); }
       if (token.cancelled) return fail("Task cancelled");
+    } else if (!hasAddressForm) {
+      log("INFO", `[${RETAILER}] Saved address on file — skipping address entry`);
     }
 
-    if (card) {
+    // ── Payment (skip if saved on account) ───────────────────────────────────
+    const hasPaymentForm = await page.$('input[name="cardNumber"], input[id*="cardNumber"]');
+    if (hasPaymentForm && card) {
       log("INFO", `[${RETAILER}] Entering payment (${card.cardType} ****${card.lastFour})...`);
       try {
         const cardNumber = decrypt(card.encryptedNumber);
@@ -190,6 +195,8 @@ export async function runSamsClub(ctx: RetailerContext): Promise<RetailerResult>
       } catch (decryptErr) {
         log("WARN", `[${RETAILER}] Could not decrypt card: ${String(decryptErr)}`);
       }
+    } else if (!hasPaymentForm) {
+      log("INFO", `[${RETAILER}] Saved payment method on file — skipping card entry`);
     } else {
       log("WARN", `[${RETAILER}] No credit card provided — skipping payment step`);
     }

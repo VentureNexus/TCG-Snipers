@@ -35,6 +35,7 @@ export async function runAmazon(ctx: RetailerContext): Promise<RetailerResult> {
     const targetUrl = task.productUrl || `https://www.amazon.com/s?k=${encodeURIComponent(task.productKeywords)}`;
     await setStatus("monitoring");
     let inStock = false;
+    let buyNowAvailable = false;
     let productName = task.productUrl || task.productKeywords || "Amazon Product";
     let productPrice = "";
     let productImage = "";
@@ -45,6 +46,7 @@ export async function runAmazon(ctx: RetailerContext): Promise<RetailerResult> {
       const hrs = (task.stopAfterMs! / 3_600_000).toFixed(1);
       log("INFO", `[${RETAILER}] Time limit active — will stop after ${hrs}h if nothing is found.`);
     }
+
     for (let attempt = 0; isUnlimited || attempt <= task.retryCount; attempt++) {
       if (token.cancelled) return fail("Task cancelled");
       if (stopAt !== null && Date.now() >= stopAt) return fail("Time limit reached — task timed out");
@@ -70,8 +72,12 @@ export async function runAmazon(ctx: RetailerContext): Promise<RetailerResult> {
           productImage = await page.$eval('#landingImage, #imgBlkFront, meta[property="og:image"]', el => (el as HTMLImageElement).src || el.getAttribute("content") || "").catch(() => "");
         }
 
-        const atcBtn = await page.$('#add-to-cart-button:not([disabled]), #buy-now-button:not([disabled])');
-        if (atcBtn) {
+        // Prefer Buy Now over ATC — check for it first
+        const buyNowBtn = await page.$('#buy-now-button:not([disabled])');
+        const atcBtn = await page.$('#add-to-cart-button:not([disabled]), input[name="submit.add-to-cart"]:not([disabled])');
+        const purchaseBtn = buyNowBtn ?? atcBtn;
+
+        if (purchaseBtn) {
           if (task.maxPrice != null && productPrice) {
             const priceCents = Math.round(parseFloat(productPrice) * 100);
             if (Number.isFinite(priceCents) && priceCents > task.maxPrice) {
@@ -79,11 +85,12 @@ export async function runAmazon(ctx: RetailerContext): Promise<RetailerResult> {
               continue;
             }
           }
-          log("SUCCESS", `[${RETAILER}] In stock: ${productName}${productPrice ? " @ $" + productPrice : ""}`);
+          buyNowAvailable = !!buyNowBtn;
+          log("SUCCESS", `[${RETAILER}] In stock${buyNowAvailable ? " (Buy Now available)" : ""}: ${productName}${productPrice ? " @ $" + productPrice : ""}`);
           inStock = true;
           break;
         }
-        log("WARN", `[${RETAILER}] ATC button not available — out of stock or captcha`);
+        log("WARN", `[${RETAILER}] ATC/Buy Now not available — out of stock or captcha`);
       } catch (err) {
         log("WARN", `[${RETAILER}] Navigation error: ${String(err)}`);
       }
@@ -92,37 +99,67 @@ export async function runAmazon(ctx: RetailerContext): Promise<RetailerResult> {
     if (!inStock) return fail("Product out of stock after all retries");
     if (token.cancelled) return fail("Task cancelled");
 
-    await setStatus("adding_to_cart");
-    log("INFO", `[${RETAILER}] Adding to cart...`);
-    await smartClick(page, RETAILER, "atc", [
-      "#add-to-cart-button",
-      "#buy-now-button",
-      "input[name='submit.add-to-cart']",
-    ]);
-    await humanDelay(1500, 2500);
+    if (buyNowAvailable) {
+      // ── Buy Now path: skip cart entirely ────────────────────────────────────
+      log("INFO", `[${RETAILER}] Clicking Buy Now — skipping cart for faster checkout...`);
+      await setStatus("checking_out");
+      try { await page.click('#buy-now-button', { timeout: 5000 }); } catch (_) {}
+      await humanDelay(1500, 2500);
+      await screenshot(page);
 
-    // Navigate directly to cart — more reliable than clicking the cart link
-    await page.goto("https://www.amazon.com/gp/cart/view.html", { waitUntil: "domcontentloaded" });
-    await humanDelay(1000, 1800);
+      // Buy Now may open a turbo-checkout modal (one-click order) or redirect to checkout
+      const turboPlaceOrder = await page.$(
+        '#turbo-checkout-pyo-button, #turbo-checkout-place-order-button-text, ' +
+        '[id*="turbo"] input[type="submit"], [id*="turbo"] button:has-text("Place your order")'
+      );
+      if (turboPlaceOrder) {
+        log("INFO", `[${RETAILER}] Buy Now modal — placing order in one click...`);
+        await turboPlaceOrder.scrollIntoViewIfNeeded();
+        await page.evaluate(el => (el as unknown as { click(): void }).click(), turboPlaceOrder);
+        await humanDelay(3000, 5000);
+        await screenshot(page);
+        const confirmation = await page.$('[class*="confirmation"], h1:has-text("order"), h4:has-text("order")');
+        if (!confirmation) return fail("Order confirmation not detected after Buy Now");
+        const orderNumber = `AMZ-${Date.now()}`;
+        log("SUCCESS", `[${RETAILER}] Order placed via Buy Now! ${productName}${productPrice ? " @ $" + productPrice : ""}`);
+        return { success: true, productName, productImage, price: productPrice || null, orderNumber, errorMessage: "" };
+      }
+      // No modal — Buy Now redirected to standard checkout page; fall through
+      log("INFO", `[${RETAILER}] Buy Now redirected to checkout page — continuing...`);
+    } else {
+      // ── Standard Add-to-Cart path ────────────────────────────────────────────
+      await setStatus("adding_to_cart");
+      log("INFO", `[${RETAILER}] Adding to cart...`);
+      await smartClick(page, RETAILER, "atc", [
+        "#add-to-cart-button",
+        "input[name='submit.add-to-cart']",
+      ]);
+      await humanDelay(1500, 2500);
+
+      // Navigate directly to cart
+      await page.goto("https://www.amazon.com/gp/cart/view.html", { waitUntil: "domcontentloaded" });
+      await humanDelay(1000, 1800);
+      if (token.cancelled) return fail("Task cancelled");
+
+      const effectiveQty = await applyCartQuantity(page, task.quantity, log);
+      log("INFO", `[${RETAILER}] Cart quantity: ${effectiveQty}`);
+
+      log("INFO", `[${RETAILER}] Proceeding to checkout...`);
+      await setStatus("checking_out");
+      const clicked = await smartClick(page, RETAILER, "checkout_btn", [
+        "[name='proceedToRetailCheckout']",
+        "input[name='proceedToRetailCheckout']",
+        "button:has-text('Proceed to checkout')",
+        "a:has-text('Proceed to checkout')",
+      ]);
+      if (!clicked) return fail("Checkout button not found");
+      await humanDelay(1500, 2500);
+    }
+
     if (token.cancelled) return fail("Task cancelled");
-
-    const effectiveQty = await applyCartQuantity(page, task.quantity, log);
-    log("INFO", `[${RETAILER}] Cart quantity: ${effectiveQty}`);
-
-    log("INFO", `[${RETAILER}] Proceeding to checkout...`);
-    await setStatus("checking_out");
-    const clicked = await smartClick(page, RETAILER, "checkout_btn", [
-      "[name='proceedToRetailCheckout']",
-      "input[name='proceedToRetailCheckout']",
-      "button:has-text('Proceed to checkout')",
-      "a:has-text('Proceed to checkout')",
-    ]);
-    if (!clicked) return fail("Checkout button not found");
-    await humanDelay(1500, 2500);
-    if (token.cancelled) return fail("Task cancelled");
-
     await screenshot(page);
 
+    // ── Sign-in (if prompted) ────────────────────────────────────────────────
     const signInCheck = await page.$('input[name="email"], #ap_email');
     if (signInCheck && (profile || retailerAccount)) {
       const loginEmail = retailerAccount?.email ?? profile?.email ?? "";
@@ -133,7 +170,6 @@ export async function runAmazon(ctx: RetailerContext): Promise<RetailerResult> {
       if (token.cancelled) return fail("Task cancelled");
       await screenshot(page);
 
-      // Try password field first (faster than OTP when account has password)
       const passwordField = await page.$('#ap_password, input[name="password"]');
       if (passwordField && retailerAccount?.password) {
         log("INFO", `[${RETAILER}] Password prompt — entering credentials...`);
@@ -150,11 +186,7 @@ export async function runAmazon(ctx: RetailerContext): Promise<RetailerResult> {
         : ctx.globalImapConfig;
       if (otpCheck && amazonImapConfig) {
         log("INFO", `[${RETAILER}] OTP prompt — fetching code from IMAP...`);
-        const code = await imapFetchCode(
-          amazonImapConfig,
-          /amazon|otp|sign.?in/i,
-          30000,
-        );
+        const code = await imapFetchCode(amazonImapConfig, /amazon|otp|sign.?in/i, 30000);
         if (code) {
           log("SUCCESS", `[${RETAILER}] OTP code retrieved`);
           await humanType(page, '#auth-mfa-otpcode', code);
@@ -167,15 +199,14 @@ export async function runAmazon(ctx: RetailerContext): Promise<RetailerResult> {
       }
     }
 
-    // If Amazon already shows the place-your-order button (saved address + payment on file),
-    // skip address/payment filling entirely — trying to fill fields that don't exist wastes
-    // minutes and causes the "Place order button not found" error when Amazon redirects away.
+    // ── Address (skip if saved on account or place-order already visible) ────
     const quickPlaceOrder = await page.$(
       'input[name="placeYourOrder1"], [data-action="place-order"], ' +
       'span[id*="placeOrder"] input[type="submit"], ' +
       'button:has-text("Place your order"), button:has-text("Place Order")'
     );
-    if (!quickPlaceOrder && profile) {
+    const hasAddressForm = !quickPlaceOrder && await page.$('input[name="address1"], input[name="city"]');
+    if (hasAddressForm && profile) {
       log("INFO", `[${RETAILER}] Filling address for profile: ${profile.name}`);
       const addressFields: Array<[string, string]> = [
         ['input[name="address1"]', profile.shipAddress1],
@@ -187,6 +218,8 @@ export async function runAmazon(ctx: RetailerContext): Promise<RetailerResult> {
         if (!val) continue;
         try { await humanType(page, sel, val); await humanDelay(80, 150); } catch (_) {}
       }
+    } else if (!hasAddressForm && !quickPlaceOrder) {
+      log("INFO", `[${RETAILER}] Saved address on file — skipping address entry`);
     }
 
     if (!quickPlaceOrder) {
@@ -195,7 +228,9 @@ export async function runAmazon(ctx: RetailerContext): Promise<RetailerResult> {
     }
     if (token.cancelled) return fail("Task cancelled");
 
-    if (!quickPlaceOrder && card) {
+    // ── Payment (skip if saved on account) ───────────────────────────────────
+    const hasPaymentForm = !quickPlaceOrder && await page.$('input[name="addCreditCardNumber"], input[name="cvv"]');
+    if (hasPaymentForm && card) {
       log("INFO", `[${RETAILER}] Entering payment (${card.cardType} ****${card.lastFour})...`);
       try {
         const cardNumber = decrypt(card.encryptedNumber);
@@ -211,7 +246,6 @@ export async function runAmazon(ctx: RetailerContext): Promise<RetailerResult> {
       } catch (decryptErr) {
         log("WARN", `[${RETAILER}] Could not decrypt card: ${String(decryptErr)}`);
       }
-      // After filling payment, click Continue to advance to order review page
       const paymentContinue = await page.$(
         'input[name="ppw-widgetEvent:SetPaymentPlanSelectAction"], ' +
         'input[name="continue-to-review"], ' +
@@ -224,12 +258,16 @@ export async function runAmazon(ctx: RetailerContext): Promise<RetailerResult> {
         await page.evaluate(el => (el as unknown as { click(): void }).click(), paymentContinue);
         await humanDelay(2000, 3000);
       }
-    } else if (!quickPlaceOrder) {
+    } else if (!hasPaymentForm && !quickPlaceOrder) {
+      log("INFO", `[${RETAILER}] Saved payment method on file — skipping card entry`);
+    } else if (!card && !quickPlaceOrder) {
       log("WARN", `[${RETAILER}] No credit card provided — skipping payment step`);
     }
+
     if (token.cancelled) return fail("Task cancelled");
     await screenshot(page);
 
+    // ── Place order ──────────────────────────────────────────────────────────
     log("INFO", `[${RETAILER}] Submitting order...`);
     const placeOrderSelectors = [
       "input[name='placeYourOrder1']",
@@ -242,7 +280,6 @@ export async function runAmazon(ctx: RetailerContext): Promise<RetailerResult> {
       "input[value*='Place your order']",
       "input[aria-label*='Place your order']",
     ];
-    // Wait for the order review page to settle before querying
     try {
       await page.waitForSelector(
         "input[name='placeYourOrder1'], [data-feature-id='place-order-button'] input, " +
@@ -250,7 +287,6 @@ export async function runAmazon(ctx: RetailerContext): Promise<RetailerResult> {
         { timeout: 10000 },
       );
     } catch (_) {}
-    // Re-query (quickPlaceOrder ref may be stale after address/payment nav)
     const placeOrder = quickPlaceOrder ?? await smartFind(page, RETAILER, "place_order", placeOrderSelectors);
     if (!placeOrder) return fail("Place order button not found");
     await placeOrder.scrollIntoViewIfNeeded();
