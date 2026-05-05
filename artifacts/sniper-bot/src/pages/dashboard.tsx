@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useGetAnalyticsSummary, useListCheckoutResults, useGetCheckoutsOverTime } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RetailerBadge } from "@/components/shared/RetailerBadge";
+import { ProductThumbnail } from "@/components/shared/ProductThumbnail";
 import { format } from "date-fns";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Button } from "@/components/ui/button";
@@ -106,7 +107,10 @@ export default function DashboardPage() {
                 checkouts.map(co => (
                   <div key={co.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/20 border border-border/50">
                     <div className="flex items-center gap-4">
-                      {co.productImage && <img src={co.productImage} alt="" className="w-10 h-10 rounded object-cover bg-muted" />}
+                      <ProductThumbnail
+                        src={co.productImage}
+                        fallbackUrl={(co as typeof co & { productUrl?: string }).productUrl}
+                      />
                       <div>
                         <div className="font-medium text-sm truncate max-w-[120px]">{co.productName}</div>
                         <div className="text-xs text-muted-foreground">{format(new Date(co.createdAt), 'MMM d, h:mm a')}</div>

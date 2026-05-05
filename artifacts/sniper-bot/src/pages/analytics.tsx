@@ -2,6 +2,7 @@ import React, { useState, useMemo } from "react";
 import { useGetAnalyticsSummary, useListCheckoutResults, useGetCheckoutsOverTime } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RetailerBadge } from "@/components/shared/RetailerBadge";
+import { ProductThumbnail } from "@/components/shared/ProductThumbnail";
 import { format } from "date-fns";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { Button } from "@/components/ui/button";
@@ -187,9 +188,11 @@ export default function AnalyticsPage() {
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
-                          {co.productImage && (
-                            <img src={co.productImage} alt="" className="w-8 h-8 rounded object-cover bg-muted" />
-                          )}
+                          <ProductThumbnail
+                            src={co.productImage}
+                            fallbackUrl={(co as typeof co & { productUrl?: string }).productUrl}
+                            className="w-8 h-8 rounded object-cover bg-muted shrink-0"
+                          />
                           <span className="truncate max-w-[200px]" title={co.productName}>{co.productName}</span>
                         </div>
                       </td>

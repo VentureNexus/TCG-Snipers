@@ -16,7 +16,7 @@ import {
 } from "@workspace/api-client-react";
 import type { Task, Profile, SupportedRetailer, BulkActionResult } from "@workspace/api-client-react";
 import { isProfileIncomplete } from "./profiles";
-import { getApiBase } from "@/lib/api-base";
+import { ProductThumbnail } from "@/components/shared/ProductThumbnail";
 import { Button } from "@/components/ui/button";
 import {
   Play,
@@ -212,33 +212,6 @@ function TimeLimitBadge({ task, isRunning }: { task: Task; isRunning: boolean })
   }
 
   return null;
-}
-
-function ProductThumbnail({ url }: { url: string }) {
-  const [imageUrl, setImageUrl] = useState<string>("");
-
-  useEffect(() => {
-    if (!url || !/^https?:\/\//.test(url)) return;
-    let cancelled = false;
-    const endpoint = `${getApiBase()}/api/og-image?url=${encodeURIComponent(url)}`;
-    fetch(endpoint)
-      .then((r) => r.json())
-      .then((data: { imageUrl: string }) => {
-        if (!cancelled && data.imageUrl) setImageUrl(data.imageUrl);
-      })
-      .catch(() => {});
-    return () => { cancelled = true; };
-  }, [url]);
-
-  if (!imageUrl) return null;
-  return (
-    <img
-      src={imageUrl}
-      alt=""
-      className="w-8 h-8 rounded object-cover bg-muted shrink-0"
-      onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-    />
-  );
 }
 
 const STATUS_CONFIG: Record<string, { label: string; cls: string; dot?: string }> = {
@@ -1013,7 +986,7 @@ export default function TasksPage() {
                       <td className="px-4 py-3"><RetailerBadge retailer={task.retailer} /></td>
                       <td className="px-4 py-3 max-w-[220px]" title={task.productUrl ?? task.productKeywords ?? ""}>
                         <div className="flex items-center gap-2">
-                          {task.productUrl && <ProductThumbnail url={task.productUrl} />}
+                          {task.productUrl && <ProductThumbnail fallbackUrl={task.productUrl} className="w-8 h-8 rounded object-cover bg-muted shrink-0" />}
                           <div className="min-w-0">
                             <div className="truncate font-mono text-xs text-primary/80">{task.productUrl || task.productKeywords || "-"}</div>
                             {task.maxPrice != null && (

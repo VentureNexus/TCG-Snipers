@@ -1,13 +1,33 @@
 import { Router, type IRouter } from "express";
 import { eq, desc } from "drizzle-orm";
-import { db, checkoutResultsTable } from "@workspace/db";
+import { db, checkoutResultsTable, tasksTable } from "@workspace/db";
 import { ListCheckoutResultsQueryParams, CreateCheckoutResultBody } from "@workspace/api-zod";
 
 const router: IRouter = Router();
 
 router.get("/checkout-results", async (req, res): Promise<void> => {
   const query = ListCheckoutResultsQueryParams.safeParse(req.query);
-  let results = await db.select().from(checkoutResultsTable).orderBy(desc(checkoutResultsTable.createdAt));
+  const rows = await db
+    .select({
+      id: checkoutResultsTable.id,
+      taskId: checkoutResultsTable.taskId,
+      success: checkoutResultsTable.success,
+      productName: checkoutResultsTable.productName,
+      productImage: checkoutResultsTable.productImage,
+      price: checkoutResultsTable.price,
+      retailer: checkoutResultsTable.retailer,
+      orderNumber: checkoutResultsTable.orderNumber,
+      errorMessage: checkoutResultsTable.errorMessage,
+      profileId: checkoutResultsTable.profileId,
+      createdAt: checkoutResultsTable.createdAt,
+      productUrl: tasksTable.productUrl,
+    })
+    .from(checkoutResultsTable)
+    .leftJoin(tasksTable, eq(checkoutResultsTable.taskId, tasksTable.id))
+    .orderBy(desc(checkoutResultsTable.createdAt));
+
+  let results = rows.map((r) => ({ ...r, productUrl: r.productUrl ?? "" }));
+
   if (query.success) {
     if (query.data.success !== undefined && query.data.success !== null) {
       results = results.filter((r) => r.success === query.data.success);
