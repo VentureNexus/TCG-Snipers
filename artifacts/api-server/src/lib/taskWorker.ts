@@ -220,7 +220,12 @@ async function runTaskAutomation(task: TaskRow, token: { cancelled: boolean }) {
   }
 }
 
-export function startTask(task: TaskRow): { started: boolean; queued: boolean } {
+export function startTask(task: TaskRow): { started: boolean; queued: boolean; error?: string } {
+  if (task.monitorDelayMax !== null && task.monitorDelayMax !== undefined && task.monitorDelayMax <= task.monitorDelay) {
+    broadcastLog(task.id, "WARN", `[Scheduler] Task #${task.id} rejected: Min Delay (${task.monitorDelay}ms) must be less than Max Delay (${task.monitorDelayMax}ms). Edit the task to fix the delay settings.`);
+    return { started: false, queued: false, error: "Min Delay must be less than Max Delay" };
+  }
+
   const existing = cancellationTokens.get(task.id);
   if (existing) existing.cancelled = true;
 

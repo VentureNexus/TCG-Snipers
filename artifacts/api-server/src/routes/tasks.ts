@@ -89,10 +89,11 @@ router.post("/tasks/start-all", async (_req, res): Promise<void> => {
       }
     }
     const result = startTask(task);
+    if (result.error) { skipped++; continue; }
     if (result.queued) queued++;
     else started++;
   }
-  res.json({ started, queued, skipped, affected: idleTasks.length, message: `Started ${started}, queued ${queued}, skipped ${skipped} (incomplete profile) tasks` });
+  res.json({ started, queued, skipped, affected: idleTasks.length, message: `Started ${started}, queued ${queued}, skipped ${skipped} (incomplete profile or invalid delay settings) tasks` });
 });
 
 router.post("/tasks/stop-all", async (_req, res): Promise<void> => {
@@ -116,7 +117,11 @@ router.post("/tasks/:id/start", async (req, res): Promise<void> => {
       return;
     }
   }
-  startTask(task);
+  const result = startTask(task);
+  if (result.error) {
+    res.status(422).json({ error: result.error });
+    return;
+  }
   const [updated] = await db.select().from(tasksTable).where(eq(tasksTable.id, task.id));
   res.json(updated);
 });
