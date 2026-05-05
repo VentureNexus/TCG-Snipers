@@ -1,0 +1,57 @@
+[2026-05-05T18:02:38.166Z] [INFO] Step 1: importing API server module…
+[2026-05-05T18:02:39.072Z] [INFO] Step 1 OK: module imported
+[2026-05-05T18:02:39.072Z] [INFO] Step 2: creating HTTP server…
+[2026-05-05T18:02:39.073Z] [INFO] Step 2 OK
+[2026-05-05T18:02:39.073Z] [INFO] Step 3: binding to port…
+[2026-05-05T18:02:39.073Z] [INFO]   trying port 8080…
+[2026-05-05T18:02:39.075Z] [INFO] Step 3 OK: listening on port 8080
+=== TCG Snipers v1.0.26 started 2026-05-05T18:38:52.458Z ===
+[2026-05-05T18:38:52.460Z] [INFO] Platform: win32, packaged: true
+[2026-05-05T18:38:52.460Z] [INFO] Node version: v20.19.1
+[2026-05-05T18:38:52.460Z] [INFO] Platform: win32 arch: x64
+[2026-05-05T18:38:52.460Z] [INFO] isPackaged: true
+[2026-05-05T18:38:52.460Z] [INFO] DB path: C:\Users\Owner\AppData\Roaming\@workspace\sniper-bot\pgdata
+[2026-05-05T18:38:52.461Z] [INFO] NODE_ENV set to: production
+[2026-05-05T18:38:52.461Z] [INFO] Encryption key loaded from secure store
+[2026-05-05T18:38:52.462Z] [INFO] electron/dist contents (46 files): app-RFAW5KAR.js, app-RFAW5KAR.js.map, chunk-7EECQINQ.js, chunk-7EECQINQ.js.map, chunk-7OISYMME.js, chunk-7OISYMME.js.map, chunk-C6QXKR2V.js, chunk-C6QXKR2V.js.map, chunk-KFHPWSTI.js, chunk-KFHPWSTI.js.map, chunk-KISZVMER.js, chunk-KISZVMER.js.map, chunk-KXDC6MGZ.js, chunk-KXDC6MGZ.js.map, chunk-OEC5A2IQ.js, chunk-OEC5A2IQ.js.map, chunk-SMR2BPHQ.js, chunk-SMR2BPHQ.js.map, chunk-WJQGXH5Y.js, chunk-WJQGXH5Y.js.map
+[2026-05-05T18:38:52.462Z] [INFO] Step 1: importing API server module…
+[2026-05-05T18:38:53.379Z] [INFO] Step 1 OK: module imported
+[2026-05-05T18:38:53.380Z] [INFO] Step 2: creating HTTP server…
+[2026-05-05T18:38:53.380Z] [INFO] Step 2 OK
+[2026-05-05T18:38:53.380Z] [INFO] Step 3: binding to port…
+[2026-05-05T18:38:53.380Z] [INFO]   trying port 8080…
+[2026-05-05T18:38:53.384Z] [INFO] Step 3 OK: listening on port 8080
+=== TCG Snipers v1.0.28 started 2026-05-05T19:20:56.079Z ===
+[2026-05-05T19:20:56.080Z] [INFO] Platform: win32, packaged: true
+[2026-05-05T19:20:56.081Z] [INFO] Node version: v20.19.1
+[2026-05-05T19:20:56.081Z] [INFO] Platform: win32 arch: x64
+[2026-05-05T19:20:56.081Z] [INFO] isPackaged: true
+[2026-05-05T19:20:56.081Z] [INFO] DB path: C:\Users\Owner\AppData\Roaming\@workspace\sniper-bot\pgdata
+[2026-05-05T19:20:56.081Z] [INFO] NODE_ENV set to: production
+[2026-05-05T19:20:56.082Z] [INFO] Encryption key loaded from secure store
+[2026-05-05T19:20:56.083Z] [INFO] electron/dist contents (46 files): app-5GO5PZBE.js, app-5GO5PZBE.js.map, chunk-7EECQINQ.js, chunk-7EECQINQ.js.map, chunk-7OISYMME.js, chunk-7OISYMME.js.map, chunk-C6QXKR2V.js, chunk-C6QXKR2V.js.map, chunk-KFHPWSTI.js, chunk-KFHPWSTI.js.map, chunk-KISZVMER.js, chunk-KISZVMER.js.map, chunk-KXDC6MGZ.js, chunk-KXDC6MGZ.js.map, chunk-OEC5A2IQ.js, chunk-OEC5A2IQ.js.map, chunk-SMR2BPHQ.js, chunk-SMR2BPHQ.js.map, chunk-WJQGXH5Y.js, chunk-WJQGXH5Y.js.map
+[2026-05-05T19:20:56.083Z] [INFO] Step 1: importing API server module…
+[2026-05-05T19:20:57.005Z] [INFO] Step 1 OK: module imported
+[2026-05-05T19:20:57.006Z] [INFO] Step 2: creating HTTP server…
+[2026-05-05T19:20:57.006Z] [INFO] Step 2 OK
+[2026-05-05T19:20:57.006Z] [INFO] Step 3: binding to port…
+[2026-05-05T19:20:57.006Z] [INFO]   trying port 8080…
+[2026-05-05T19:20:57.010Z] [INFO] Step 3 OK: listening on port 8080
+=== TCG Snipers v1.0.29 started 2026-05-05T19:50:58.604Z ===
+[2026-05-05T19:50:58.605Z] [INFO] Platform: win32, packaged: true
+[2026-05-05T19:50:58.606Z] [INFO] Node version: v20.19.1
+[2026-05-05T19:50:58.606Z] [INFO] Platform: win32 arch: x64
+[2026-05-05T19:50:58.607Z] [INFO] isPackaged: true
+[2026-05-05T19:50:58.607Z] [INFO] DB path: C:\Users\Owner\AppData\Roaming\@workspace\sniper-bot\pgdata
+[2026-05-05T19:50:58.607Z] [INFO] NODE_ENV set to: production
+[2026-05-05T19:50:58.608Z] [INFO] Encryption key loaded from secure store
+[2026-05-05T19:50:58.608Z] [WARN] playwright-chromium dir exists but no binary found inside: C:\Users\Owner\AppData\Local\Programs\TCG Snipers\resources\playwright-chromium
+[2026-05-05T19:50:58.609Z] [INFO] Browser found: C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe
+[2026-05-05T19:50:58.609Z] [INFO] electron/dist contents (46 files): app-DF45JG76.js, app-DF45JG76.js.map, chunk-7EECQINQ.js, chunk-7EECQINQ.js.map, chunk-7OISYMME.js, chunk-7OISYMME.js.map, chunk-C6QXKR2V.js, chunk-C6QXKR2V.js.map, chunk-KFHPWSTI.js, chunk-KFHPWSTI.js.map, chunk-KISZVMER.js, chunk-KISZVMER.js.map, chunk-KXDC6MGZ.js, chunk-KXDC6MGZ.js.map, chunk-OEC5A2IQ.js, chunk-OEC5A2IQ.js.map, chunk-SMR2BPHQ.js, chunk-SMR2BPHQ.js.map, chunk-WJQGXH5Y.js, chunk-WJQGXH5Y.js.map
+[2026-05-05T19:50:58.609Z] [INFO] Step 1: importing API server module…
+[2026-05-05T19:50:59.616Z] [INFO] Step 1 OK: module imported
+[2026-05-05T19:50:59.616Z] [INFO] Step 2: creating HTTP server…
+[2026-05-05T19:50:59.617Z] [INFO] Step 2 OK
+[2026-05-05T19:50:59.617Z] [INFO] Step 3: binding to port…
+[2026-05-05T19:50:59.617Z] [INFO]   trying port 8080…
+[2026-05-05T19:50:59.621Z] [INFO] Step 3 OK: listening on port 8080

@@ -1,6 +1,6 @@
 {
   "name": "@workspace/sniper-bot",
-  "version": "1.0.29",
+  "version": "1.0.30",
   "private": true,
   "type": "module",
   "description": "TCG Snipers desktop app for automated retail sniping",

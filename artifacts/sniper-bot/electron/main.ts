@@ -183,9 +183,15 @@ function resolveSystemBrowserPath(): string | undefined {
         if (!entry.startsWith("chromium")) continue;
         let bin: string | undefined;
         if (process.platform === "win32") {
-          bin = path.join(playwrightDir, entry, "chrome-win", "chrome.exe");
+          // Playwright 1.40+ downloads to chrome-win64; older used chrome-win
+          const win64 = path.join(playwrightDir, entry, "chrome-win64", "chrome.exe");
+          const win32 = path.join(playwrightDir, entry, "chrome-win", "chrome.exe");
+          bin = fs.existsSync(win64) ? win64 : win32;
         } else if (process.platform === "darwin") {
-          bin = path.join(playwrightDir, entry, "chrome-mac", "Chromium.app", "Contents", "MacOS", "Chromium");
+          // arm64 runner uses chrome-mac-arm64, x64 uses chrome-mac
+          const arm = path.join(playwrightDir, entry, "chrome-mac-arm64", "Chromium.app", "Contents", "MacOS", "Chromium");
+          const x64 = path.join(playwrightDir, entry, "chrome-mac", "Chromium.app", "Contents", "MacOS", "Chromium");
+          bin = fs.existsSync(arm) ? arm : x64;
         } else {
           bin = path.join(playwrightDir, entry, "chrome-linux64", "chrome");
         }
