@@ -25,6 +25,12 @@ router.get("/tasks", async (req, res): Promise<void> => {
 router.post("/tasks", async (req, res): Promise<void> => {
   const parsed = CreateTaskBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
+  const effectiveMin = parsed.data.monitorDelay ?? 200;
+  const effectiveMax = parsed.data.monitorDelayMax;
+  if (effectiveMax !== null && effectiveMax !== undefined && effectiveMax <= effectiveMin) {
+    res.status(400).json({ error: "Min Delay must be less than Max Delay" });
+    return;
+  }
   const [task] = await db.insert(tasksTable).values(parsed.data).returning();
   res.status(201).json(task);
 });
@@ -42,6 +48,16 @@ router.patch("/tasks/:id", async (req, res): Promise<void> => {
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
   const parsed = UpdateTaskBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
+  const [existing] = await db.select().from(tasksTable).where(eq(tasksTable.id, params.data.id));
+  if (!existing) { res.status(404).json({ error: "Task not found" }); return; }
+  const effectiveMin = parsed.data.monitorDelay ?? existing.monitorDelay;
+  const effectiveMax = parsed.data.monitorDelayMax !== undefined
+    ? parsed.data.monitorDelayMax
+    : existing.monitorDelayMax;
+  if (effectiveMax !== null && effectiveMax !== undefined && effectiveMax <= effectiveMin) {
+    res.status(400).json({ error: "Min Delay must be less than Max Delay" });
+    return;
+  }
   const [task] = await db.update(tasksTable).set(parsed.data).where(eq(tasksTable.id, params.data.id)).returning();
   if (!task) { res.status(404).json({ error: "Task not found" }); return; }
   res.json(task);

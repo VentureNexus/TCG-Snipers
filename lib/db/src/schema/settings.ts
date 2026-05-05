@@ -18,7 +18,15 @@ export const settingsTable = pgTable("settings", {
 
 export const insertSettingsSchema = createInsertSchema(settingsTable).omit({ id: true });
 export const selectSettingsSchema = createSelectSchema(settingsTable);
-export const updateSettingsSchema = insertSettingsSchema.partial();
+export const updateSettingsSchema = insertSettingsSchema.partial().refine(
+  (data) => {
+    if (data.monitorDelay != null && data.monitorDelayMax != null) {
+      return data.monitorDelayMax > data.monitorDelay;
+    }
+    return true;
+  },
+  { message: "Min Delay must be less than Max Delay" },
+);
 
 export type Settings = z.infer<typeof selectSettingsSchema>;
 export type UpdateSettings = z.infer<typeof updateSettingsSchema>;

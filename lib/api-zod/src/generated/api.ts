@@ -639,7 +639,15 @@ export const CreateTaskBody = zod.object({
   stopAfterMs: zod.number().int().min(0).nullable().optional(),
   stopAtTime: zod.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/).nullable().optional(),
   priority: zod.number().int().min(1).max(3).optional(),
-});
+}).refine(
+  (data) => {
+    if (data.monitorDelay != null && data.monitorDelayMax != null) {
+      return data.monitorDelayMax > data.monitorDelay;
+    }
+    return true;
+  },
+  { message: "Min Delay must be less than Max Delay", path: ["monitorDelayMax"] },
+);
 
 /**
  * @summary Get a task by ID
@@ -696,7 +704,15 @@ export const UpdateTaskBody = zod.object({
   stopAtTime: zod.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/).nullable().optional(),
   priority: zod.number().int().min(1).max(3).optional(),
   status: zod.string().optional(),
-});
+}).refine(
+  (data) => {
+    if (data.monitorDelay != null && data.monitorDelayMax != null) {
+      return data.monitorDelayMax > data.monitorDelay;
+    }
+    return true;
+  },
+  { message: "Min Delay must be less than Max Delay", path: ["monitorDelayMax"] },
+);
 
 export const UpdateTaskResponse = zod.object({
   id: zod.number(),

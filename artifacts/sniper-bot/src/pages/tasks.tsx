@@ -100,7 +100,10 @@ const taskSchema = z.object({
   maxPrice: z.coerce.number().min(0).optional(),
   stopAfterHours: z.coerce.number().min(0.1).optional(),
   stopAtTime: z.string().optional(),
-});
+}).refine(
+  (data) => data.monitorDelayMax > data.monitorDelay,
+  { message: "Min must be less than Max", path: ["monitorDelayMax"] },
+);
 
 type TaskFormValues = z.infer<typeof taskSchema>;
 

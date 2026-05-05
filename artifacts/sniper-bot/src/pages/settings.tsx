@@ -113,7 +113,15 @@ export default function SettingsPage() {
     toast({ title: "Task Defaults Saved", description: "New tasks will use these defaults." });
   };
 
+  const delayError = settings.monitorDelay >= settings.monitorDelayMax
+    ? "Min must be less than Max"
+    : null;
+
   const handleSave = () => {
+    if (delayError) {
+      toast({ title: "Invalid delay range", description: delayError, variant: "destructive" });
+      return;
+    }
     updateSettingsMutation.mutate(
       { data: settings },
       {
@@ -302,7 +310,10 @@ export default function SettingsPage() {
                       <Input id="monitorDelayMax" name="monitorDelayMax" type="number" min={1} value={settings.monitorDelayMax} onChange={handleChange} />
                     </div>
                   </div>
-                  {settings.monitorDelay < 150 && (
+                  {delayError && (
+                    <p className="text-xs text-red-400 font-medium">{delayError}</p>
+                  )}
+                  {!delayError && settings.monitorDelay < 150 && (
                     <p className="text-xs text-amber-400 font-medium">Very low delays can get your IP flagged. We recommend keeping min delay above 150ms.</p>
                   )}
                   <p className="text-xs text-muted-foreground">Recommended: 200–800ms. Values under 150ms may trigger bot detection on some retailers.</p>

@@ -22,6 +22,14 @@ router.put("/settings", async (req, res): Promise<void> => {
   const parsed = updateSettingsSchema.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
   const current = await getOrCreateSettings();
+  const effectiveMin = parsed.data.monitorDelay ?? current.monitorDelay;
+  const effectiveMax = parsed.data.monitorDelayMax !== undefined
+    ? parsed.data.monitorDelayMax
+    : current.monitorDelayMax;
+  if (effectiveMax !== null && effectiveMax !== undefined && effectiveMax <= effectiveMin) {
+    res.status(400).json({ error: "Min Delay must be less than Max Delay" });
+    return;
+  }
   const [updated] = await db
     .update(settingsTable)
     .set(parsed.data)
