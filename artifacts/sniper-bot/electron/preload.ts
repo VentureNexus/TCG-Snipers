@@ -62,7 +62,7 @@ const api = {
     getLogs: (): Promise<string[]> => ipcRenderer.invoke("api:getLogs"),
     getLogFilePath: (): Promise<string> => ipcRenderer.invoke("api:getLogFilePath"),
     openLogFile: (): Promise<void> => ipcRenderer.invoke("api:openLogFile"),
-    getHealth: (): Promise<{ alive: boolean; port: number }> => ipcRenderer.invoke("api:getHealth"),
+    getHealth: (): Promise<{ alive: boolean; port: number; latencyMs: number | null }> => ipcRenderer.invoke("api:getHealth"),
     getStartStatus: (): Promise<{ ok: boolean; reason: string }> =>
       ipcRenderer.invoke("api:getStartStatus"),
     getMetrics: (): Promise<{

@@ -77,7 +77,7 @@ declare global {
         getLogs: () => Promise<string[]>;
         getLogFilePath: () => Promise<string>;
         openLogFile: () => Promise<void>;
-        getHealth: () => Promise<{ alive: boolean; port: number }>;
+        getHealth: () => Promise<{ alive: boolean; port: number; latencyMs: number | null }>;
         getStartStatus: () => Promise<{ ok: boolean; reason: string }>;
         getMetrics: () => Promise<ElectronMetrics>;
         onStartFailed: (handler: (info: { reason: string }) => void) => () => void;

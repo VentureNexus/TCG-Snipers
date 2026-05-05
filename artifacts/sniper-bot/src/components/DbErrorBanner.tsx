@@ -8,11 +8,13 @@ interface ApiFailure {
 const HEALTH_PROBE_DELAY_MS = 10_000;
 const HEALTH_PROBE_INTERVAL_MS = 30_000;
 const HEALTH_PROBE_FAIL_THRESHOLD = 2;
+const HEALTH_SLOW_THRESHOLD_MS = 5_000;
 
 const MID_SESSION_REASON = "The database process stopped responding.";
 
 export function DbErrorBanner() {
   const [failure, setFailure] = useState<ApiFailure | null>(null);
+  const [slowWarning, setSlowWarning] = useState(false);
   const [logs, setLogs] = useState<string[] | null>(null);
   const [showLogs, setShowLogs] = useState(false);
   const probeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -60,6 +62,7 @@ export function DbErrorBanner() {
         if (cancelled) return;
 
         if (!health.alive) {
+          setSlowWarning(false);
           consecutiveFailsRef.current += 1;
           if (consecutiveFailsRef.current >= HEALTH_PROBE_FAIL_THRESHOLD) {
             setFailure((prev) =>
@@ -71,6 +74,9 @@ export function DbErrorBanner() {
           setFailure((prev) =>
             prev?.kind === "mid-session" ? null : prev
           );
+          const isSlow =
+            health.latencyMs !== null && health.latencyMs > HEALTH_SLOW_THRESHOLD_MS;
+          setSlowWarning(isSlow);
         }
       }, HEALTH_PROBE_INTERVAL_MS);
     };
@@ -100,10 +106,27 @@ export function DbErrorBanner() {
     window.electronAPI?.diagnostics?.openLogFile?.();
   };
 
-  if (!failure) return null;
+  if (!failure && !slowWarning) return null;
+
+  if (!failure && slowWarning) {
+    return (
+      <div
+        role="status"
+        data-testid="db-slow-banner"
+        className="flex items-center gap-3 px-4 py-2 text-sm border-b bg-yellow-500/10 border-yellow-500/40 text-foreground"
+      >
+        <span className="font-semibold text-yellow-600 dark:text-yellow-400">
+          API responding slowly
+        </span>
+        <span className="text-muted-foreground flex-1 truncate">
+          The database is taking longer than usual to respond. Performance may be degraded.
+        </span>
+      </div>
+    );
+  }
 
   const bannerTitle =
-    failure.kind === "mid-session" ? "Database unreachable" : "API startup failed";
+    failure!.kind === "mid-session" ? "Database unreachable" : "API startup failed";
 
   return (
     <>
@@ -115,7 +138,7 @@ export function DbErrorBanner() {
         <div className="flex items-center gap-3">
           <span className="font-semibold text-destructive">{bannerTitle}</span>
           <span className="text-muted-foreground flex-1 truncate">
-            {failure.reason}
+            {failure!.reason}
           </span>
           <div className="ml-auto flex items-center gap-2 flex-shrink-0">
             <button

@@ -594,10 +594,33 @@ ipcMain.handle("api:getLogFilePath", () => logFilePath);
 ipcMain.handle("api:openLogFile", () => {
   if (logFilePath) shell.openPath(logFilePath);
 });
-ipcMain.handle("api:getHealth", () => ({
-  alive: apiServer?.listening ?? false,
-  port: apiPort,
-}));
+ipcMain.handle("api:getHealth", async () => {
+  if (!apiServer?.listening) {
+    return { alive: false, port: apiPort, latencyMs: null };
+  }
+  const start = Date.now();
+  try {
+    const statusCode = await new Promise<number>((resolve, reject) => {
+      const req = http.get(
+        `http://localhost:${apiPort}/healthz`,
+        { timeout: 10_000 },
+        (res) => {
+          res.resume();
+          resolve(res.statusCode ?? 0);
+        },
+      );
+      req.on("error", reject);
+      req.on("timeout", () => {
+        req.destroy();
+        reject(new Error("timeout"));
+      });
+    });
+    const alive = statusCode >= 200 && statusCode < 300;
+    return { alive, port: apiPort, latencyMs: Date.now() - start };
+  } catch {
+    return { alive: false, port: apiPort, latencyMs: null };
+  }
+});
 ipcMain.handle("api:getStartStatus", () => ({
   ok: apiStartOk,
   reason: apiStartFailReason,
