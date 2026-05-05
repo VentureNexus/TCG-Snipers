@@ -1134,7 +1134,7 @@ export default function TasksPage() {
                     </tr>
                     {isExpanded && (
                       <tr className="border-b border-border/50">
-                        <td colSpan={8} className="p-0">
+                        <td colSpan={9} className="p-0">
                           <LogPanel taskId={task.id} enabled={isRunning || isExpanded} onStatusChange={handleStatusChange(task.id)} />
                         </td>
                       </tr>

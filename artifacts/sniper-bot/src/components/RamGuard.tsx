@@ -115,12 +115,13 @@ export function RamGuard() {
 
     if (ramPct >= threshold && !alertFiredRef.current && Date.now() >= nextAlertRef.current) {
       alertFiredRef.current = true;
+      nextAlertRef.current = Date.now() + DEBOUNCE_MS;
       if (settings.autoStop) {
         void runAutoStop(threshold);
       } else {
         setDialogOpen(true);
       }
-    } else if (ramPct < threshold - HYSTERESIS_PCT) {
+    } else if (ramPct < threshold) {
       alertFiredRef.current = false;
       setDialogOpen(false);
     }

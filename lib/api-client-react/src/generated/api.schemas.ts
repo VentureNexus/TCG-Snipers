@@ -292,7 +292,7 @@ export interface CreateTaskBody {
   maxPrice?: number;
   stopAfterMs?: number | null;
   stopAtTime?: string | null;
-  priority?: string;
+  priority?: number;
 }
 
 export type UpdateTaskBodyRetailer =
