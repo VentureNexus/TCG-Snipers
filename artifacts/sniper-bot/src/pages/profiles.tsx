@@ -77,6 +77,7 @@ import {
   Loader2,
   Search,
   AlertTriangle,
+  Mail,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -106,6 +107,10 @@ const profileSchema = z.object({
   addressJigEnabled: z.boolean().default(false),
   costcoMembershipId: z.string().optional(),
   samsMembershipId: z.string().optional(),
+  imapHost: z.string().optional(),
+  imapPort: z.string().optional(),
+  imapUser: z.string().optional(),
+  imapPassword: z.string().optional(),
 });
 
 const creditCardSchema = z.object({
@@ -146,6 +151,10 @@ const EMPTY_PROFILE: ProfileFormValues = {
   addressJigEnabled: false,
   costcoMembershipId: "",
   samsMembershipId: "",
+  imapHost: "",
+  imapPort: "993",
+  imapUser: "",
+  imapPassword: "",
 };
 
 export function isProfileIncomplete(profile: Profile): boolean {
@@ -354,6 +363,10 @@ function ProfileFormDialog({
         addressJigEnabled: editingProfile.addressJigEnabled,
         costcoMembershipId: editingProfile.costcoMembershipId ?? "",
         samsMembershipId: editingProfile.samsMembershipId ?? "",
+        imapHost: editingProfile.imapHost ?? "",
+        imapPort: editingProfile.imapPort ?? "993",
+        imapUser: editingProfile.imapUser ?? "",
+        imapPassword: editingProfile.imapPassword ?? "",
       });
     } else {
       form.reset(EMPTY_PROFILE);
@@ -389,6 +402,10 @@ function ProfileFormDialog({
       shipAddress2: values.shipAddress2 ?? "",
       costcoMembershipId: values.costcoMembershipId ?? "",
       samsMembershipId: values.samsMembershipId ?? "",
+      imapHost: values.imapHost ?? "",
+      imapPort: values.imapPort ?? "993",
+      imapUser: values.imapUser ?? "",
+      imapPassword: values.imapPassword ?? "",
     };
 
     if (isEditing && editingProfile) {
@@ -700,6 +717,49 @@ function ProfileFormDialog({
               )} />
             </div>
 
+            {/* IMAP / Email */}
+            <div>
+              <SectionHeader>
+                <span className="flex items-center gap-1.5">
+                  <Mail className="w-3.5 h-3.5" />
+                  IMAP / Email
+                </span>
+              </SectionHeader>
+              <p className="text-xs text-muted-foreground mb-4">
+                OTP codes for this profile will be fetched from this inbox. Leave blank to use the global IMAP account from Settings.
+              </p>
+              <div className="grid grid-cols-2 gap-4">
+                <FormField control={form.control} name="imapHost" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>IMAP Host</FormLabel>
+                    <FormControl><Input placeholder="imap.gmail.com" {...field} data-testid="input-profile-imap-host" /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                <FormField control={form.control} name="imapPort" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>IMAP Port</FormLabel>
+                    <FormControl><Input placeholder="993" {...field} data-testid="input-profile-imap-port" /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                <FormField control={form.control} name="imapUser" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email Address</FormLabel>
+                    <FormControl><Input type="email" placeholder="bot@gmail.com" {...field} data-testid="input-profile-imap-user" /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                <FormField control={form.control} name="imapPassword" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>App Password</FormLabel>
+                    <FormControl><Input type="password" placeholder="xxxx xxxx xxxx xxxx" {...field} data-testid="input-profile-imap-password" /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+              </div>
+            </div>
+
             <Separator />
 
             <div className="flex gap-3">
@@ -813,6 +873,16 @@ function ProfileCard({
           )}
           {profile.samsMembershipId && (
             <Badge variant="outline" className="text-blue-300 border-blue-400/20 bg-blue-400/5 text-[10px]">Sam's Club</Badge>
+          )}
+          {profile.imapUser && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Badge variant="outline" className="text-green-400 border-green-500/20 bg-green-500/10 text-[10px] gap-1 cursor-default">
+                  <Mail className="w-2.5 h-2.5" /> IMAP
+                </Badge>
+              </TooltipTrigger>
+              <TooltipContent className="text-xs">{profile.imapUser}</TooltipContent>
+            </Tooltip>
           )}
           <Badge variant="outline" className="text-[10px]">
             <CreditCardIcon className="w-2.5 h-2.5 mr-1" />{cards.length}/5 cards
