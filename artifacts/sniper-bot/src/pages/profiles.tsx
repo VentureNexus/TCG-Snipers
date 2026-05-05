@@ -726,7 +726,7 @@ function ProfileFormDialog({
                 </span>
               </SectionHeader>
               <p className="text-xs text-muted-foreground mb-4">
-                OTP codes for this profile will be fetched from this inbox. Leave blank to use the global IMAP account from Settings.
+                IMAP account is used to intercept OTP codes for tasks that don't have a profile-specific inbox configured. Each profile can override this with its own email in the profile editor. We recommend a dedicated Gmail account — use imap.gmail.com port 993 with an App Password (enable 2-Step Verification first, then generate the App Password).
               </p>
               <div className="grid grid-cols-2 gap-4">
                 <FormField control={form.control} name="imapHost" render={({ field }) => (
