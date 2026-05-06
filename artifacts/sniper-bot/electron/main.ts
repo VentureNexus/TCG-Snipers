@@ -715,6 +715,21 @@ const RELEASE_NOTES: Record<string, string> = {
     "- New CAPTCHA Assistance toggle in Settings (off by default) — enable it to activate the popup solver",
     "- Community sync is fully automatic once your license is active — no configuration needed",
   ].join("\n"),
+  "1.0.54": [
+    "- Fixed settings failing to load on upgrade from v1.0.52 (database migration now correctly adds new columns to existing installs)",
+    "- Human CAPTCHA Assistance: popup solver for manual CAPTCHA clicks when the bot gets stuck",
+    "- Your CAPTCHA solves are saved locally so the bot learns from you over time",
+    "- Community Knowledge Base: nav paths and CAPTCHA solutions shared anonymously across all licensed users",
+    "- Fresh installs benefit immediately from paths discovered by other users — no cold-start delay",
+    "- New CAPTCHA Assistance toggle in Settings (off by default)",
+  ].join("\n"),
+  "1.0.55": [
+    "- Login Human Assist: when the bot can't find the login form, a popup appears so you can navigate the browser manually",
+    "- Click directly on the live browser view and type using the keyboard bar — the bot watches and takes over once you're on the login page",
+    "- Your navigation steps are saved locally and shared to help train future logins for that retailer",
+    "- Improved Walmart login field detection across the identity.walmart.com page flow",
+    "- Improved Costco login — slide-out sign-in panel now falls back to human assist automatically",
+  ].join("\n"),
 };
 
 // Called by the renderer on mount to check if a "What's New" payload is
