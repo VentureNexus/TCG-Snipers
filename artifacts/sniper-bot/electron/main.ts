@@ -703,26 +703,73 @@ ipcMain.handle("update:startDownload", async () => {
   return started;
 });
 
+// Hardcoded release notes per version.
+// Shown once on first launch regardless of whether the user auto-updated or
+// did a fresh install. Add a new entry here with each release.
+const RELEASE_NOTES: Record<string, string> = {
+  "1.0.53": [
+    "- Human CAPTCHA Assistance: when the bot cannot auto-solve a CAPTCHA, a popup lets you click directly on the challenge in real time",
+    "- Your CAPTCHA clicks are saved locally so the bot learns your solve patterns over time",
+    "- Community Knowledge Base: nav paths and CAPTCHA solutions are shared anonymously across all licensed users",
+    "- Fresh installs now benefit from paths and patterns already discovered by other users — no cold-start delay",
+    "- New CAPTCHA Assistance toggle in Settings (off by default) — enable it to activate the popup solver",
+    "- Community sync is fully automatic once your license is active — no configuration needed",
+  ].join("\n"),
+};
+
 // Called by the renderer on mount to check if a "What's New" payload is
 // waiting (written by the autoUpdater when the previous download finished).
-// Reads the file, deletes it, and returns the content — shown only once.
+// Also fires on fresh installs — uses seen-whats-new.json to show each
+// version's notes exactly once regardless of how the user got the update.
 ipcMain.handle("update:getPendingWhatsNew", () => {
-  const filePath = path.join(app.getPath("userData"), "pending-whats-new.json");
+  const currentVersion = app.getVersion();
+  const pendingPath = path.join(app.getPath("userData"), "pending-whats-new.json");
+  const seenPath    = path.join(app.getPath("userData"), "seen-whats-new.json");
+
+  // Path 1: auto-updater left a pending file — prefer hardcoded notes if available
   try {
-    if (fs.existsSync(filePath)) {
-      const data = JSON.parse(fs.readFileSync(filePath, "utf-8")) as {
+    if (fs.existsSync(pendingPath)) {
+      const data = JSON.parse(fs.readFileSync(pendingPath, "utf-8")) as {
         version: string;
         releaseNotes: string | null;
       };
-      fs.unlinkSync(filePath);
-      // Only show if the installed version matches what was downloaded
-      if (data.version === app.getVersion()) return data;
+      fs.unlinkSync(pendingPath);
+      if (data.version === currentVersion) {
+        markVersionSeen(seenPath, currentVersion);
+        const notes = RELEASE_NOTES[currentVersion] ?? data.releaseNotes;
+        return { version: currentVersion, releaseNotes: notes };
+      }
     }
   } catch (e) {
     writeLog("WARN", "[update:getPendingWhatsNew] error reading pending notes:", String(e));
   }
+
+  // Path 2: fresh install or skipped auto-updater — show hardcoded notes once
+  try {
+    const notes = RELEASE_NOTES[currentVersion];
+    if (notes) {
+      let seen: Record<string, boolean> = {};
+      try { seen = JSON.parse(fs.readFileSync(seenPath, "utf-8")); } catch { /* first launch */ }
+      if (!seen[currentVersion]) {
+        markVersionSeen(seenPath, currentVersion);
+        return { version: currentVersion, releaseNotes: notes };
+      }
+    }
+  } catch (e) {
+    writeLog("WARN", "[update:getPendingWhatsNew] error checking seen versions:", String(e));
+  }
+
   return null;
 });
+
+function markVersionSeen(seenPath: string, version: string): void {
+  try {
+    let seen: Record<string, boolean> = {};
+    try { seen = JSON.parse(fs.readFileSync(seenPath, "utf-8")); } catch { /* ok */ }
+    seen[version] = true;
+    fs.writeFileSync(seenPath, JSON.stringify(seen), "utf-8");
+  } catch { /* non-fatal */ }
+}
 
 // ── App lifecycle ────────────────────────────────────────────────────────────
 app.whenReady().then(async () => {

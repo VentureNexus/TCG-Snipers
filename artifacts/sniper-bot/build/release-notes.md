@@ -1,0 +1,6 @@
+- Human CAPTCHA Assistance: when the bot cannot auto-solve a CAPTCHA, a popup lets you click directly on the challenge in real time
+- Your CAPTCHA clicks are saved locally so the bot learns your solve patterns over time
+- Community Knowledge Base: nav paths and CAPTCHA solutions are shared anonymously across all licensed users
+- Fresh installs now benefit from paths and patterns already discovered by other users — no cold-start delay
+- New CAPTCHA Assistance toggle in Settings (off by default) — enable it to activate the popup solver
+- Community sync is fully automatic once your license is active — no configuration needed
