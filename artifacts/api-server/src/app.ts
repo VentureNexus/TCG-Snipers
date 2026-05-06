@@ -47,3 +47,4 @@ export default app;
 export { createWebSocketServer, initStatusCacheFromDb } from "./lib/websocket";
 export { setMaxConcurrency } from "./lib/taskWorker";
 export { getOrCreateSettings } from "./routes/settings";
+export { setTtlHours } from "./lib/retailers/sessionCache";

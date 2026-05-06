@@ -295,19 +295,24 @@ async function startApiServer(): Promise<void> {
     // starts listening so the 'upgrade' event is wired up. Without this every
     // WS connection hits Express and gets a 404, meaning task logs never appear.
     try {
-      const { createWebSocketServer, initStatusCacheFromDb, setMaxConcurrency, getOrCreateSettings } = apiModule;
+      const { createWebSocketServer, initStatusCacheFromDb, setMaxConcurrency, setTtlHours, getOrCreateSettings } = apiModule;
       if (typeof createWebSocketServer === "function") {
         createWebSocketServer(apiServer);
         writeLog("INFO", "WebSocket server initialized on HTTP server");
       } else {
         writeLog("WARN", "createWebSocketServer not exported from app module — logs will not stream");
       }
-      // Apply persisted concurrency setting
-      if (typeof getOrCreateSettings === "function" && typeof setMaxConcurrency === "function") {
+      // Apply persisted concurrency and session TTL settings
+      if (typeof getOrCreateSettings === "function") {
         try {
           const settings = await getOrCreateSettings();
-          setMaxConcurrency(settings.concurrency);
-          writeLog("INFO", `Settings loaded — concurrency: ${settings.concurrency}`);
+          if (typeof setMaxConcurrency === "function") {
+            setMaxConcurrency(settings.concurrency);
+          }
+          if (typeof setTtlHours === "function") {
+            setTtlHours(settings.sessionTtlHours ?? null);
+          }
+          writeLog("INFO", `Settings loaded — concurrency: ${settings.concurrency}, sessionTtlHours: ${settings.sessionTtlHours ?? "default"}`);
         } catch (settingsErr) {
           writeLog("WARN", `Could not load settings: ${settingsErr}`);
         }

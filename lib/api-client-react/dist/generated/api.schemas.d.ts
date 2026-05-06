@@ -20,6 +20,8 @@ export interface Settings {
     imapPassword: string;
     discordGuildName?: string | null;
     discordChannelName?: string | null;
+    /** @nullable */
+    sessionTtlHours?: number | null;
     systemCores?: number;
     recommendedMin?: number;
     recommendedMax?: number;
@@ -35,6 +37,8 @@ export interface UpdateSettingsBody {
     imapPassword?: string;
     discordGuildName?: string | null;
     discordChannelName?: string | null;
+    /** @nullable */
+    sessionTtlHours?: number | null;
 }
 export interface Profile {
     id: number;

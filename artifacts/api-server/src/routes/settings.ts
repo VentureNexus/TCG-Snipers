@@ -4,6 +4,7 @@ import os from "os";
 import { db, settingsTable } from "@workspace/db";
 import { updateSettingsSchema } from "@workspace/db";
 import { setMaxConcurrency } from "../lib/taskWorker";
+import { setTtlHours } from "../lib/retailers/sessionCache";
 
 const CONCURRENCY_HARD_MAX = 50;
 
@@ -48,6 +49,7 @@ router.put("/settings", async (req, res): Promise<void> => {
   if (updated.concurrency !== undefined) {
     setMaxConcurrency(updated.concurrency);
   }
+  setTtlHours(updated.sessionTtlHours ?? null);
   res.json({ ...updated, ...getSystemConcurrencyHint() });
 });
 

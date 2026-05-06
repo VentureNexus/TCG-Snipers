@@ -8,6 +8,13 @@
       "when": 1777966644730,
       "tag": "0000_green_scarlet_spider",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1746561600000,
+      "tag": "0001_add_session_ttl_hours",
+      "breakpoints": true
     }
   ]
 }

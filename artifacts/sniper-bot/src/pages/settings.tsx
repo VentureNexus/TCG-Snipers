@@ -43,12 +43,14 @@ interface SettingsForm {
   concurrency: number;
   monitorDelay: number;
   monitorDelayMax: number;
+  sessionTtlHours: string;
 }
 
 const DEFAULT_SETTINGS: SettingsForm = {
   concurrency: 5,
   monitorDelay: 200,
   monitorDelayMax: 800,
+  sessionTtlHours: "",
 };
 
 function deepEqual<T>(a: T, b: T): boolean {
@@ -103,6 +105,7 @@ export default function SettingsPage() {
         concurrency: settingsData.concurrency,
         monitorDelay: settingsData.monitorDelay,
         monitorDelayMax: settingsData.monitorDelayMax ?? 800,
+        sessionTtlHours: settingsData.sessionTtlHours != null ? String(settingsData.sessionTtlHours) : "",
       };
       setSettings(baseline);
       engineBaseline.current = baseline;
@@ -146,7 +149,11 @@ export default function SettingsPage() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type } = e.target;
-    setSettings((s) => ({ ...s, [name]: type === "number" ? Number(value) : value }));
+    if (name === "sessionTtlHours") {
+      setSettings((s) => ({ ...s, sessionTtlHours: value }));
+    } else {
+      setSettings((s) => ({ ...s, [name]: type === "number" ? Number(value) : value }));
+    }
   };
 
   const handleDefaultsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -165,13 +172,29 @@ export default function SettingsPage() {
     ? "Min must be less than Max"
     : null;
 
+  const sessionTtlParsed = settings.sessionTtlHours === "" ? null : parseFloat(settings.sessionTtlHours);
+  const sessionTtlError = settings.sessionTtlHours !== "" && (sessionTtlParsed === null || !Number.isFinite(sessionTtlParsed) || sessionTtlParsed <= 0)
+    ? "Session timeout must be a positive number"
+    : null;
+
+  const buildEnginePayload = () => ({
+    concurrency: settings.concurrency,
+    monitorDelay: settings.monitorDelay,
+    monitorDelayMax: settings.monitorDelayMax,
+    sessionTtlHours: settings.sessionTtlHours === "" ? null : parseFloat(settings.sessionTtlHours),
+  });
+
   const handleSave = () => {
     if (delayError) {
       toast({ title: "Invalid delay range", description: delayError, variant: "destructive" });
       return;
     }
+    if (sessionTtlError) {
+      toast({ title: "Invalid session timeout", description: sessionTtlError, variant: "destructive" });
+      return;
+    }
     updateSettingsMutation.mutate(
-      { data: settings },
+      { data: buildEnginePayload() },
       {
         onSuccess: (updatedSettings) => {
           const prev = queryClient.getQueryData<typeof settingsData>(getGetSettingsQueryKey());
@@ -208,9 +231,11 @@ export default function SettingsPage() {
     if (isEngineDirty) {
       if (delayError) {
         toast({ title: "Invalid delay range", description: delayError, variant: "destructive" });
+      } else if (sessionTtlError) {
+        toast({ title: "Invalid session timeout", description: sessionTtlError, variant: "destructive" });
       } else {
         try {
-          const updatedSettings = await updateSettingsMutation.mutateAsync({ data: settings });
+          const updatedSettings = await updateSettingsMutation.mutateAsync({ data: buildEnginePayload() });
           const prev = queryClient.getQueryData<typeof settingsData>(getGetSettingsQueryKey());
           queryClient.setQueryData(getGetSettingsQueryKey(), {
             ...updatedSettings,
@@ -449,6 +474,28 @@ export default function SettingsPage() {
                     <p className="text-xs text-amber-400 font-medium">Very low delays can get your IP flagged. We recommend keeping min delay above 150ms.</p>
                   )}
                   <p className="text-xs text-muted-foreground">Recommended: 200–800ms. Values under 150ms may trigger bot detection on some retailers.</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-6 pt-2 border-t border-border/40">
+                <div className="space-y-2">
+                  <Label htmlFor="sessionTtlHours">Session Timeout (hours)</Label>
+                  <Input
+                    id="sessionTtlHours"
+                    name="sessionTtlHours"
+                    type="number"
+                    min={0.1}
+                    step={0.5}
+                    placeholder="24"
+                    value={settings.sessionTtlHours}
+                    onChange={handleChange}
+                  />
+                  {sessionTtlError && (
+                    <p className="text-xs text-red-400 font-medium">{sessionTtlError}</p>
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    How long saved retailer login sessions are kept before re-login is required. Leave blank to use the default (24 h).
+                  </p>
                 </div>
               </div>
             </CardContent>

@@ -10,7 +10,19 @@ const CACHE_DIR = path.join(
 /** Default max age before a session is considered stale and triggers a re-login (24 hours). */
 const DEFAULT_TTL_HOURS = 24;
 
+/** Runtime override set from the database settings (null = not yet loaded). */
+let _ttlOverrideHours: number | null = null;
+
+/**
+ * Set the session TTL in hours from the database settings.
+ * Pass null to clear the override and fall back to SESSION_TTL_HOURS or the default.
+ */
+export function setTtlHours(hours: number | null): void {
+  _ttlOverrideHours = hours != null && Number.isFinite(hours) && hours > 0 ? hours : null;
+}
+
 function getTtlMs(): number {
+  if (_ttlOverrideHours !== null) return _ttlOverrideHours * 60 * 60 * 1000;
   const envHours = parseFloat(process.env.SESSION_TTL_HOURS ?? "");
   const hours = Number.isFinite(envHours) && envHours > 0 ? envHours : DEFAULT_TTL_HOURS;
   return hours * 60 * 60 * 1000;

@@ -4,6 +4,7 @@ import { logger } from "./lib/logger";
 import { createWebSocketServer, initStatusCacheFromDb } from "./lib/websocket";
 import { setMaxConcurrency } from "./lib/taskWorker";
 import { getOrCreateSettings } from "./routes/settings";
+import { setTtlHours } from "./lib/retailers/sessionCache";
 import { runStartupLoginCheck } from "./lib/startupLoginCheck";
 
 const rawPort = process.env["PORT"];
@@ -29,7 +30,8 @@ async function bootstrap(): Promise<void> {
   try {
     const settings = await getOrCreateSettings();
     setMaxConcurrency(settings.concurrency);
-    logger.info({ concurrency: settings.concurrency }, "Settings loaded — concurrency applied");
+    setTtlHours(settings.sessionTtlHours ?? null);
+    logger.info({ concurrency: settings.concurrency, sessionTtlHours: settings.sessionTtlHours }, "Settings loaded — concurrency and session TTL applied");
   } catch (err) {
     logger.warn({ err }, "Could not load settings on startup; using defaults");
   }

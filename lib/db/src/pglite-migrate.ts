@@ -30,6 +30,10 @@ export async function runPgliteMigrations(client: PGlite): Promise<void> {
   `).catch(() => { /* table may not exist yet — CREATE below will include it */ });
 
   await client.exec(`
+    ALTER TABLE settings ADD COLUMN IF NOT EXISTS session_ttl_hours REAL;
+  `).catch(() => { /* table may not exist yet — CREATE below will include it */ });
+
+  await client.exec(`
     ALTER TABLE settings ADD COLUMN IF NOT EXISTS monitor_delay_max INTEGER DEFAULT 800;
   `).catch(() => { /* table may not exist yet — CREATE below will include it */ });
 
@@ -204,7 +208,8 @@ export async function runPgliteMigrations(client: PGlite): Promise<void> {
       imap_email TEXT NOT NULL DEFAULT '',
       imap_password TEXT NOT NULL DEFAULT '',
       discord_guild_name TEXT,
-      discord_channel_name TEXT
+      discord_channel_name TEXT,
+      session_ttl_hours REAL
     );
   `);
 }

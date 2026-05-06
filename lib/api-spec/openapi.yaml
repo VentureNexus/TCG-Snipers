@@ -871,6 +871,10 @@ components:
           type: string
         imapPassword:
           type: string
+        sessionTtlHours:
+          type: number
+          nullable: true
+          description: How long saved login sessions are kept before re-login is required (hours). Null falls back to SESSION_TTL_HOURS env var or 24 h.
         systemCores:
           type: integer
           description: Number of logical CPU cores detected on the server.
@@ -907,6 +911,10 @@ components:
           type: string
         imapPassword:
           type: string
+        sessionTtlHours:
+          type: number
+          nullable: true
+          description: How long saved login sessions are kept before re-login is required (hours). Null falls back to SESSION_TTL_HOURS env var or 24 h.
 
     # ── PROFILE EXPORT/IMPORT ─────────────────────────────────────────────
     ProfileExportData:
