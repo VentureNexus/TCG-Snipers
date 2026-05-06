@@ -1,1 +1,2 @@
-- Fixed: Costco login now opens the sign-in page directly — no more slide-out panel navigation required
+- Fixed: Walmart login no longer fails silently — the bot was finding a hidden ghost input injected by Walmart's identity page instead of the real email field, typing into it invisibly, then timing out without ever opening the human assist window
+- The real visible email field is now targeted correctly every time
