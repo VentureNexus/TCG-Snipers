@@ -69,6 +69,8 @@ declare global {
         check: () => Promise<UpdateInfo | null>;
         latest: () => Promise<UpdateInfo | null>;
         openDownload: () => Promise<void>;
+        /** Start the in-app background download (user-initiated). Returns false on unsigned/dev builds. */
+        startDownload: () => Promise<boolean>;
         onAvailable: (handler: (info: UpdateInfo) => void) => () => void;
         /** Returns the staged update (downloaded + ready to install) if any. */
         downloaded: () => Promise<DownloadedUpdate | null>;
@@ -78,6 +80,8 @@ declare global {
         onDownloaded: (handler: (info: DownloadedUpdate) => void) => () => void;
         /** Fires periodically while a new version is being downloaded. */
         onProgress: (handler: (p: UpdateProgress) => void) => () => void;
+        /** Returns a pending What's New payload if a fresh update was just installed (one-shot). */
+        getPendingWhatsNew: () => Promise<{ version: string; releaseNotes: string | null } | null>;
       };
       /** In-app diagnostics — API server health, log buffer, and request metrics. */
       diagnostics: {

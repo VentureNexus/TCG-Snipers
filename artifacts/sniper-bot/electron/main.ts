@@ -18,6 +18,7 @@ import {
   getDownloadedUpdate,
   quitAndInstallUpdate,
   checkForUpdatesNow,
+  triggerDownload,
 } from "./autoUpdater.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -680,7 +681,41 @@ ipcMain.handle("update:check", async () => {
 ipcMain.handle("update:latest", () => getLastResult());
 ipcMain.handle("update:openDownload", () => openDownloadPage());
 ipcMain.handle("update:downloaded", () => getDownloadedUpdate());
-ipcMain.handle("update:install", () => quitAndInstallUpdate());
+ipcMain.handle("update:install", () => {
+  // Save the last-installed marker so the "What's New" dialog won't re-appear
+  // on the next non-update launch.
+  quitAndInstallUpdate();
+});
+
+// Triggered when the user explicitly clicks "Update Now" in the banner.
+// Starts the electron-updater background download; falls back to opening
+// the browser download page for unsigned / dev builds.
+ipcMain.handle("update:startDownload", async () => {
+  const started = await triggerDownload();
+  if (!started) openDownloadPage();
+  return started;
+});
+
+// Called by the renderer on mount to check if a "What's New" payload is
+// waiting (written by the autoUpdater when the previous download finished).
+// Reads the file, deletes it, and returns the content — shown only once.
+ipcMain.handle("update:getPendingWhatsNew", () => {
+  const filePath = path.join(app.getPath("userData"), "pending-whats-new.json");
+  try {
+    if (fs.existsSync(filePath)) {
+      const data = JSON.parse(fs.readFileSync(filePath, "utf-8")) as {
+        version: string;
+        releaseNotes: string | null;
+      };
+      fs.unlinkSync(filePath);
+      // Only show if the installed version matches what was downloaded
+      if (data.version === app.getVersion()) return data;
+    }
+  } catch (e) {
+    writeLog("WARN", "[update:getPendingWhatsNew] error reading pending notes:", String(e));
+  }
+  return null;
+});
 
 // ── App lifecycle ────────────────────────────────────────────────────────────
 app.whenReady().then(async () => {

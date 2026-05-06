@@ -37,6 +37,8 @@ const api = {
     check: (): Promise<UpdateInfo | null> => ipcRenderer.invoke("update:check"),
     latest: (): Promise<UpdateInfo | null> => ipcRenderer.invoke("update:latest"),
     openDownload: (): Promise<void> => ipcRenderer.invoke("update:openDownload"),
+    /** Start the in-app background download (user-initiated). Falls back to browser on unsigned builds. */
+    startDownload: (): Promise<boolean> => ipcRenderer.invoke("update:startDownload"),
     onAvailable: (handler: (info: UpdateInfo) => void): (() => void) => {
       const listener = (_e: unknown, info: UpdateInfo) => handler(info);
       ipcRenderer.on("update:available", listener);
@@ -55,6 +57,9 @@ const api = {
       ipcRenderer.on("update:progress", listener);
       return () => ipcRenderer.removeListener("update:progress", listener);
     },
+    /** Returns a pending What's New payload if a fresh update was just installed (one-shot, file deleted after read). */
+    getPendingWhatsNew: (): Promise<{ version: string; releaseNotes: string | null } | null> =>
+      ipcRenderer.invoke("update:getPendingWhatsNew"),
   },
 
   /** In-app diagnostics — API server health, log buffer, and request metrics. */

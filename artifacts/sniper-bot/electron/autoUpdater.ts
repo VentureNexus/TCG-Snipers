@@ -1,4 +1,6 @@
 import { app, BrowserWindow } from "electron";
+import fs from "fs";
+import path from "path";
 import pkg from "electron-updater";
 const { autoUpdater } = pkg;
 
@@ -44,8 +46,8 @@ export function startAutoUpdater(getWindow: () => BrowserWindow | null): void {
 
   // electron-updater handles the manifest URL itself via the `publish` config
   // baked in by electron-builder at build time (we set provider: github).
-  autoUpdater.autoDownload = true;
-  autoUpdater.autoInstallOnAppQuit = true;
+  autoUpdater.autoDownload = false;
+  autoUpdater.autoInstallOnAppQuit = false;
   autoUpdater.allowPrerelease = false;
 
   // electron-updater accepts any logger that implements the four common
@@ -101,6 +103,15 @@ export function startAutoUpdater(getWindow: () => BrowserWindow | null): void {
       releaseDate: info.releaseDate,
     };
     console.log("[autoUpdater] update downloaded", downloaded.version);
+
+    // Persist release notes so the app can show a "What's New" dialog after restart
+    try {
+      const pendingPath = path.join(app.getPath("userData"), "pending-whats-new.json");
+      fs.writeFileSync(pendingPath, JSON.stringify({ version: downloaded.version, releaseNotes: downloaded.releaseNotes ?? null }), "utf-8");
+    } catch (e) {
+      console.warn("[autoUpdater] Could not save pending-whats-new.json:", e);
+    }
+
     const win = getWindow();
     if (win && !win.isDestroyed()) {
       win.webContents.send("update:downloaded", downloaded);
@@ -144,4 +155,18 @@ export function checkForUpdatesNow(): Promise<unknown> {
     console.error("[autoUpdater check]", e);
     return null;
   });
+}
+
+// Called when the user explicitly clicks "Update Now".
+// Returns true if the in-app download was started, false if caller should
+// fall back to opening the download page (unsigned build, dev mode, etc.).
+export async function triggerDownload(): Promise<boolean> {
+  if (!canAutoUpdate()) return false;
+  try {
+    await autoUpdater.downloadUpdate();
+    return true;
+  } catch (err) {
+    console.error("[autoUpdater triggerDownload]", err);
+    return false;
+  }
 }
