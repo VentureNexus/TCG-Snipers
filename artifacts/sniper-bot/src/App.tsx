@@ -10,6 +10,7 @@ import { LicenseGate } from "@/components/LicenseGate";
 import { UpdateBanner } from "@/components/UpdateBanner";
 import { WhatsNewDialog } from "@/components/WhatsNewDialog";
 import { CaptchaAssistModal } from "@/components/CaptchaAssistModal";
+import { LoginAssistModal } from "@/components/LoginAssistModal";
 import { DbErrorBanner } from "@/components/DbErrorBanner";
 import { UnsavedChangesProvider } from "@/lib/unsaved-changes";
 
@@ -52,6 +53,7 @@ function App() {
             <UpdateBanner />
             <WhatsNewDialog />
             <CaptchaAssistModal />
+            <LoginAssistModal />
             <LicenseGate>
               <WouterRouter
                 base={import.meta.env.BASE_URL.replace(/\.?\/$/, "")}
