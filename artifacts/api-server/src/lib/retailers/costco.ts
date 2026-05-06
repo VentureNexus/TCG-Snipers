@@ -99,21 +99,9 @@ export async function runCostco(ctx: RetailerContext): Promise<RetailerResult> {
           } else {
             log("INFO", `[${RETAILER}] Member gate / account button detected — navigating to sign-in...`);
           }
-          await memberGate.click();
+          await page.goto("https://www.costco.com/LogonForm", { waitUntil: "domcontentloaded" });
           await humanDelay(1500, 2500);
           await screenshot(page);
-
-          // If clicking the account button didn't reveal a login form, use visual
-          // navigator to find the "Sign In" button in any slide-out panel that appeared.
-          const loginFormVisible = await page.$('#signInName, input[name="logonId"], input[name="email"]').catch(() => null);
-          if (!loginFormVisible) {
-            const navResult = await navigateTo(page, RETAILER, "click the Sign In or Log In button to reach the login form", "member_gate", log).catch(() => null);
-            if (navResult?.success) {
-              log("INFO", `[${RETAILER}] Visual navigator found login path: ${navResult.message}`);
-            }
-            await humanDelay(1000, 1800);
-            await screenshot(page);
-          }
 
           try {
             await humanType(page, '#signInName, input[name="logonId"], input[name="email"]', costcoLoginIdentity.email);

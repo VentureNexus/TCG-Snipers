@@ -736,6 +736,9 @@ const RELEASE_NOTES: Record<string, string> = {
     "- Added scroll support — scroll the wheel on the image to scroll the live page",
     "- Browser view now refreshes every 0.5 s for a much more responsive feel",
   ].join("\n"),
+  "1.0.57": [
+    "- Fixed: Costco login now opens the sign-in page directly — no more slide-out panel navigation required",
+  ].join("\n"),
 };
 
 // Called by the renderer on mount to check if a "What's New" payload is
