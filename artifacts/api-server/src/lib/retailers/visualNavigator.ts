@@ -15,7 +15,7 @@
 import fs from "fs";
 import path from "path";
 import os from "os";
-import type { Page } from "playwright-core";
+import type { Page, Locator } from "playwright-core";
 
 const NAV_CACHE_DIR = path.join(
   process.env.SESSION_CACHE_DIR ?? path.join(os.homedir(), ".tcg-snipers"),
@@ -44,7 +44,9 @@ export interface NavResult {
   visualAssist: boolean;
 }
 
-export type ChallengeType = "none" | "captcha" | "cloudflare" | "blocked";
+export type ChallengeType = "none" | "captcha" | "recaptcha_grid" | "press_hold" | "cloudflare" | "blocked";
+
+type LogFn = (level: "INFO" | "SUCCESS" | "WARN" | "ERROR", msg: string) => void;
 
 export interface ChallengeResult {
   type: ChallengeType;
@@ -178,6 +180,60 @@ Example response: [{"action":"click","descriptor":"the 'Account' link in the top
   }
 
   return JSON.parse(jsonMatch[0]) as NavAction[];
+}
+
+// Ask Claude to identify which grid cells match the CAPTCHA instruction
+async function askLlmForCaptchaGridCells(
+  screenshotBase64: string,
+  instruction: string,
+): Promise<{ cells: number[]; gridSize: number }> {
+  const baseUrl = process.env.AI_INTEGRATIONS_ANTHROPIC_BASE_URL;
+  const apiKey = process.env.AI_INTEGRATIONS_ANTHROPIC_API_KEY;
+  if (!baseUrl || !apiKey) throw new Error("Anthropic AI integration not configured");
+
+  const prompt = `You are analyzing a CAPTCHA image grid challenge.
+
+CAPTCHA INSTRUCTION: "${instruction}"
+
+Examine the grid image. Cells are numbered 0-based, left-to-right, top-to-bottom (like reading order).
+Count the grid dimensions (typically 3×3 = 9 cells, or 4×4 = 16 cells).
+Identify which cells contain images that match the CAPTCHA instruction.
+
+Return ONLY a JSON object — no explanation, no markdown:
+{"cells":[0,3,5],"gridSize":3}
+
+Where:
+- "cells": 0-based indices of matching cells ([] if none match)
+- "gridSize": 3 for 3×3, 4 for 4×4`;
+
+  const response = await fetch(`${baseUrl}/messages`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify({
+      model: "claude-opus-4-5",
+      max_tokens: 256,
+      messages: [{
+        role: "user",
+        content: [
+          { type: "image", source: { type: "base64", media_type: "image/jpeg", data: screenshotBase64 } },
+          { type: "text", text: prompt },
+        ],
+      }],
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Anthropic API ${response.status}: ${(await response.text()).slice(0, 200)}`);
+  }
+  const data = await response.json() as { content: Array<{ type: string; text?: string }> };
+  const text = data.content.find((b) => b.type === "text")?.text?.trim() ?? "";
+  const jsonMatch = text.match(/\{[\s\S]*?\}/);
+  if (!jsonMatch) return { cells: [], gridSize: 3 };
+  try { return JSON.parse(jsonMatch[0]) as { cells: number[]; gridSize: number }; } catch { return { cells: [], gridSize: 3 }; }
 }
 
 // ---------------------------------------------------------------------------
@@ -422,17 +478,66 @@ export async function handleChallengeInTask(
   const challenge = await detectChallenge(page).catch(() => null);
   if (!challenge || challenge.type === "none") return null;
 
+  // ── Auto-solve attempts before pausing ──────────────────────────────────
+
+  if (challenge.type === "press_hold") {
+    log("INFO", `[${retailer}] PerimeterX press-and-hold detected — attempting auto-solve...`);
+    await setStatus("solving_captcha").catch(() => {});
+    const solved = await solveWalmartPressHold(page, log).catch(() => false);
+    if (solved) {
+      await new Promise((r) => setTimeout(r, 2000));
+      const recheck = await detectChallenge(page).catch(() => null);
+      if (!recheck || recheck.type === "none") {
+        log("SUCCESS", `[${retailer}] Press-and-hold CAPTCHA auto-solved — continuing`);
+        return null;
+      }
+    }
+  }
+
+  if (challenge.type === "recaptcha_grid" || challenge.type === "captcha") {
+    log("INFO", `[${retailer}] reCAPTCHA/hCaptcha image grid detected — attempting auto-solve...`);
+    await setStatus("solving_captcha").catch(() => {});
+    const solved = await solveRecaptchaGrid(page, log).catch(() => false);
+    if (solved) {
+      await new Promise((r) => setTimeout(r, 2000));
+      const recheck = await detectChallenge(page).catch(() => null);
+      if (!recheck || recheck.type === "none") {
+        log("SUCCESS", `[${retailer}] Image grid CAPTCHA auto-solved — continuing`);
+        return null;
+      }
+    }
+  }
+
+  // ── All auto-solve attempts failed — pause and notify user ──────────────
+
   const label =
-    challenge.type === "cloudflare" ? "Cloudflare bot detection" : "CAPTCHA challenge";
-  const msg = `[${retailer}] ${label} detected${challenge.attempted ? " (auto-click attempted)" : ""} — task paused. Complete verification manually then restart the task.`;
+    challenge.type === "cloudflare" ? "Cloudflare bot detection"
+    : challenge.type === "press_hold" ? "press-and-hold CAPTCHA (PerimeterX)"
+    : challenge.type === "recaptcha_grid" ? "reCAPTCHA image grid"
+    : "CAPTCHA challenge";
+
+  const attemptedNote = challenge.attempted || ["press_hold", "recaptcha_grid"].includes(challenge.type)
+    ? " (auto-solve attempted)"
+    : "";
+
+  const msg = `[${retailer}] ${label} detected${attemptedNote} — task paused. Complete verification manually then restart the task.`;
 
   log("ERROR", msg);
   await setStatus("paused_captcha").catch(() => {});
 
-  if (challenge.screenshot) {
+  // Capture fresh screenshot for the UI notification
+  let screenshot = challenge.screenshot;
+  if (!screenshot) {
+    try {
+      const buf = await page.screenshot({ type: "jpeg", quality: 50 });
+      screenshot = "data:image/jpeg;base64," + buf.toString("base64");
+    } catch { }
+  }
+
+  if (screenshot) {
     try {
       const { broadcastScreenshot } = await import("../websocket");
-      broadcastScreenshot(taskId, challenge.screenshot);
+      broadcastScreenshot(taskId, screenshot);
     } catch {
       // non-fatal
     }
@@ -493,6 +598,252 @@ export async function waitForSelectorWithVisualFallback(
 }
 
 // ---------------------------------------------------------------------------
+// Public: solveRecaptchaGrid
+// Uses Claude vision to solve reCAPTCHA / hCaptcha image-grid challenges.
+// Iterates up to 4 rounds — each round screenshots the grid, asks Claude
+// which cells to click, clicks them, then presses Verify.
+// Returns true if the challenge iframe disappears (solved), false otherwise.
+// ---------------------------------------------------------------------------
+
+export async function solveRecaptchaGrid(page: Page, log?: LogFn): Promise<boolean> {
+  const TAG = "[CAPTCHA-Grid]";
+
+  // reCAPTCHA bframe OR hCaptcha challenge iframe
+  const CHALLENGE_FRAME_URL_PATTERNS = ["bframe", "hcaptcha.com/challenge", "recaptcha/api2/bframe"];
+
+  const INSTRUCTION_SELECTORS = [
+    ".rc-imageselect-desc-no-canonical",
+    ".rc-imageselect-desc",
+    ".rc-imageselect-instructions",
+    "[class*='prompt-text']",
+    ".task-description",
+  ];
+  const TILE_SELECTORS = [
+    ".rc-imageselect-tile",
+    "td.rc-imageselect-tile",
+    "[class*='task-image']",
+    "[class*='image-wrapper'] img",
+  ];
+  const VERIFY_SELECTORS = [
+    "#recaptcha-verify-button",
+    "button:has-text('Verify')",
+    "button:has-text('Submit')",
+    ".button-submit",
+    "[class*='verify']",
+  ];
+  const GRID_SCREENSHOT_SELECTORS = [
+    ".rc-imageselect-table",
+    "[class*='task-grid']",
+    ".challenge-container",
+    "body",
+  ];
+
+  const getChallengeFrame = () =>
+    page.frames().find((f) =>
+      CHALLENGE_FRAME_URL_PATTERNS.some((p) => f.url().includes(p))
+    ) ?? null;
+
+  const MAX_ROUNDS = 4;
+  for (let round = 1; round <= MAX_ROUNDS; round++) {
+    const frame = getChallengeFrame();
+    if (!frame) {
+      log?.("SUCCESS", `${TAG} Challenge frame gone — assumed solved`);
+      return true;
+    }
+
+    log?.("INFO", `${TAG} Round ${round}/${MAX_ROUNDS}`);
+
+    // Extract instruction text
+    let instruction = "";
+    for (const sel of INSTRUCTION_SELECTORS) {
+      const text = await frame.locator(sel).first().textContent().catch(() => null);
+      if (text?.trim()) { instruction = text.trim(); break; }
+    }
+    log?.("INFO", `${TAG} Instruction: "${instruction || "(none found)"}"`);
+
+    // Screenshot the grid
+    let screenshotBuf: Buffer | null = null;
+    for (const sel of GRID_SCREENSHOT_SELECTORS) {
+      const loc = frame.locator(sel).first();
+      if (await loc.count().catch(() => 0) > 0) {
+        screenshotBuf = await loc.screenshot({ type: "jpeg", quality: 75 }).catch(() => null);
+        if (screenshotBuf) break;
+      }
+    }
+    if (!screenshotBuf) {
+      log?.("WARN", `${TAG} Could not screenshot challenge grid — aborting`);
+      break;
+    }
+
+    // Ask Claude which cells to click
+    let cellResult = { cells: [] as number[], gridSize: 3 };
+    try {
+      cellResult = await askLlmForCaptchaGridCells(screenshotBuf.toString("base64"), instruction);
+      log?.("INFO", `${TAG} Claude identified cells [${cellResult.cells.join(", ")}] in ${cellResult.gridSize}×${cellResult.gridSize} grid`);
+    } catch (err) {
+      log?.("WARN", `${TAG} Claude cell identification failed: ${String(err)}`);
+      break;
+    }
+
+    // Click the identified tiles
+    if (cellResult.cells.length > 0) {
+      let tilesLocator: Locator | null = null;
+      for (const sel of TILE_SELECTORS) {
+        const loc = frame.locator(sel);
+        if (await loc.count().catch(() => 0) > 0) { tilesLocator = loc; break; }
+      }
+
+      if (tilesLocator) {
+        const tileCount = await tilesLocator.count().catch(() => 0);
+        for (const idx of cellResult.cells) {
+          if (idx < tileCount) {
+            await tilesLocator.nth(idx).click({ force: true }).catch(() => {});
+            await new Promise((r) => setTimeout(r, 350 + Math.random() * 200));
+          }
+        }
+        log?.("INFO", `${TAG} Clicked ${cellResult.cells.filter((i) => i < tileCount).length} tiles`);
+      } else {
+        log?.("WARN", `${TAG} Could not locate tile elements`);
+      }
+    } else {
+      log?.("INFO", `${TAG} No matching cells — proceeding to verify`);
+    }
+
+    await new Promise((r) => setTimeout(r, 800));
+
+    // Click Verify
+    let verified = false;
+    for (const sel of VERIFY_SELECTORS) {
+      const btn = frame.locator(sel).first();
+      if (await btn.count().catch(() => 0) > 0 && await btn.isVisible().catch(() => false)) {
+        await btn.click().catch(() => {});
+        verified = true;
+        log?.("INFO", `${TAG} Clicked verify button`);
+        break;
+      }
+    }
+    if (!verified) {
+      log?.("WARN", `${TAG} Verify button not found`);
+      break;
+    }
+
+    await new Promise((r) => setTimeout(r, 2500));
+
+    // Check if challenge frame is gone (= solved)
+    if (!getChallengeFrame()) {
+      log?.("SUCCESS", `${TAG} Image grid CAPTCHA solved!`);
+      return true;
+    }
+
+    // Log any retry feedback from the challenge
+    const feedback = await frame.locator(
+      ".rc-imageselect-error-select-more, .rc-imageselect-error-dynamic-more, [class*='error-message']"
+    ).first().textContent().catch(() => "");
+    if (feedback?.trim()) log?.("INFO", `${TAG} Challenge feedback: "${feedback.trim()}"`);
+  }
+
+  log?.("WARN", `${TAG} Image grid CAPTCHA not solved after ${MAX_ROUNDS} rounds`);
+  return false;
+}
+
+// ---------------------------------------------------------------------------
+// Public: solveWalmartPressHold
+// Simulates the PerimeterX "press & hold" challenge used by Walmart.
+// Finds the hold button (in the main page or a PerimeterX iframe), moves the
+// mouse to its center, holds mouse down for ~4-5 s, then releases.
+// Returns true if the challenge element disappears after the hold.
+// ---------------------------------------------------------------------------
+
+export async function solveWalmartPressHold(page: Page, log?: LogFn): Promise<boolean> {
+  const TAG = "[Press-Hold]";
+
+  const HOLD_SELECTORS = [
+    "#px-captcha",
+    "[class*='px-captcha']",
+    "button:has-text('Press & Hold')",
+    "button:has-text('Hold')",
+    "[aria-label*='press' i]",
+    "[class*='press-hold']",
+    "[class*='pressHold']",
+    "[id*='captcha']",
+  ];
+
+  const PX_FRAME_PATTERNS = ["px-cdn.net", "perimeterx", "px.ads", "human.security"];
+
+  // Try to find the hold element — first in main page, then in PX iframes
+  let holdLocator: Locator | null = null;
+  let holdContext: "page" | "frame" = "page";
+
+  for (const sel of HOLD_SELECTORS) {
+    const loc = page.locator(sel).first();
+    if (await loc.count().catch(() => 0) > 0 && await loc.isVisible().catch(() => false)) {
+      holdLocator = loc;
+      break;
+    }
+  }
+
+  if (!holdLocator) {
+    for (const frame of page.frames()) {
+      const url = frame.url().toLowerCase();
+      if (!PX_FRAME_PATTERNS.some((p) => url.includes(p))) continue;
+      for (const sel of HOLD_SELECTORS) {
+        const loc = frame.locator(sel).first();
+        if (await loc.count().catch(() => 0) > 0) {
+          holdLocator = loc;
+          holdContext = "frame";
+          break;
+        }
+      }
+      if (holdLocator) break;
+    }
+  }
+
+  if (!holdLocator) {
+    log?.("INFO", `${TAG} No press-and-hold CAPTCHA detected`);
+    return false;
+  }
+
+  log?.("INFO", `${TAG} Press-and-hold CAPTCHA detected (${holdContext}) — simulating hold gesture`);
+
+  const performHold = async (holdMs: number): Promise<boolean> => {
+    const box = await holdLocator!.boundingBox().catch(() => null);
+    if (!box) return false;
+
+    const cx = box.x + box.width / 2;
+    const cy = box.y + box.height / 2;
+
+    await page.mouse.move(cx, cy, { steps: 12 });
+    await new Promise((r) => setTimeout(r, 150 + Math.random() * 100));
+    await page.mouse.down();
+    log?.("INFO", `${TAG} Mouse down — holding for ${holdMs}ms...`);
+    await new Promise((r) => setTimeout(r, holdMs));
+    await page.mouse.up();
+    log?.("INFO", `${TAG} Mouse up — waiting for verification result...`);
+    await new Promise((r) => setTimeout(r, 2000));
+
+    // Success if hold element disappears
+    const stillVisible = await holdLocator!.isVisible().catch(() => false);
+    return !stillVisible;
+  };
+
+  // First attempt: 4-5 seconds
+  if (await performHold(4000 + Math.random() * 1000)) {
+    log?.("SUCCESS", `${TAG} Press-and-hold CAPTCHA solved!`);
+    return true;
+  }
+
+  // Retry with longer hold: 6-7 seconds
+  log?.("INFO", `${TAG} First hold incomplete — retrying with longer hold...`);
+  if (await performHold(6000 + Math.random() * 1000)) {
+    log?.("SUCCESS", `${TAG} Press-and-hold CAPTCHA solved on retry!`);
+    return true;
+  }
+
+  log?.("WARN", `${TAG} Press-and-hold CAPTCHA not resolved after 2 attempts`);
+  return false;
+}
+
+// ---------------------------------------------------------------------------
 // Public: detectChallenge
 // ---------------------------------------------------------------------------
 
@@ -533,8 +884,59 @@ const CLOUDFLARE_ELEMENT_SELECTORS = [
   "#turnstile-wrapper",
 ];
 
+// PerimeterX / press-hold detection selectors and frame URL patterns
+const PRESS_HOLD_PAGE_SELECTORS = [
+  "#px-captcha",
+  "[class*='px-captcha']",
+  "button:has-text('Press & Hold')",
+  "[class*='press-hold']",
+  "[class*='pressHold']",
+];
+const PRESS_HOLD_FRAME_PATTERNS = ["px-cdn.net", "perimeterx", "human.security"];
+
+// reCAPTCHA image-grid challenge frame patterns
+const RECAPTCHA_GRID_FRAME_PATTERNS = ["bframe", "recaptcha/api2/bframe", "hcaptcha.com/challenge"];
+
 export async function detectChallenge(page: Page): Promise<ChallengeResult> {
   try {
+    // ── 1. Press-and-hold (PerimeterX / Walmart) ──────────────────────────
+    for (const sel of PRESS_HOLD_PAGE_SELECTORS) {
+      const el = await page.$(sel).catch(() => null);
+      if (el && await el.isVisible().catch(() => false)) {
+        let screenshot: string | undefined;
+        try {
+          const buf = await page.screenshot({ type: "jpeg", quality: 50 });
+          screenshot = "data:image/jpeg;base64," + buf.toString("base64");
+        } catch { }
+        return { type: "press_hold", attempted: false, screenshot };
+      }
+    }
+    for (const frame of page.frames()) {
+      const url = frame.url().toLowerCase();
+      if (PRESS_HOLD_FRAME_PATTERNS.some((p) => url.includes(p))) {
+        let screenshot: string | undefined;
+        try {
+          const buf = await page.screenshot({ type: "jpeg", quality: 50 });
+          screenshot = "data:image/jpeg;base64," + buf.toString("base64");
+        } catch { }
+        return { type: "press_hold", attempted: false, screenshot };
+      }
+    }
+
+    // ── 2. reCAPTCHA / hCaptcha image grid (bframe present) ───────────────
+    for (const frame of page.frames()) {
+      const url = frame.url().toLowerCase();
+      if (RECAPTCHA_GRID_FRAME_PATTERNS.some((p) => url.includes(p))) {
+        let screenshot: string | undefined;
+        try {
+          const buf = await page.screenshot({ type: "jpeg", quality: 50 });
+          screenshot = "data:image/jpeg;base64," + buf.toString("base64");
+        } catch { }
+        return { type: "recaptcha_grid", attempted: false, screenshot };
+      }
+    }
+
+    // ── 3. Generic CAPTCHA iframe (checkbox-style) ─────────────────────────
     for (const frame of page.frames()) {
       const url = frame.url().toLowerCase();
       if (CAPTCHA_FRAME_PATTERNS.some((p) => url.includes(p))) {
@@ -544,37 +946,32 @@ export async function detectChallenge(page: Page): Promise<ChallengeResult> {
           try {
             await checkbox.click();
             await new Promise((r) => setTimeout(r, 3000));
-            const stillPresent = await frame.$("input[type='checkbox']").catch(() => null);
             attempted = true;
-            if (!stillPresent) {
+            if (!(await frame.$("input[type='checkbox']").catch(() => null))) {
               return { type: "none", attempted: true };
             }
           } catch { }
         }
-
         let screenshot: string | undefined;
         try {
           const buf = await page.screenshot({ type: "jpeg", quality: 50 });
           screenshot = "data:image/jpeg;base64," + buf.toString("base64");
         } catch { }
-
         return { type: "captcha", attempted, screenshot };
       }
     }
 
     const bodyText = await page.textContent("body").catch(() => "") ?? "";
 
-    // Check for Cloudflare challenge: require BOTH a specific text indicator AND
-    // at least one Cloudflare DOM element to avoid false-positives.
+    // ── 4. Cloudflare challenge ────────────────────────────────────────────
     const hasCloudflareText = CLOUDFLARE_TEXT_PATTERNS.some((p) => p.test(bodyText));
     const hasCloudflareElement = hasCloudflareText
       ? (await Promise.all(
-          CLOUDFLARE_ELEMENT_SELECTORS.map((sel) => page.$(sel).then(el => !!el).catch(() => false)),
+          CLOUDFLARE_ELEMENT_SELECTORS.map((sel) => page.$(sel).then((el) => !!el).catch(() => false)),
         )).some(Boolean)
       : false;
 
     if (hasCloudflareText && hasCloudflareElement) {
-      // Attempt auto-solve via turnstile/checkbox if visible
       let attempted = false;
       const checkbox = await page.$("input[type='checkbox']").catch(() => null);
       if (checkbox && await checkbox.isVisible().catch(() => false)) {
@@ -587,17 +984,15 @@ export async function detectChallenge(page: Page): Promise<ChallengeResult> {
           }
         } catch { }
       }
-
       let screenshot: string | undefined;
       try {
         const buf = await page.screenshot({ type: "jpeg", quality: 50 });
         screenshot = "data:image/jpeg;base64," + buf.toString("base64");
       } catch { }
-
       return { type: "cloudflare", attempted, screenshot };
     }
 
-    // Check for generic CAPTCHA via high-confidence text patterns only
+    // ── 5. Generic CAPTCHA text patterns ──────────────────────────────────
     for (const pat of CAPTCHA_TEXT_PATTERNS) {
       if (pat.test(bodyText)) {
         let attempted = false;
@@ -607,19 +1002,16 @@ export async function detectChallenge(page: Page): Promise<ChallengeResult> {
             await checkbox.click();
             await new Promise((r) => setTimeout(r, 3000));
             attempted = true;
-            const stillVisible = await checkbox.isVisible().catch(() => false);
-            if (!stillVisible) {
+            if (!(await checkbox.isVisible().catch(() => false))) {
               return { type: "none", attempted: true };
             }
           } catch { }
         }
-
         let screenshot: string | undefined;
         try {
           const buf = await page.screenshot({ type: "jpeg", quality: 50 });
           screenshot = "data:image/jpeg;base64," + buf.toString("base64");
         } catch { }
-
         return { type: "captcha", attempted, screenshot };
       }
     }
