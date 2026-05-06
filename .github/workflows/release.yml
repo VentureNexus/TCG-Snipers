@@ -19,8 +19,49 @@ permissions:
   contents: write
 
 jobs:
+  # ── Step 1: create the published GitHub release before any build job runs ──
+  # This avoids the race condition where two parallel matrix jobs both try to
+  # create the release simultaneously and one silently fails. electron-builder
+  # in the build jobs will find the release already exists and just upload.
+  create-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}
+
+      - name: Resolve tag name
+        id: tag
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "name=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "name=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create published release (skip if already exists)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          TAG="${{ steps.tag.outputs.name }}"
+          if gh release view "$TAG" &>/dev/null; then
+            echo "Release $TAG already exists — skipping creation."
+          else
+            gh release create "$TAG" \
+              --title "$TAG" \
+              --notes-file artifacts/sniper-bot/build/release-notes.md \
+              --latest
+            echo "Created published release $TAG."
+          fi
+
+  # ── Step 2: build installers and upload to the existing release ──
   build:
     name: Build (${{ matrix.name }})
+    needs: create-release
     timeout-minutes: 45
     strategy:
       fail-fast: false
