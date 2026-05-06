@@ -30,7 +30,6 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}
 
       - name: Resolve tag name
         id: tag
@@ -48,6 +47,13 @@ jobs:
         shell: bash
         run: |
           TAG="${{ steps.tag.outputs.name }}"
+          # Read notes from file if it exists (present on main), otherwise use a default.
+          NOTES_FILE="artifacts/sniper-bot/build/release-notes.md"
+          if [ -f "$NOTES_FILE" ]; then
+            NOTES=$(cat "$NOTES_FILE")
+          else
+            NOTES="Bug fixes and improvements."
+          fi
           if gh release view "$TAG" &>/dev/null; then
             echo "Release $TAG already exists — ensuring it is published and marked latest."
             gh release edit "$TAG" \
@@ -57,7 +63,7 @@ jobs:
           else
             gh release create "$TAG" \
               --title "$TAG" \
-              --notes-file artifacts/sniper-bot/build/release-notes.md \
+              --notes "$NOTES" \
               --latest
             echo "Created published release $TAG."
           fi
