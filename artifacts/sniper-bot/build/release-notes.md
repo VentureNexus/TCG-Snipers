@@ -1,6 +1,4 @@
-- Fixed settings failing to load on upgrade from v1.0.52 (database migration now correctly adds new columns to existing installs)
-- Human CAPTCHA Assistance: when the bot cannot auto-solve a CAPTCHA, a popup lets you click directly on the challenge in real time
-- Your CAPTCHA clicks are saved locally so the bot learns your solve patterns over time
-- Community Knowledge Base: nav paths and CAPTCHA solutions are shared anonymously across all licensed users
-- Fresh installs now benefit from paths and patterns already discovered by other users — no cold-start delay
-- New CAPTCHA Assistance toggle in Settings (off by default) — enable it to activate the popup solver
+- Login Human Assist: when the bot can't find the login form, a popup lets you navigate the browser manually so it can take over from wherever you land
+- Your navigation steps are saved to train the bot for future logins on that retailer
+- Walmart login: improved field detection across identity.walmart.com page flow
+- Costco login: improved handling of slide-out sign-in panel via human assist fallback
