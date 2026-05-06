@@ -211,7 +211,7 @@ export async function runWalmart(ctx: RetailerContext): Promise<RetailerResult> 
       } catch (_) {
         log("WARN", `[${RETAILER}] Checkout button not found — asking visual navigator for help...`);
         await screenshot();
-        const { el: visEl, visualAssist } = await waitForSelectorWithVisualFallback(
+        const { el: visEl, visualAssist, alreadyNavigated: visAlreadyNavigated } = await waitForSelectorWithVisualFallback(
           page,
           checkoutSelectors.join(", "),
           RETAILER,
@@ -219,7 +219,7 @@ export async function runWalmart(ctx: RetailerContext): Promise<RetailerResult> 
           "checkout_btn",
           log,
         );
-        if (!visEl) {
+        if (!visEl && !visAlreadyNavigated) {
           // Final fallback: direct URL navigation
           log("WARN", `[${RETAILER}] Visual navigator could not find checkout button — navigating directly to /checkout...`);
           await page.goto("https://www.walmart.com/checkout", { waitUntil: "domcontentloaded" });
@@ -229,7 +229,7 @@ export async function runWalmart(ctx: RetailerContext): Promise<RetailerResult> 
           if (token.cancelled) return fail("Task cancelled");
         } else {
           if (visualAssist) { log("INFO", `[${RETAILER}] Visual navigator located checkout button`); anyVisualAssist = true; }
-          await visEl.click().catch(() => {});
+          if (visEl) await visEl.click().catch(() => {});
           await humanDelay(1500, 2500);
           await screenshot();
         }
@@ -269,7 +269,16 @@ export async function runWalmart(ctx: RetailerContext): Promise<RetailerResult> 
     log("INFO", `[${RETAILER}] Checkout URL: ${page.url()}`);
 
     // ── Shipping address (skip if saved) ──────────────────────────────────
-    const hasAddressForm = await page.$('input[name="addressLineOne"], input[id*="address-1"], input[name="firstName"]');
+    const { el: hasAddressForm, visualAssist: addrDetectAssist } = await waitForSelectorWithVisualFallback(
+      page,
+      'input[name="addressLineOne"], input[id*="address-1"], input[name="firstName"]',
+      RETAILER,
+      "navigate to the shipping address section of the checkout form",
+      "detect_address_form",
+      log,
+      2000,
+    );
+    if (addrDetectAssist && hasAddressForm) anyVisualAssist = true;
     if (hasAddressForm && profile) {
       log("INFO", `[${RETAILER}] Filling shipping for profile: ${profile.name}`);
       await screenshot();
@@ -305,7 +314,16 @@ export async function runWalmart(ctx: RetailerContext): Promise<RetailerResult> 
     }
 
     // ── Payment (skip if saved) ───────────────────────────────────────────
-    const hasPaymentForm = await page.$('input[name="cardNumber"], input[id*="card-number"]');
+    const { el: hasPaymentForm, visualAssist: payDetectAssist } = await waitForSelectorWithVisualFallback(
+      page,
+      'input[name="cardNumber"], input[id*="card-number"]',
+      RETAILER,
+      "navigate to the payment section of the checkout form",
+      "detect_payment_form",
+      log,
+      2000,
+    );
+    if (payDetectAssist && hasPaymentForm) anyVisualAssist = true;
     if (hasPaymentForm && card) {
       log("INFO", `[${RETAILER}] Entering payment (${card.cardType} ****${card.lastFour})...`);
       await screenshot();
@@ -343,7 +361,7 @@ export async function runWalmart(ctx: RetailerContext): Promise<RetailerResult> 
       "button:has-text('Complete purchase')",
     ]);
     if (!placeOrderClicked) {
-      const { el: poEl, visualAssist: poVisualAssist } = await waitForSelectorWithVisualFallback(
+      const { el: poEl, visualAssist: poVisualAssist, alreadyNavigated: poAlreadyNavigated } = await waitForSelectorWithVisualFallback(
         page,
         'button:has-text("Place Order"), button:has-text("Place order"), [data-automation-id="place-order-btn"]',
         RETAILER,
@@ -351,9 +369,9 @@ export async function runWalmart(ctx: RetailerContext): Promise<RetailerResult> 
         "place_order",
         log,
       );
-      if (!poEl) return fail("Place order button not found");
+      if (!poEl && !poAlreadyNavigated) return fail("Place order button not found");
       if (poVisualAssist) anyVisualAssist = true;
-      await poEl.click();
+      if (poEl) await poEl.click();
     }
     await humanDelay(3000, 5000);
     await page.waitForLoadState("networkidle", { timeout: 15000 }).catch(() => {});

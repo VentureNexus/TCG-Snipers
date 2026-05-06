@@ -273,7 +273,22 @@ export async function runAmazon(ctx: RetailerContext): Promise<RetailerResult> {
       "button:has-text('Place your order'), button:has-text('Place Order'), " +
       "input#submitOrderButtonId"
     );
-    const hasAddressForm = !quickPlaceOrder && await page.$('input[name="address1"], input[name="city"]');
+    let hasAddressForm = null;
+    let addrDetectAssist = false;
+    if (!quickPlaceOrder) {
+      const { el, visualAssist } = await waitForSelectorWithVisualFallback(
+        page,
+        'input[name="address1"], input[name="city"]',
+        RETAILER,
+        "navigate to the shipping address section of the Amazon checkout form",
+        "detect_address_form",
+        log,
+        2000,
+      );
+      hasAddressForm = el;
+      addrDetectAssist = visualAssist;
+    }
+    if (addrDetectAssist && hasAddressForm) anyVisualAssist = true;
     if (hasAddressForm && profile) {
       log("INFO", `[${RETAILER}] Filling address for profile: ${profile.name}`);
       await screenshot();
@@ -313,7 +328,22 @@ export async function runAmazon(ctx: RetailerContext): Promise<RetailerResult> {
     if (token.cancelled) return fail("Task cancelled");
 
     // ── Payment (skip if saved) ───────────────────────────────────────────────
-    const hasPaymentForm = !quickPlaceOrder && await page.$('input[name="addCreditCardNumber"], input[name="cvv"]');
+    let hasPaymentForm = null;
+    let payDetectAssist = false;
+    if (!quickPlaceOrder) {
+      const { el, visualAssist } = await waitForSelectorWithVisualFallback(
+        page,
+        'input[name="addCreditCardNumber"], input[name="cvv"]',
+        RETAILER,
+        "navigate to the payment section of the Amazon checkout form",
+        "detect_payment_form",
+        log,
+        2000,
+      );
+      hasPaymentForm = el;
+      payDetectAssist = visualAssist;
+    }
+    if (payDetectAssist && hasPaymentForm) anyVisualAssist = true;
     if (hasPaymentForm && card) {
       log("INFO", `[${RETAILER}] Entering payment (${card.cardType} ****${card.lastFour})...`);
       await screenshot();

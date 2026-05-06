@@ -174,7 +174,7 @@ export async function runPokemonCenter(ctx: RetailerContext): Promise<RetailerRe
 
       log("INFO", `[${RETAILER}] Proceeding to checkout (Shopify)...`);
       await setStatus("checking_out");
-      const { el: checkoutBtn, visualAssist: checkoutVisualAssist } = await waitForSelectorWithVisualFallback(
+      const { el: checkoutBtn, visualAssist: checkoutVisualAssist, alreadyNavigated: checkoutAlreadyNavigated } = await waitForSelectorWithVisualFallback(
         page,
         'button:has-text("Check out"), a:has-text("Check out"), input[name="checkout"]',
         RETAILER,
@@ -182,9 +182,9 @@ export async function runPokemonCenter(ctx: RetailerContext): Promise<RetailerRe
         "checkout_btn",
         log,
       );
-      if (!checkoutBtn) return fail("Checkout button not found");
+      if (!checkoutBtn && !checkoutAlreadyNavigated) return fail("Checkout button not found");
       if (checkoutVisualAssist) { log("INFO", `[${RETAILER}] Visual navigator located checkout button`); anyVisualAssist = true; }
-      await checkoutBtn.click();
+      if (checkoutBtn) await checkoutBtn.click();
       await humanDelay(2000, 3000);
       await page.waitForLoadState("networkidle", { timeout: 10000 }).catch(() => {});
       const postCheckoutCaptcha = await handleChallengeInTask(page, task.id, RETAILER, log, setStatus);
@@ -225,7 +225,16 @@ export async function runPokemonCenter(ctx: RetailerContext): Promise<RetailerRe
     }
 
     // ── Shipping address (skip if saved on account) ──────────────────────────
-    const hasAddressForm = await page.$('input[name="address1"], #checkout_shipping_address_address1, input[name="firstName"]');
+    const { el: hasAddressForm, visualAssist: addrDetectAssist } = await waitForSelectorWithVisualFallback(
+      page,
+      'input[name="address1"], #checkout_shipping_address_address1, input[name="firstName"]',
+      RETAILER,
+      "navigate to the shipping address section of the checkout form",
+      "detect_address_form",
+      log,
+      2000,
+    );
+    if (addrDetectAssist && hasAddressForm) anyVisualAssist = true;
     if (hasAddressForm && profile) {
       log("INFO", `[${RETAILER}] Filling Shopify contact & shipping for profile: ${profile.name}`);
       const contactFields: Array<[string, string]> = [
@@ -271,7 +280,16 @@ export async function runPokemonCenter(ctx: RetailerContext): Promise<RetailerRe
 
     // ── Payment (skip if saved on account — Shopify may show saved card) ─────
     // Shopify payment fields are in iframes; check for the card number iframe as indicator
-    const hasPaymentIframe = await page.$('[id*="card-fields-number"] iframe, iframe[title*="Card Number"]');
+    const { el: hasPaymentIframe, visualAssist: payDetectAssist } = await waitForSelectorWithVisualFallback(
+      page,
+      '[id*="card-fields-number"] iframe, iframe[title*="Card Number"]',
+      RETAILER,
+      "navigate to the payment section of the Pokemon Center checkout form",
+      "detect_payment_form",
+      log,
+      2000,
+    );
+    if (payDetectAssist && hasPaymentIframe) anyVisualAssist = true;
     if (hasPaymentIframe && card) {
       log("INFO", `[${RETAILER}] Entering payment (${card.cardType} ****${card.lastFour})...`);
       try {
@@ -294,7 +312,7 @@ export async function runPokemonCenter(ctx: RetailerContext): Promise<RetailerRe
 
     await screenshot(page);
     log("INFO", `[${RETAILER}] Submitting Shopify order...`);
-    const { el: placeOrder, visualAssist: poVisualAssist } = await waitForSelectorWithVisualFallback(
+    const { el: placeOrder, visualAssist: poVisualAssist, alreadyNavigated: poAlreadyNavigated } = await waitForSelectorWithVisualFallback(
       page,
       'button#continue_button, button:has-text("Pay now"), button:has-text("Complete order")',
       RETAILER,
@@ -302,9 +320,9 @@ export async function runPokemonCenter(ctx: RetailerContext): Promise<RetailerRe
       "place_order",
       log,
     );
-    if (!placeOrder) return fail("Place order button not found");
+    if (!placeOrder && !poAlreadyNavigated) return fail("Place order button not found");
     if (poVisualAssist) anyVisualAssist = true;
-    await placeOrder.click();
+    if (placeOrder) await placeOrder.click();
     await humanDelay(3000, 5000);
 
     await screenshot(page);

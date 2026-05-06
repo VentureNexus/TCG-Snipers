@@ -143,7 +143,7 @@ export async function runTarget(ctx: RetailerContext): Promise<RetailerResult> {
 
     log("INFO", `[${RETAILER}] Proceeding to checkout...`);
     await setStatus("checking_out");
-    const { el: checkoutBtn, visualAssist: checkoutVisualAssist } = await waitForSelectorWithVisualFallback(
+    const { el: checkoutBtn, visualAssist: checkoutVisualAssist, alreadyNavigated: checkoutAlreadyNavigated } = await waitForSelectorWithVisualFallback(
       page,
       '[data-test="checkout-button"], button:has-text("Check out"), a:has-text("Check out")',
       RETAILER,
@@ -151,9 +151,9 @@ export async function runTarget(ctx: RetailerContext): Promise<RetailerResult> {
       "checkout_btn",
       log,
     );
-    if (!checkoutBtn) return fail("Checkout button not found");
+    if (!checkoutBtn && !checkoutAlreadyNavigated) return fail("Checkout button not found");
     if (checkoutVisualAssist) { log("INFO", `[${RETAILER}] Visual navigator located checkout button`); anyVisualAssist = true; }
-    await checkoutBtn.click();
+    if (checkoutBtn) await checkoutBtn.click();
     await humanDelay(2000, 3000);
     await page.waitForLoadState("networkidle", { timeout: 10000 }).catch(() => {});
     const postCheckoutCaptcha = await handleChallengeInTask(page, task.id, RETAILER, log, setStatus);
@@ -190,7 +190,16 @@ export async function runTarget(ctx: RetailerContext): Promise<RetailerResult> {
     }
 
     // ── Shipping address (skip if saved on account) ──────────────────────────
-    const hasAddressForm = await page.$('input[id="addressLine1"], input[id="firstName"]');
+    const { el: hasAddressForm, visualAssist: addrDetectAssist } = await waitForSelectorWithVisualFallback(
+      page,
+      'input[id="addressLine1"], input[id="firstName"]',
+      RETAILER,
+      "navigate to the shipping address section of the checkout form",
+      "detect_address_form",
+      log,
+      2000,
+    );
+    if (addrDetectAssist && hasAddressForm) anyVisualAssist = true;
     if (hasAddressForm && profile) {
       log("INFO", `[${RETAILER}] Filling contact & shipping for profile: ${profile.name}`);
       const contactFields: Array<[string, string]> = [
@@ -223,7 +232,16 @@ export async function runTarget(ctx: RetailerContext): Promise<RetailerResult> {
     if (token.cancelled) return fail("Task cancelled");
 
     // ── Payment (skip if saved on account) ───────────────────────────────────
-    const hasPaymentForm = await page.$('input[name="cardNumber"], input[id="creditCardInput-cardNumber"]');
+    const { el: hasPaymentForm, visualAssist: payDetectAssist } = await waitForSelectorWithVisualFallback(
+      page,
+      'input[name="cardNumber"], input[id="creditCardInput-cardNumber"]',
+      RETAILER,
+      "navigate to the payment section of the checkout form",
+      "detect_payment_form",
+      log,
+      2000,
+    );
+    if (payDetectAssist && hasPaymentForm) anyVisualAssist = true;
     if (hasPaymentForm && card) {
       log("INFO", `[${RETAILER}] Entering payment (${card.cardType} ****${card.lastFour})...`);
       try {
@@ -248,7 +266,7 @@ export async function runTarget(ctx: RetailerContext): Promise<RetailerResult> {
 
     await screenshot(page);
     log("INFO", `[${RETAILER}] Submitting order...`);
-    const { el: placeOrder, visualAssist: poVisualAssist } = await waitForSelectorWithVisualFallback(
+    const { el: placeOrder, visualAssist: poVisualAssist, alreadyNavigated: poAlreadyNavigated } = await waitForSelectorWithVisualFallback(
       page,
       '[data-test="place-order-button"], button:has-text("Place order"), button:has-text("Place Order")',
       RETAILER,
@@ -256,9 +274,9 @@ export async function runTarget(ctx: RetailerContext): Promise<RetailerResult> {
       "place_order",
       log,
     );
-    if (!placeOrder) return fail("Place order button not found");
+    if (!placeOrder && !poAlreadyNavigated) return fail("Place order button not found");
     if (poVisualAssist) anyVisualAssist = true;
-    await placeOrder.click();
+    if (placeOrder) await placeOrder.click();
     await humanDelay(3000, 5000);
 
     await screenshot(page);

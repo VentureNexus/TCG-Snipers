@@ -58,7 +58,7 @@ export interface ChallengeResult {
 
 function cachePath(retailer: string, stage: string): string {
   fs.mkdirSync(NAV_CACHE_DIR, { recursive: true });
-  const safe = `${retailer}_${stage}`.toLowerCase().replace(/[^a-z0-9_-]/g, "_");
+  const safe = `${retailer}-${stage}`.toLowerCase().replace(/[^a-z0-9-]/g, "-");
   return path.join(NAV_CACHE_DIR, `${safe}.json`);
 }
 
@@ -458,10 +458,10 @@ export async function waitForSelectorWithVisualFallback(
   stage: string,
   log?: (level: "INFO" | "SUCCESS" | "WARN" | "ERROR", msg: string) => void,
   timeout = 8000,
-): Promise<{ el: Awaited<ReturnType<Page["$"]>>; visualAssist: boolean }> {
+): Promise<{ el: Awaited<ReturnType<Page["$"]>>; visualAssist: boolean; alreadyNavigated: boolean }> {
   // Normal-path: wait the full selector timeout before giving up
   const existing = await page.waitForSelector(selector, { timeout }).catch(() => null);
-  if (existing) return { el: existing, visualAssist: false };
+  if (existing) return { el: existing, visualAssist: false, alreadyNavigated: false };
 
   // Slow-path: selector not found after full timeout — ask the AI to navigate
   log?.("WARN", `[${retailer}] Selector "${selector}" not found after ${timeout}ms — asking visual navigator for help...`);
@@ -471,7 +471,15 @@ export async function waitForSelectorWithVisualFallback(
   }
 
   const el = await page.$(selector).catch(() => null);
-  return { el, visualAssist: true };
+
+  // If nav succeeded but element is gone, the AI likely already clicked/submitted it.
+  // Signal alreadyNavigated so callers skip the click rather than failing.
+  if (!el && navResult?.success) {
+    log?.("INFO", `[${retailer}] Visual navigator appears to have already executed the action (element absent post-nav)`);
+    return { el: null, visualAssist: true, alreadyNavigated: true };
+  }
+
+  return { el, visualAssist: true, alreadyNavigated: false };
 }
 
 // ---------------------------------------------------------------------------
