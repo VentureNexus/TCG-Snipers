@@ -7,6 +7,7 @@ import { smartClick } from "../checkoutLearner";
 import { imapFetchCode } from "../imap";
 import { emitScreenshot } from "./screenshotUtil";
 import { saveSession, loadSession, clearSession } from "./sessionCache";
+import { handleChallengeInTask, navigateTo } from "./visualNavigator";
 
 const RETAILER = "Walmart";
 
@@ -74,6 +75,9 @@ export async function runWalmart(ctx: RetailerContext): Promise<RetailerResult> 
         await humanDelay(800, 1500);
         await screenshot();
         if (token.cancelled) return fail("Task cancelled");
+
+        const captchaMsg = await handleChallengeInTask(page, task.id, RETAILER, log, setStatus);
+        if (captchaMsg) return fail(captchaMsg);
 
         const titleEl = await page.$('[itemprop="name"], h1.prod-ProductTitle, h1');
         if (titleEl) productName = (await titleEl.textContent())?.trim() ?? productName;

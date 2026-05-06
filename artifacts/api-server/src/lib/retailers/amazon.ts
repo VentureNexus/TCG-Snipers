@@ -7,6 +7,7 @@ import { applyCartQuantity } from "./cartHelpers";
 import { smartClick, smartFind } from "../checkoutLearner";
 import { emitScreenshot } from "./screenshotUtil";
 import { saveSession, loadSession, clearSession } from "./sessionCache";
+import { handleChallengeInTask } from "./visualNavigator";
 
 const RETAILER = "Amazon";
 
@@ -72,6 +73,9 @@ export async function runAmazon(ctx: RetailerContext): Promise<RetailerResult> {
         await humanDelay(800, 1500);
         await screenshot();
         if (token.cancelled) return fail("Task cancelled");
+
+        const captchaMsg = await handleChallengeInTask(page, task.id, RETAILER, log, setStatus);
+        if (captchaMsg) return fail(captchaMsg);
 
         const titleEl = await page.$('#productTitle, h1.a-size-large');
         if (titleEl) productName = (await titleEl.textContent())?.trim() ?? productName;

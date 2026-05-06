@@ -5,6 +5,7 @@
  */
 import { createBrowser, createStealthContext, humanDelay, humanType } from "../browser";
 import { saveSession, clearSession } from "./sessionCache";
+import { navigateTo, detectChallenge } from "./visualNavigator";
 
 interface RetailerConfig {
   url: string;
@@ -101,10 +102,13 @@ const CONFIGS: Record<string, RetailerConfig> = {
     failureCheck: "#username, #password",
   },
   Costco: {
-    url: "https://www.costco.com/LogonForm",
-    emailSel: "#signInName, input[name='logonId']",
-    passwordSel: "#logonPassword, input[name='logonPassword']",
-    submitSel: "button[type='submit'], input[type='submit']",
+    // Costco's sign-in is behind an Account nav link that opens a slide-out
+    // panel — navigating directly to the homepage lets the visual navigator
+    // discover and cache that path on first use.
+    url: "https://www.costco.com",
+    emailSel: "#signInName, input[name='logonId'], input[name='email'], input[type='email']",
+    passwordSel: "#logonPassword, input[name='logonPassword'], input[name='password'], input[type='password']",
+    submitSel: "button[type='submit'], input[type='submit'], button:has-text('Sign In'), button:has-text('Log In')",
     failureCheck: "#signInName, input[name='logonId']",
   },
   "Sam's Club": {
@@ -181,10 +185,34 @@ export async function loginRetailer(
     await page.goto(config.url, { waitUntil: "domcontentloaded" });
 
     // Wait for the email field to be rendered (JS-heavy pages like Walmart need this)
-    const emailFound = await page.waitForSelector(config.emailSel, { timeout: 15000 }).catch(() => null);
+    let emailFound = await page.waitForSelector(config.emailSel, { timeout: 15000 }).catch(() => null);
+
+    // ── Visual navigator fallback ─────────────────────────────────────────────
+    // If the email field didn't appear, the login form may be hidden behind a
+    // navigation step (e.g. Costco's Account → Sign In slide-out panel).
+    // Ask the AI vision layer to look at the page and figure out what to click.
     if (!emailFound) {
-      const currentUrl = page.url();
-      return { success: false, message: `Email field not found on login page (url: ${currentUrl}) — page may have changed or requires cookie consent` };
+      const navResult = await navigateTo(
+        page,
+        retailer,
+        "find and reach the login or sign-in form",
+        "login",
+      ).catch(() => null);
+
+      if (navResult?.success) {
+        emailFound = await page.waitForSelector(config.emailSel, { timeout: 10000 }).catch(() => null);
+      }
+
+      if (!emailFound) {
+        const currentUrl = page.url();
+        const navMsg = navResult
+          ? ` (visual navigator: ${navResult.message})`
+          : "";
+        return {
+          success: false,
+          message: `Email field not found on login page (url: ${currentUrl})${navMsg}`,
+        };
+      }
     }
     await humanDelay(800, 1500);
 
@@ -268,6 +296,17 @@ export async function loginRetailer(
     // Wait for navigation and network to settle
     await page.waitForLoadState("networkidle", { timeout: 20000 }).catch(() => {});
     await humanDelay(1000, 2000);
+
+    // ── CAPTCHA / bot-detection check after submit ────────────────────────────
+    const challenge = await detectChallenge(page).catch(() => null);
+    if (challenge && challenge.type !== "none") {
+      clearSession(retailer, email);
+      const challengeLabel = challenge.type === "cloudflare" ? "Cloudflare bot detection" : "CAPTCHA";
+      return {
+        success: false,
+        message: `Login blocked by ${challengeLabel}${challenge.attempted ? " (auto-click attempted)" : ""} — complete verification manually then retry`,
+      };
+    }
 
     // Check if we're still on the login page
     const stillOnLogin = await page.$(config.failureCheck);

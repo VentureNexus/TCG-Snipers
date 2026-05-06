@@ -85,7 +85,9 @@ async function runTaskAutomation(task: TaskRow, token: { cancelled: boolean }) {
   await db.update(tasksTable).set({ startedAt: task.startedAt ?? new Date() }).where(eq(tasksTable.id, task.id)).catch(() => {});
 
   const setStatus = async (status: string) => {
-    const isTerminal = ["success", "failed", "stopped"].includes(status);
+    // "captcha" is treated like a terminal status so startedAt is cleared and
+    // the task shows as restartable in the UI (users solve the CAPTCHA then restart).
+    const isTerminal = ["success", "failed", "stopped", "captcha"].includes(status);
     await db.update(tasksTable)
       .set(isTerminal ? { status, startedAt: null } : { status })
       .where(eq(tasksTable.id, task.id));

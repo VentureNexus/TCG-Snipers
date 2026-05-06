@@ -238,6 +238,7 @@ const STATUS_CONFIG: Record<string, { label: string; cls: string; dot?: string }
   monitoring: { label: "MONITORING", cls: "status-monitoring", dot: "animate-pulse" },
   adding_to_cart: { label: "ADDING TO CART", cls: "status-cart", dot: "animate-pulse" },
   checking_out: { label: "CHECKING OUT", cls: "status-checkout", dot: "animate-pulse" },
+  captcha: { label: "⚠ CAPTCHA", cls: "status-failed", dot: "animate-pulse" },
   success: { label: "SUCCESS", cls: "status-success" },
   failed: { label: "FAILED", cls: "status-failed" },
   stopped: { label: "STOPPED", cls: "status-stopped" },
@@ -459,8 +460,8 @@ function TaskRow({
   }, [liveStatus]);
 
   const effectiveStatus = liveStatus ?? task.status;
-  const isRunning = !["idle", "stopped", "failed", "success"].includes(effectiveStatus);
-  const canStart = ["idle", "stopped", "failed"].includes(effectiveStatus);
+  const isRunning = !["idle", "stopped", "failed", "success", "captcha"].includes(effectiveStatus);
+  const canStart = ["idle", "stopped", "failed", "captcha"].includes(effectiveStatus);
   const cfg = STATUS_CONFIG[effectiveStatus] ?? STATUS_CONFIG["idle"];
 
   return (

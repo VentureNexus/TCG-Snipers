@@ -5,6 +5,7 @@ import { decrypt } from "../crypto";
 import { applyCartQuantity } from "./cartHelpers";
 import { emitScreenshot } from "./screenshotUtil";
 import { saveSession, loadSession, clearSession } from "./sessionCache";
+import { handleChallengeInTask } from "./visualNavigator";
 
 const RETAILER = "Sam's Club";
 
@@ -76,6 +77,9 @@ export async function runSamsClub(ctx: RetailerContext): Promise<RetailerResult>
         await page.goto(targetUrl, { waitUntil: "domcontentloaded" });
         await humanDelay(800, 1500);
         if (token.cancelled) return fail("Task cancelled");
+
+        const captchaMsg = await handleChallengeInTask(page, task.id, RETAILER, log, setStatus);
+        if (captchaMsg) return fail(captchaMsg);
 
         const signInBtn = await page.$('a[href*="login"], button:has-text("Sign In"), a:has-text("Sign in")');
         const samLoginIdentity = retailerAccount ?? (profile ? { email: profile.email, password: null } : null);

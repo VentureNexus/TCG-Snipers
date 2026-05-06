@@ -5,6 +5,7 @@ import { decrypt } from "../crypto";
 import { applyCartQuantity } from "./cartHelpers";
 import { emitScreenshot } from "./screenshotUtil";
 import { saveSession, loadSession, clearSession } from "./sessionCache";
+import { handleChallengeInTask } from "./visualNavigator";
 
 const RETAILER = "Target";
 
@@ -68,6 +69,9 @@ export async function runTarget(ctx: RetailerContext): Promise<RetailerResult> {
         await page.goto(targetUrl, { waitUntil: "domcontentloaded" });
         await humanDelay(800, 1500);
         if (token.cancelled) return fail("Task cancelled");
+
+        const captchaMsg = await handleChallengeInTask(page, task.id, RETAILER, log, setStatus);
+        if (captchaMsg) return fail(captchaMsg);
 
         const titleEl = await page.$('h1[data-test="product-title"], h1');
         if (titleEl) productName = (await titleEl.textContent())?.trim() ?? productName;

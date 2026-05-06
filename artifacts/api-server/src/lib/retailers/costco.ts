@@ -5,6 +5,7 @@ import { decrypt } from "../crypto";
 import { applyCartQuantity } from "./cartHelpers";
 import { emitScreenshot } from "./screenshotUtil";
 import { saveSession, loadSession, clearSession } from "./sessionCache";
+import { handleChallengeInTask, navigateTo } from "./visualNavigator";
 
 const RETAILER = "Costco";
 
@@ -75,6 +76,9 @@ export async function runCostco(ctx: RetailerContext): Promise<RetailerResult> {
         await humanDelay(800, 1500);
         if (token.cancelled) return fail("Task cancelled");
 
+        const captchaMsg = await handleChallengeInTask(page, task.id, RETAILER, log, setStatus);
+        if (captchaMsg) return fail(captchaMsg);
+
         const titleEl = await page.$('h1.product-title, h1[itemprop="name"]');
         if (titleEl) productName = (await titleEl.textContent())?.trim() ?? productName;
 
@@ -85,26 +89,39 @@ export async function runCostco(ctx: RetailerContext): Promise<RetailerResult> {
           productImage = await page.$eval('meta[property="og:image"], img.product-image-main', el => el.getAttribute("content") || (el as any).src || "").catch(() => "");
         }
 
-        const memberGate = await page.$('a:has-text("Sign In"), button:has-text("Member Sign In")');
+        const memberGate = await page.$('a:has-text("Sign In"), button:has-text("Member Sign In"), a:has-text("Account"), button:has-text("Account")');
         const costcoLoginIdentity = retailerAccount ?? (profile ? { email: profile.email, password: null } : null);
         if (memberGate && costcoLoginIdentity) {
           if (cachedSession && loginEmail) {
             log("WARN", `[${RETAILER}] Cached session expired — re-authenticating as ${loginEmail}...`);
             clearSession(RETAILER, loginEmail);
           } else {
-            log("INFO", `[${RETAILER}] Member gate detected — signing in...`);
+            log("INFO", `[${RETAILER}] Member gate / account button detected — navigating to sign-in...`);
           }
           await memberGate.click();
-          await humanDelay(1000, 2000);
+          await humanDelay(1500, 2500);
           await screenshot(page);
+
+          // If clicking the account button didn't reveal a login form, use visual
+          // navigator to find the "Sign In" button in any slide-out panel that appeared.
+          const loginFormVisible = await page.$('#signInName, input[name="logonId"], input[name="email"]').catch(() => null);
+          if (!loginFormVisible) {
+            const navResult = await navigateTo(page, RETAILER, "click the Sign In or Log In button to reach the login form", "member_gate").catch(() => null);
+            if (navResult?.success) {
+              log("INFO", `[${RETAILER}] Visual navigator found login path: ${navResult.message}`);
+            }
+            await humanDelay(1000, 1800);
+            await screenshot(page);
+          }
+
           try {
-            await humanType(page, '#signInName, input[name="email"]', costcoLoginIdentity.email);
+            await humanType(page, '#signInName, input[name="logonId"], input[name="email"]', costcoLoginIdentity.email);
             await humanDelay(300, 600);
             if (retailerAccount?.password) {
-              try { await humanType(page, '#password, input[name="password"]', retailerAccount.password); } catch (_) {}
+              try { await humanType(page, '#logonPassword, input[name="logonPassword"], input[name="password"]', retailerAccount.password); } catch (_) {}
               await humanDelay(200, 400);
             }
-            const loginBtn = await page.$('button:has-text("Sign In"), #login-btn');
+            const loginBtn = await page.$('button:has-text("Sign In"), button[type="submit"], #login-btn, input[type="submit"]');
             if (loginBtn) { await loginBtn.click(); await humanDelay(2000, 3000); }
             await screenshot(page);
 
