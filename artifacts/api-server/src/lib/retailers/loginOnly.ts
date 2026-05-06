@@ -27,11 +27,33 @@ const CONFIGS: Record<string, RetailerConfig> = {
   },
   Walmart: {
     url: "https://www.walmart.com/account/login",
-    emailSel: "input[name='email'], input[type='email']",
-    continueSel: "button:has-text('Continue'), button[type='submit']",
-    passwordSel: "input[name='password'], input[type='password']",
-    submitSel: "button[type='submit']:not(:has-text('Continue')), button:has-text('Sign in')",
-    failureCheck: "input[name='email'], input[type='email']",
+    emailSel: [
+      "input[data-automation-id='email']",
+      "input[name='email']",
+      "input[type='email']",
+      "#email",
+      "input[autocomplete='email']",
+      "input[placeholder*='email' i]",
+    ].join(", "),
+    continueSel: [
+      "button[data-automation-id='signin-continue-btn']",
+      "button:has-text('Continue')",
+      "button[type='submit']:has-text('Continue')",
+    ].join(", "),
+    passwordSel: [
+      "input[data-automation-id='password']",
+      "input[name='password']",
+      "input[type='password']",
+      "#password",
+      "input[autocomplete='current-password']",
+    ].join(", "),
+    submitSel: [
+      "button[data-automation-id='signin-submit-btn']",
+      "button:has-text('Sign in')",
+      "button:has-text('Sign In')",
+      "button[type='submit']:not(:has-text('Continue'))",
+    ].join(", "),
+    failureCheck: "input[name='email'], input[type='email'], input[data-automation-id='email']",
   },
   "Best Buy": {
     url: "https://www.bestbuy.com/identity/global/signin",
@@ -95,13 +117,20 @@ export async function loginRetailer(
     await page.setDefaultNavigationTimeout(30000);
 
     await page.goto(config.url, { waitUntil: "domcontentloaded" });
-    await humanDelay(1500, 2500);
+
+    // Wait for the email field to be rendered (JS-heavy pages like Walmart need this)
+    const emailFound = await page.waitForSelector(config.emailSel, { timeout: 15000 }).catch(() => null);
+    if (!emailFound) {
+      const currentUrl = page.url();
+      return { success: false, message: `Email field not found on login page (url: ${currentUrl}) — page may have changed or requires cookie consent` };
+    }
+    await humanDelay(800, 1500);
 
     // Fill email
     try {
       await humanType(page, config.emailSel, email);
-    } catch {
-      return { success: false, message: "Email field not found on login page" };
+    } catch (e) {
+      return { success: false, message: `Could not type into email field: ${String(e)}` };
     }
     await humanDelay(300, 600);
 
