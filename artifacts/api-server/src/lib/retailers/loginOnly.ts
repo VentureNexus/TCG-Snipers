@@ -26,34 +26,39 @@ const CONFIGS: Record<string, RetailerConfig> = {
     failureCheck: "#ap_email, input[name='email']",
   },
   Walmart: {
-    url: "https://www.walmart.com/account/login",
+    // creator.walmart.com uses the same Walmart ID / SSO but has a simpler,
+    // less bot-detected login form.  The resulting session cookies are shared
+    // with walmart.com so checkout works normally after login.
+    url: "https://creator.walmart.com/account/login",
     emailSel: [
-      "input[data-automation-id='email']",
-      "input[name='email']",
       "input[type='email']",
+      "input[name='email']",
       "#email",
       "input[autocomplete='email']",
       "input[placeholder*='email' i]",
+      "input[data-automation-id='email']",
     ].join(", "),
     continueSel: [
-      "button[data-automation-id='signin-continue-btn']",
       "button:has-text('Continue')",
+      "button:has-text('Next')",
       "button[type='submit']:has-text('Continue')",
+      "button[data-automation-id='signin-continue-btn']",
     ].join(", "),
     passwordSel: [
-      "input[data-automation-id='password']",
-      "input[name='password']",
       "input[type='password']",
+      "input[name='password']",
       "#password",
       "input[autocomplete='current-password']",
+      "input[data-automation-id='password']",
     ].join(", "),
     submitSel: [
-      "button[data-automation-id='signin-submit-btn']",
+      "button[type='submit']",
       "button:has-text('Sign in')",
       "button:has-text('Sign In')",
-      "button[type='submit']:not(:has-text('Continue'))",
+      "button:has-text('Log in')",
+      "button[data-automation-id='signin-submit-btn']",
     ].join(", "),
-    failureCheck: "input[name='email'], input[type='email'], input[data-automation-id='email']",
+    failureCheck: "input[type='email'], input[name='email'], input[data-automation-id='email']",
   },
   "Best Buy": {
     url: "https://www.bestbuy.com/identity/global/signin",
