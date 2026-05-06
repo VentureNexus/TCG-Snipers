@@ -13,6 +13,7 @@ export const checkoutResultsTable = pgTable("checkout_results", {
   orderNumber: text("order_number").notNull().default(""),
   errorMessage: text("error_message").notNull().default(""),
   profileId: integer("profile_id"),
+  visualAssist: boolean("visual_assist").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

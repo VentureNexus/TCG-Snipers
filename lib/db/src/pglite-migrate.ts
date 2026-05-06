@@ -49,6 +49,10 @@ export async function runPgliteMigrations(client: PGlite): Promise<void> {
     ALTER TABLE tasks ADD COLUMN IF NOT EXISTS started_at TIMESTAMPTZ;
   `).catch(() => { /* table may not exist yet — CREATE below will include it */ });
 
+  await client.exec(`
+    ALTER TABLE checkout_results ADD COLUMN IF NOT EXISTS visual_assist BOOLEAN NOT NULL DEFAULT FALSE;
+  `).catch(() => { /* table may not exist yet — CREATE below will include it */ });
+
   // Convert TEXT priority to INTEGER if needed (upgrade path from string-based priority)
   await client.exec(`
     ALTER TABLE tasks ALTER COLUMN priority TYPE INTEGER
@@ -194,6 +198,7 @@ export async function runPgliteMigrations(client: PGlite): Promise<void> {
       order_number TEXT NOT NULL DEFAULT '',
       error_message TEXT NOT NULL DEFAULT '',
       profile_id INTEGER,
+      visual_assist BOOLEAN NOT NULL DEFAULT FALSE,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
 

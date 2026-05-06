@@ -41,6 +41,7 @@ let globalSeq = 0;
 
 const retryProgressCache = new Map<number, RetryProgressMessage>();
 const statusCache = new Map<number, StatusMessage>();
+const screenshotCache = new Map<number, ScreenshotMessage>();
 
 const TERMINAL_STATUSES = new Set(["idle", "success", "failed", "stopped"]);
 
@@ -59,6 +60,7 @@ export function clearLogBuffer(taskId: number): void {
   logBuffers.delete(taskId);
   retryProgressCache.delete(taskId);
   statusCache.delete(taskId);
+  screenshotCache.delete(taskId);
 }
 
 export async function initStatusCacheFromDb(): Promise<void> {
@@ -115,6 +117,12 @@ export function createWebSocketServer(server: Server): WebSocketServer {
           const cachedRetry = retryProgressCache.get(subscribedTaskId);
           if (cachedRetry && ws.readyState === WebSocket.OPEN) {
             ws.send(JSON.stringify(cachedRetry));
+          }
+
+          // Replay last screenshot so late-connecting clients see the CAPTCHA thumbnail
+          const cachedScreenshot = screenshotCache.get(subscribedTaskId);
+          if (cachedScreenshot && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify(cachedScreenshot));
           }
         }
       } catch {
@@ -181,5 +189,6 @@ export function broadcastRetryProgress(taskId: number, attempt: number, total: n
 
 export function broadcastScreenshot(taskId: number, dataUrl: string): void {
   const msg: ScreenshotMessage = { type: "screenshot", taskId, dataUrl };
+  screenshotCache.set(taskId, msg);
   sendToTaskSubscribers(taskId, msg);
 }

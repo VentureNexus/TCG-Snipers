@@ -457,13 +457,14 @@ export async function waitForSelectorWithVisualFallback(
   visualGoal: string,
   stage: string,
   log?: (level: "INFO" | "SUCCESS" | "WARN" | "ERROR", msg: string) => void,
+  timeout = 8000,
 ): Promise<{ el: Awaited<ReturnType<Page["$"]>>; visualAssist: boolean }> {
-  // Fast-path: element already present
-  const existing = await page.$(selector).catch(() => null);
+  // Normal-path: wait the full selector timeout before giving up
+  const existing = await page.waitForSelector(selector, { timeout }).catch(() => null);
   if (existing) return { el: existing, visualAssist: false };
 
-  // Slow-path: ask the AI to navigate to the element
-  log?.("WARN", `[${retailer}] Selector not found: "${selector}" — asking visual navigator for help...`);
+  // Slow-path: selector not found after full timeout — ask the AI to navigate
+  log?.("WARN", `[${retailer}] Selector "${selector}" not found after ${timeout}ms — asking visual navigator for help...`);
   const navResult = await navigateTo(page, retailer, visualGoal, stage, log).catch(() => null);
   if (navResult?.success) {
     log?.("INFO", `[${retailer}] Visual navigator: ${navResult.message}`);

@@ -587,6 +587,28 @@ function TaskRow({
           </Button>
         </td>
       </tr>
+      {effectiveStatus === "paused_captcha" && (
+        <tr className="border-b border-amber-500/20 bg-amber-500/5">
+          <td colSpan={9} className="px-4 py-2">
+            <div className="flex items-center gap-3">
+              <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+              <div className="flex flex-col gap-0.5 min-w-0">
+                <span className="text-xs font-mono font-semibold text-amber-400">Human verification required</span>
+                <span className="text-[11px] text-amber-400/70">Solve the CAPTCHA in the browser, then restart the task to continue.</span>
+              </div>
+              {latestScreenshot && (
+                <img
+                  src={latestScreenshot}
+                  alt="CAPTCHA screenshot"
+                  className="ml-auto h-16 rounded border border-amber-500/30 object-contain cursor-pointer"
+                  onClick={(e) => { e.stopPropagation(); onToggle(); }}
+                  title="Click to expand logs and view full screenshot"
+                />
+              )}
+            </div>
+          </td>
+        </tr>
+      )}
       {isExpanded && (
         <tr className="border-b border-border/50">
           <td colSpan={9} className="p-0">

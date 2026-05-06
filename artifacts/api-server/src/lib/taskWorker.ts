@@ -229,6 +229,7 @@ async function runTaskAutomation(task: TaskRow, token: { cancelled: boolean }) {
           orderNumber: result.orderNumber,
           errorMessage: "",
           profileId: task.profileId,
+          visualAssist: result.visualAssist ?? false,
         });
         if (settings.webhookUrl) {
           try {
