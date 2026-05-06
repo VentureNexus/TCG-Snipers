@@ -83,6 +83,7 @@ import {
   KeyRound,
   Eye,
   EyeOff,
+  RefreshCw,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { getApiBase } from "@/lib/api-base";
@@ -1099,6 +1100,7 @@ interface RetailerAccount {
   profileId: number;
   email: string;
   createdAt: string;
+  sessionActive: boolean;
 }
 
 interface RetailerAccountsDialogProps {
@@ -1114,6 +1116,7 @@ function RetailerAccountsDialog({ open, onOpenChange, profiles }: RetailerAccoun
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({});
+  const [loggingIn, setLoggingIn] = useState<Set<number>>(new Set());
 
   // Form state for add/edit
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -1135,6 +1138,25 @@ function RetailerAccountsDialog({ open, onOpenChange, profiles }: RetailerAccoun
       toast({ title: "Failed to load accounts", variant: "destructive" });
     } finally {
       setLoading(false);
+    }
+  }, [apiBase, toast]);
+
+  const triggerLogin = useCallback(async (id: number, retailer: string) => {
+    setLoggingIn((prev) => new Set([...prev, id]));
+    try {
+      const res = await fetch(`${apiBase}/api/retailer-accounts/${id}/login`, { method: "POST" });
+      const data = await res.json() as { success: boolean; message: string };
+      if (data.success) {
+        toast({ title: `${retailer} — signed in`, description: "Session cached — login will be skipped at checkout" });
+        setAccounts((prev) => prev.map((a) => a.id === id ? { ...a, sessionActive: true } : a));
+      } else {
+        toast({ title: `${retailer} — sign-in failed`, description: data.message, variant: "destructive" });
+        setAccounts((prev) => prev.map((a) => a.id === id ? { ...a, sessionActive: false } : a));
+      }
+    } catch {
+      toast({ title: "Sign-in request failed", variant: "destructive" });
+    } finally {
+      setLoggingIn((prev) => { const s = new Set(prev); s.delete(id); return s; });
     }
   }, [apiBase, toast]);
 
@@ -1195,9 +1217,12 @@ function RetailerAccountsDialog({ open, onOpenChange, profiles }: RetailerAccoun
         });
       }
       if (!res.ok) throw new Error(await res.text());
-      toast({ title: editingId ? "Account updated" : "Account saved" });
+      const saved = await res.json() as RetailerAccount;
+      toast({ title: editingId ? "Account updated — signing in..." : "Account saved — signing in..." });
       resetForm();
       fetchAccounts();
+      // Auto-login in background to pre-warm the session cache
+      triggerLogin(saved.id, saved.retailer);
     } catch (e) {
       toast({ title: "Failed to save account", description: e instanceof Error ? e.message : undefined, variant: "destructive" });
     } finally {
@@ -1243,31 +1268,52 @@ function RetailerAccountsDialog({ open, onOpenChange, profiles }: RetailerAccoun
           ) : accounts.length === 0 && !showForm ? (
             <p className="text-xs text-muted-foreground text-center py-6">No accounts saved yet.</p>
           ) : (
-            accounts.map((acct) => (
-              <div key={acct.id} className="flex items-center justify-between gap-3 rounded-lg border border-border/50 px-3 py-2.5 bg-muted/10">
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-medium text-foreground">{acct.retailer}</span>
-                    <span className="text-[10px] text-muted-foreground bg-muted/30 px-1.5 py-0.5 rounded">{profileName(acct.profileId)}</span>
+            accounts.map((acct) => {
+              const isLoggingIn = loggingIn.has(acct.id);
+              return (
+                <div key={acct.id} className="flex items-center justify-between gap-3 rounded-lg border border-border/50 px-3 py-2.5 bg-muted/10">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      {/* Session status dot */}
+                      {isLoggingIn ? (
+                        <Loader2 className="w-2.5 h-2.5 animate-spin text-muted-foreground shrink-0" />
+                      ) : (
+                        <span
+                          className={`w-2 h-2 rounded-full shrink-0 ${acct.sessionActive ? "bg-green-500" : "bg-red-500"}`}
+                          title={acct.sessionActive ? "Session active — login cached" : "Not signed in"}
+                        />
+                      )}
+                      <span className="text-xs font-medium text-foreground">{acct.retailer}</span>
+                      <span className="text-[10px] text-muted-foreground bg-muted/30 px-1.5 py-0.5 rounded">{profileName(acct.profileId)}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground truncate mt-0.5 pl-4">{acct.email}</p>
                   </div>
-                  <p className="text-xs text-muted-foreground truncate mt-0.5">{acct.email}</p>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <Button
+                      variant="ghost" size="icon"
+                      className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                      onClick={() => triggerLogin(acct.id, acct.retailer)}
+                      disabled={isLoggingIn}
+                      title={acct.sessionActive ? "Re-authenticate" : "Sign in"}
+                    >
+                      <RefreshCw className={`w-3.5 h-3.5 ${isLoggingIn ? "animate-spin" : ""}`} />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={() => openEdit(acct)} title="Edit">
+                      <Pencil className="w-3.5 h-3.5" />
+                    </Button>
+                    <Button
+                      variant="ghost" size="icon"
+                      className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                      onClick={() => handleDelete(acct.id)}
+                      disabled={deletingId === acct.id}
+                      title="Delete"
+                    >
+                      {deletingId === acct.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1 shrink-0">
-                  <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={() => openEdit(acct)} title="Edit">
-                    <Pencil className="w-3.5 h-3.5" />
-                  </Button>
-                  <Button
-                    variant="ghost" size="icon"
-                    className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                    onClick={() => handleDelete(acct.id)}
-                    disabled={deletingId === acct.id}
-                    title="Delete"
-                  >
-                    {deletingId === acct.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
-                  </Button>
-                </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
 
