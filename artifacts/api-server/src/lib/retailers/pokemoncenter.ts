@@ -174,7 +174,7 @@ export async function runPokemonCenter(ctx: RetailerContext): Promise<RetailerRe
 
       log("INFO", `[${RETAILER}] Proceeding to checkout (Shopify)...`);
       await setStatus("checking_out");
-      const { el: checkoutBtn, visualAssist: checkoutVisualAssist, alreadyNavigated: checkoutAlreadyNavigated } = await waitForSelectorWithVisualFallback(
+      const { el: checkoutBtn, visualAssist: checkoutVisualAssist, alreadyNavigated: checkoutAlreadyNavigated, captchaDetected: checkoutCaptchaDetected } = await waitForSelectorWithVisualFallback(
         page,
         'button:has-text("Check out"), a:has-text("Check out"), input[name="checkout"]',
         RETAILER,
@@ -182,6 +182,7 @@ export async function runPokemonCenter(ctx: RetailerContext): Promise<RetailerRe
         "checkout_btn",
         log,
       );
+      if (checkoutCaptchaDetected) return { ...fail("CAPTCHA detected during checkout navigation"), captchaPaused: true };
       if (!checkoutBtn && !checkoutAlreadyNavigated) return fail("Checkout button not found");
       if (checkoutVisualAssist) { log("INFO", `[${RETAILER}] Visual navigator located checkout button`); anyVisualAssist = true; }
       if (checkoutBtn) await checkoutBtn.click();
@@ -312,7 +313,7 @@ export async function runPokemonCenter(ctx: RetailerContext): Promise<RetailerRe
 
     await screenshot(page);
     log("INFO", `[${RETAILER}] Submitting Shopify order...`);
-    const { el: placeOrder, visualAssist: poVisualAssist, alreadyNavigated: poAlreadyNavigated } = await waitForSelectorWithVisualFallback(
+    const { el: placeOrder, visualAssist: poVisualAssist, alreadyNavigated: poAlreadyNavigated, captchaDetected: poCaptchaDetected } = await waitForSelectorWithVisualFallback(
       page,
       'button#continue_button, button:has-text("Pay now"), button:has-text("Complete order")',
       RETAILER,
@@ -320,6 +321,7 @@ export async function runPokemonCenter(ctx: RetailerContext): Promise<RetailerRe
       "place_order",
       log,
     );
+    if (poCaptchaDetected) return { ...fail("CAPTCHA detected during place order navigation"), captchaPaused: true };
     if (!placeOrder && !poAlreadyNavigated) return fail("Place order button not found");
     if (poVisualAssist) anyVisualAssist = true;
     if (placeOrder) await placeOrder.click();

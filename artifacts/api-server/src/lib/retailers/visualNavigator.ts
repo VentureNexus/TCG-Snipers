@@ -458,10 +458,10 @@ export async function waitForSelectorWithVisualFallback(
   stage: string,
   log?: (level: "INFO" | "SUCCESS" | "WARN" | "ERROR", msg: string) => void,
   timeout = 8000,
-): Promise<{ el: Awaited<ReturnType<Page["$"]>>; visualAssist: boolean; alreadyNavigated: boolean }> {
+): Promise<{ el: Awaited<ReturnType<Page["$"]>>; visualAssist: boolean; alreadyNavigated: boolean; captchaDetected: boolean }> {
   // Normal-path: wait the full selector timeout before giving up
   const existing = await page.waitForSelector(selector, { timeout }).catch(() => null);
-  if (existing) return { el: existing, visualAssist: false, alreadyNavigated: false };
+  if (existing) return { el: existing, visualAssist: false, alreadyNavigated: false, captchaDetected: false };
 
   // Slow-path: selector not found after full timeout — ask the AI to navigate
   log?.("WARN", `[${retailer}] Selector "${selector}" not found after ${timeout}ms — asking visual navigator for help...`);
@@ -470,16 +470,26 @@ export async function waitForSelectorWithVisualFallback(
     log?.("INFO", `[${retailer}] Visual navigator: ${navResult.message}`);
   }
 
+  // Detect captcha/blocked signal in navResult message
+  const navMsg = navResult?.message?.toLowerCase() ?? "";
+  const captchaDetected = !navResult?.success && (
+    navMsg.includes("captcha") || navMsg.includes("bot detection") || navMsg.includes("blocked")
+  );
+  if (captchaDetected) {
+    log?.("WARN", `[${retailer}] Visual navigator detected challenge during navigation: ${navResult?.message}`);
+    return { el: null, visualAssist: true, alreadyNavigated: false, captchaDetected: true };
+  }
+
   const el = await page.$(selector).catch(() => null);
 
   // If nav succeeded but element is gone, the AI likely already clicked/submitted it.
   // Signal alreadyNavigated so callers skip the click rather than failing.
   if (!el && navResult?.success) {
     log?.("INFO", `[${retailer}] Visual navigator appears to have already executed the action (element absent post-nav)`);
-    return { el: null, visualAssist: true, alreadyNavigated: true };
+    return { el: null, visualAssist: true, alreadyNavigated: true, captchaDetected: false };
   }
 
-  return { el, visualAssist: true, alreadyNavigated: false };
+  return { el, visualAssist: true, alreadyNavigated: false, captchaDetected: false };
 }
 
 // ---------------------------------------------------------------------------

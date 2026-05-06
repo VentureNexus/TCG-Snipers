@@ -361,7 +361,7 @@ export async function runWalmart(ctx: RetailerContext): Promise<RetailerResult> 
       "button:has-text('Complete purchase')",
     ]);
     if (!placeOrderClicked) {
-      const { el: poEl, visualAssist: poVisualAssist, alreadyNavigated: poAlreadyNavigated } = await waitForSelectorWithVisualFallback(
+      const { el: poEl, visualAssist: poVisualAssist, alreadyNavigated: poAlreadyNavigated, captchaDetected: poCaptchaDetected } = await waitForSelectorWithVisualFallback(
         page,
         'button:has-text("Place Order"), button:has-text("Place order"), [data-automation-id="place-order-btn"]',
         RETAILER,
@@ -369,6 +369,7 @@ export async function runWalmart(ctx: RetailerContext): Promise<RetailerResult> 
         "place_order",
         log,
       );
+      if (poCaptchaDetected) return { ...fail("CAPTCHA detected during place order navigation"), captchaPaused: true };
       if (!poEl && !poAlreadyNavigated) return fail("Place order button not found");
       if (poVisualAssist) anyVisualAssist = true;
       if (poEl) await poEl.click();

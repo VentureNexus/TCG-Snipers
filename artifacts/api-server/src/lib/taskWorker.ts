@@ -215,7 +215,7 @@ async function runTaskAutomation(task: TaskRow, token: { cancelled: boolean }) {
 
       if (token.cancelled) break;
 
-      if (result.captchaPaused) anyPaused = true;
+      if (result.captchaPaused) { anyPaused = true; break; }
 
       if (result.success) {
         anySuccess = true;
@@ -260,6 +260,7 @@ async function runTaskAutomation(task: TaskRow, token: { cancelled: boolean }) {
           orderNumber: "",
           errorMessage: result.errorMessage,
           profileId: task.profileId,
+          visualAssist: result.visualAssist ?? false,
         });
         if (settings.webhookUrl) {
           try {
