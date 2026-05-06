@@ -1,4 +1,1 @@
-- Fixed: clicks and navigation now actually work in human assist popups — buttons, menus, and slide-out panels respond correctly
-- Fixed: press-and-hold CAPTCHAs (like Walmart reCAPTCHA) now work — hold your mouse button down on the image and it holds in the real browser too
-- Added scroll support to both Login Assist and CAPTCHA Assist — scroll the wheel on the image to scroll the page
-- Browser view now refreshes every 0.5 s (was 1.2 s) for a much more responsive feel
+- Fixed: Costco login now opens the sign-in page directly — no more slide-out panel navigation required
