@@ -1,0 +1,109 @@
+Run pnpm --filter @workspace/sniper-bot run dist:mac-arm64 -- --publish always
+
+> @workspace/sniper-bot@1.0.55 dist:mac-arm64 /Users/runner/work/TCG-Snipers/TCG-Snipers/artifacts/sniper-bot
+> pnpm run electron:build -- --mac --arm64 -- --publish always
+
+
+> @workspace/sniper-bot@1.0.55 electron:build /Users/runner/work/TCG-Snipers/TCG-Snipers/artifacts/sniper-bot
+> pnpm run build && pnpm run electron:compile && electron-builder --config electron-builder.yml -- --mac --arm64 -- --publish always
+
+
+> @workspace/sniper-bot@1.0.55 build /Users/runner/work/TCG-Snipers/TCG-Snipers/artifacts/sniper-bot
+> vite build --config vite.config.ts
+
+vite v7.3.2 building client environment for production...
+transforming...
+src/components/ui/tooltip.tsx (2:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+src/components/ui/select.tsx (2:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+src/components/ui/label.tsx (2:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+src/components/ui/dropdown-menu.tsx (2:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+✓ 2812 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/public/index.html                               0.74 kB │ gzip:   0.41 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+dist/public/assets/logo-squirtle-MRovzWWq.png      724.26 kB
+dist/public/assets/logo-charmander-VPW-J42p.png    728.62 kB
+dist/public/assets/logo-pikachu-LNxE26df.png       818.93 kB
+dist/public/assets/index-BHeM5Qmc.css              140.70 kB │ gzip:  21.74 kB
+dist/public/assets/index-5rwglgAY.js             1,141.45 kB │ gzip: 327.13 kB
+✓ built in 6.29s
+
+> @workspace/sniper-bot@1.0.55 electron:compile /Users/runner/work/TCG-Snipers/TCG-Snipers/artifacts/sniper-bot
+> node electron/build.mjs
+
+✓ DISCORD_OAUTH_CLIENT_ID will be baked into the bundle
+✓ DISCORD_OAUTH_CLIENT_SECRET will be baked into the bundle
+✓ PGlite WASM assets copied to electron/dist/
+✓ Electron main process compiled
+  • electron-builder  version=25.1.8 os=23.6.0
+  • artifacts will be published  reason=tag is defined tag=v1.0.55
+  • loaded configuration  file=/Users/runner/work/TCG-Snipers/TCG-Snipers/artifacts/sniper-bot/electron-builder.yml
+  • executing @electron/rebuild  electronVersion=34.5.8 arch=arm64 buildFromSource=false appDir=./
+  • installing native dependencies  arch=arm64
+  • completed installing native dependencies
+  • packaging       platform=darwin arch=arm64 electron=34.5.8 appOutDir=release/mac-arm64
+  • downloading     url=https://github.com/electron/electron/releases/download/v34.5.8/electron-v34.5.8-darwin-arm64.zip size=100 MB parts=6
+  • downloaded      url=https://github.com/electron/electron/releases/download/v34.5.8/electron-v34.5.8-darwin-arm64.zip duration=1.046s
+  • skipped macOS application code signing  reason=cannot find valid "Developer ID Application" identity or custom non-Apple code signing certificate, it could cause some undefined behaviour, e.g. macOS localized description not visible, see https://electron.build/code-signing allIdentities=     0 identities found
+                                                Valid identities only
+     0 valid identities found
+[notarize] Skipping notarization: APPLE_ID / APPLE_APP_SPECIFIC_PASSWORD / APPLE_TEAM_ID not set.
+  • building        target=DMG arch=arm64 file=release/TCGSnipers-1.0.55-arm64.dmg
+  • building        target=macOS zip arch=arm64 file=release/TCGSnipers-1.0.55-arm64.zip
+  • Detected arm64 process, HFS+ is unavailable. Creating dmg with APFS - supports Mac OSX 10.12+
+  • building block map  blockMapFile=release/TCGSnipers-1.0.55-arm64.dmg.blockmap
+  • publishing      publisher=Github (owner: VentureNexus, project: TCG-Snipers, version: 1.0.55)
+  • uploading       file=TCGSnipers-1.0.55-arm64.dmg.blockmap provider=github
+  • uploading       file=TCGSnipers-1.0.55-arm64.dmg provider=github
+  • building block map  blockMapFile=release/TCGSnipers-1.0.55-arm64.zip.blockmap
+  • uploading       file=TCGSnipers-1.0.55-arm64.zip.blockmap provider=github
+  • uploading       file=TCGSnipers-1.0.55-arm64.zip provider=github
+  • overwrite published file  file=TCGSnipers-1.0.55-arm64.dmg reason=already exists on GitHub
+  ⨯ 422 Unprocessable Entity
+"method: POST url: https://uploads.github.com/repos/VentureNexus/TCG-Snipers/releases/318680723/assets?name=TCGSnipers-1.0.55-arm64.zip\n\n          Data:\n          {\"message\":\"Validation Failed\",\"request_id\":\"952D:21C2F2:DAEBB9:FE58CB:69FBCA26\",\"documentation_url\":\"https://docs.github.com/rest\",\"errors\":[{\"resource\":\"ReleaseAsset\",\"code\":\"already_exists\",\"field\":\"name\"}]}\n          "
+Headers: {
+  "cache-control": "no-cache",
+  "content-length": "210",
+  "content-security-policy": "default-src 'none'",
+  "content-type": "application/json; charset=utf-8",
+  "strict-transport-security": "max-age=31557600",
+  "vary": "Accept-Encoding, Accept, X-Requested-With",
+  "x-content-type-options": "nosniff",
+  "x-frame-options": "deny",
+  "x-github-media-type": "github.v3; format=json",
+  "x-github-tenant": "",
+  "x-xss-protection": "1; mode=block",
+  "date": "Wed, 06 May 2026 23:09:27 GMT",
+  "x-github-request-id": "952D:21C2F2:DAEBB9:FE58CB:69FBCA26"
+}  failedTask=build stackTrace=HttpError: 422 Unprocessable Entity
+"method: POST url: https://uploads.github.com/repos/VentureNexus/TCG-Snipers/releases/318680723/assets?name=TCGSnipers-1.0.55-arm64.zip\n\n          Data:\n          {\"message\":\"Validation Failed\",\"request_id\":\"952D:21C2F2:DAEBB9:FE58CB:69FBCA26\",\"documentation_url\":\"https://docs.github.com/rest\",\"errors\":[{\"resource\":\"ReleaseAsset\",\"code\":\"already_exists\",\"field\":\"name\"}]}\n          "
+Headers: {
+  "cache-control": "no-cache",
+  "content-length": "210",
+  "content-security-policy": "default-src 'none'",
+  "content-type": "application/json; charset=utf-8",
+  "strict-transport-security": "max-age=31557600",
+  "vary": "Accept-Encoding, Accept, X-Requested-With",
+  "x-content-type-options": "nosniff",
+  "x-frame-options": "deny",
+  "x-github-media-type": "github.v3; format=json",
+  "x-github-tenant": "",
+  "x-xss-protection": "1; mode=block",
+  "date": "Wed, 06 May 2026 23:09:27 GMT",
+  "x-github-request-id": "952D:21C2F2:DAEBB9:FE58CB:69FBCA26"
+}
+    at createHttpError (/Users/runner/work/TCG-Snipers/TCG-Snipers/node_modules/.pnpm/builder-util-runtime@9.2.10/node_modules/builder-util-runtime/src/httpExecutor.ts:30:10)
+    at IncomingMessage.<anonymous> (/Users/runner/work/TCG-Snipers/TCG-Snipers/node_modules/.pnpm/builder-util-runtime@9.2.10/node_modules/builder-util-runtime/src/httpExecutor.ts:201:13)
+    at IncomingMessage.emit (node:events:531:35)
+    at endReadableNT (node:internal/streams/readable:1698:12)
+    at processTicksAndRejections (node:internal/process/task_queues:89:21)
+ ELIFECYCLE  Command failed with exit code 1.
+/Users/runner/work/TCG-Snipers/TCG-Snipers/artifacts/sniper-bot:
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @workspace/sniper-bot@1.0.55 dist:mac-arm64: `pnpm run electron:build -- --mac --arm64 -- --publish always`
+Exit status 1
+Error: Process completed with exit code 1.

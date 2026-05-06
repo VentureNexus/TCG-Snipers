@@ -175,6 +175,44 @@ jobs:
           fi
           echo "✓ Discord OAuth credentials are present"
 
+      - name: Resolve tag name for asset cleanup
+        id: tag
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "name=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "name=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Delete existing platform assets (idempotent re-upload)
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ steps.tag.outputs.name }}"
+          # Get all asset IDs+names for this release and delete the ones belonging
+          # to this platform so electron-builder can re-upload cleanly.
+          gh api "repos/VentureNexus/TCG-Snipers/releases/tags/$TAG" \
+            --jq '.assets[] | "\(.id) \(.name)"' 2>/dev/null | \
+          while read -r id name; do
+            if [[ "${{ matrix.os }}" == windows* ]]; then
+              # Windows assets
+              [[ "$name" == *-win.exe || "$name" == *-win.exe.blockmap || \
+                 "$name" == *-win.zip || "$name" == *-win.zip.blockmap || \
+                 "$name" == "latest.yml" ]] && \
+                gh api -X DELETE "repos/VentureNexus/TCG-Snipers/releases/assets/$id" && \
+                echo "Deleted $name"
+            else
+              # macOS assets
+              [[ "$name" == *.dmg || "$name" == *.dmg.blockmap || \
+                 "$name" == *-arm64.zip || "$name" == *-arm64.zip.blockmap || \
+                 "$name" == "latest-mac.yml" ]] && \
+                gh api -X DELETE "repos/VentureNexus/TCG-Snipers/releases/assets/$id" && \
+                echo "Deleted $name"
+            fi
+          done || true
+
       - name: Build and publish installer (GitHub Release)
         run: pnpm --filter @workspace/sniper-bot run ${{ matrix.target }} -- --publish always
         env:
