@@ -39,15 +39,16 @@ const CONFIGS: Record<string, RetailerConfig> = {
     // Page 2: choose sign-in method (Password radio is default) → password field → Sign in
     url: "https://www.walmart.com/account/login",
     emailSel: [
-      // identity.walmart.com uses autocomplete="username" for the phone-or-email field
-      "input[autocomplete='username']",
-      "input[autocomplete='email']",
-      "input[type='email']",
-      "input[name='email']",
-      "input[name='phoneOrEmail']",
+      // identity.walmart.com uses autocomplete="username" for the phone-or-email field.
+      // Exclude aria-hidden and tabindex=-1 duplicates that Walmart injects as ghost inputs.
+      "input[autocomplete='username']:not([aria-hidden='true']):not([tabindex='-1'])",
+      "input[autocomplete='email']:not([aria-hidden='true']):not([tabindex='-1'])",
+      "input[type='email']:not([aria-hidden='true']):not([tabindex='-1'])",
+      "input[name='email']:not([aria-hidden='true'])",
+      "input[name='phoneOrEmail']:not([aria-hidden='true'])",
       "#email",
-      // generic text fallback — identity.walmart.com renders a plain <input type="text">
-      "input[type='text']:not([type='hidden'])",
+      // generic text fallback — only visible, focusable inputs
+      "input[type='text']:not([type='hidden']):not([aria-hidden='true']):not([tabindex='-1'])",
     ].join(", "),
     continueSel: [
       "button:has-text('Continue')",
@@ -182,7 +183,7 @@ export async function loginRetailer(
     await page.goto(config.url, { waitUntil: "domcontentloaded" });
 
     // Wait for the email field to be rendered (JS-heavy pages like Walmart need this)
-    let emailFound = await page.waitForSelector(config.emailSel, { timeout: 15000 }).catch(() => null);
+    let emailFound = await page.waitForSelector(config.emailSel, { state: "visible", timeout: 15000 }).catch(() => null);
 
     // ── Visual navigator fallback ─────────────────────────────────────────────
     // If the email field didn't appear, the login form may be hidden behind a

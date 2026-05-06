@@ -739,6 +739,10 @@ const RELEASE_NOTES: Record<string, string> = {
   "1.0.57": [
     "- Fixed: Costco login now opens the sign-in page directly — no more slide-out panel navigation required",
   ].join("\n"),
+  "1.0.58": [
+    "- Fixed: Walmart login no longer fails silently — the bot was finding a hidden ghost input injected by Walmart's identity page instead of the real email field",
+    "- The real visible email field is now targeted correctly, and human assist opens as expected if the page doesn't load properly",
+  ].join("\n"),
 };
 
 // Called by the renderer on mount to check if a "What's New" payload is
