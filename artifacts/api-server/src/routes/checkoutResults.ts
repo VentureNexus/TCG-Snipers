@@ -19,6 +19,7 @@ router.get("/checkout-results", async (req, res): Promise<void> => {
       orderNumber: checkoutResultsTable.orderNumber,
       errorMessage: checkoutResultsTable.errorMessage,
       profileId: checkoutResultsTable.profileId,
+      visualAssist: checkoutResultsTable.visualAssist,
       createdAt: checkoutResultsTable.createdAt,
       productUrl: tasksTable.productUrl,
     })

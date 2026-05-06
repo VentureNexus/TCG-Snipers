@@ -245,12 +245,28 @@ export async function runPokemonCenter(ctx: RetailerContext): Promise<RetailerRe
       log("INFO", `[${RETAILER}] Saved address on file — skipping address entry`);
     }
 
-    const continueShipping = await page.$('button#continue_button, button:has-text("Continue to shipping")');
-    if (continueShipping) { await continueShipping.click(); await humanDelay(2000, 3000); }
+    const { el: continueShipping, visualAssist: contShipVisualAssist } = await waitForSelectorWithVisualFallback(
+      page,
+      'button#continue_button, button:has-text("Continue to shipping")',
+      RETAILER,
+      "find and click the Continue to Shipping button on the Pokemon Center checkout page",
+      "continue_shipping",
+      log,
+      3000,
+    );
+    if (continueShipping) { if (contShipVisualAssist) anyVisualAssist = true; await continueShipping.click(); await humanDelay(2000, 3000); }
     if (token.cancelled) return fail("Task cancelled");
 
-    const continuePayment = await page.$('button#continue_button, button:has-text("Continue to payment")');
-    if (continuePayment) { await continuePayment.click(); await humanDelay(2000, 3000); }
+    const { el: continuePayment, visualAssist: contPayVisualAssist } = await waitForSelectorWithVisualFallback(
+      page,
+      'button#continue_button, button:has-text("Continue to payment")',
+      RETAILER,
+      "find and click the Continue to Payment button on the Pokemon Center checkout page",
+      "continue_payment",
+      log,
+      3000,
+    );
+    if (continuePayment) { if (contPayVisualAssist) anyVisualAssist = true; await continuePayment.click(); await humanDelay(2000, 3000); }
     if (token.cancelled) return fail("Task cancelled");
 
     // ── Payment (skip if saved on account — Shopify may show saved card) ─────

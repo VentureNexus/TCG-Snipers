@@ -373,7 +373,7 @@ export async function navigateTo(
 
   const hasCaptchaOrBlock = actions.some((a) => a.action === "captcha" || a.action === "blocked");
   if (hasCaptchaOrBlock) {
-    const actionDesc = actions[0];
+    const actionDesc = actions.find((a) => a.action === "captcha" || a.action === "blocked") ?? actions[0];
     log?.("WARN", `${TAG} LLM detected ${actionDesc.action}: ${actionDesc.descriptor}`);
     return {
       success: false,

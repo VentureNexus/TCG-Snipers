@@ -203,8 +203,16 @@ export async function runBestBuy(ctx: RetailerContext): Promise<RetailerResult> 
       log("INFO", `[${RETAILER}] Saved address on file — skipping address entry`);
     }
 
-    const continueBtn = await page.$('button:has-text("Continue"), button.btn-primary');
-    if (continueBtn) { await continueBtn.click(); await humanDelay(2000, 3000); }
+    const { el: continueBtn, visualAssist: contVisualAssist } = await waitForSelectorWithVisualFallback(
+      page,
+      'button:has-text("Continue"), button.btn-primary',
+      RETAILER,
+      "find and click the Continue button to advance through Best Buy checkout",
+      "continue_shipping",
+      log,
+      3000,
+    );
+    if (continueBtn) { if (contVisualAssist) anyVisualAssist = true; await continueBtn.click(); await humanDelay(2000, 3000); }
     if (token.cancelled) return fail("Task cancelled");
 
     // ── Payment (skip if saved on account) ───────────────────────────────────

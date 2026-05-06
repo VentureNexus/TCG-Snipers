@@ -209,8 +209,16 @@ export async function runSamsClub(ctx: RetailerContext): Promise<RetailerResult>
         if (!val) continue;
         try { await humanType(page, sel, val); await humanDelay(80, 150); } catch (_) {}
       }
-      const continueBtn = await page.$('button:has-text("Continue"), button:has-text("Save & Continue")');
-      if (continueBtn) { await continueBtn.click(); await humanDelay(2000, 3000); }
+      const { el: continueBtn, visualAssist: contVisualAssist } = await waitForSelectorWithVisualFallback(
+        page,
+        'button:has-text("Continue"), button:has-text("Save & Continue")',
+        RETAILER,
+        "find and click the Continue button to advance through Sam\'s Club checkout",
+        "continue_shipping",
+        log,
+        3000,
+      );
+      if (continueBtn) { if (contVisualAssist) anyVisualAssist = true; await continueBtn.click(); await humanDelay(2000, 3000); }
       if (token.cancelled) return fail("Task cancelled");
     } else if (!hasAddressForm) {
       log("INFO", `[${RETAILER}] Saved address on file — skipping address entry`);

@@ -287,8 +287,16 @@ export async function runWalmart(ctx: RetailerContext): Promise<RetailerResult> 
         try { await humanType(page, sel, val); await humanDelay(80, 150); } catch (_) {}
       }
       await screenshot();
-      const continueBtn = await page.$('button:has-text("Continue"), button:has-text("Save & Continue")');
-      if (continueBtn) { await continueBtn.click(); await humanDelay(2000, 3000); }
+      const { el: continueBtn, visualAssist: contVisualAssist } = await waitForSelectorWithVisualFallback(
+        page,
+        'button:has-text("Continue"), button:has-text("Save & Continue")',
+        RETAILER,
+        "find and click the Continue button to advance through Walmart checkout",
+        "continue_shipping",
+        log,
+        3000,
+      );
+      if (continueBtn) { if (contVisualAssist) anyVisualAssist = true; await continueBtn.click(); await humanDelay(2000, 3000); }
       await page.waitForLoadState("networkidle", { timeout: 10000 }).catch(() => {});
       await screenshot();
       if (token.cancelled) return fail("Task cancelled");

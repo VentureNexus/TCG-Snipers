@@ -293,8 +293,17 @@ export async function runAmazon(ctx: RetailerContext): Promise<RetailerResult> {
     }
 
     if (!quickPlaceOrder) {
-      const continueShipping = await page.$('input[name="continue-to-payment"], button:has-text("Continue"), input[value="Continue"]');
+      const { el: continueShipping, visualAssist: contVisualAssist } = await waitForSelectorWithVisualFallback(
+        page,
+        'input[name="continue-to-payment"], button:has-text("Continue"), input[value="Continue"]',
+        RETAILER,
+        "find and click the Continue to Payment button on the Amazon checkout page",
+        "continue_shipping",
+        log,
+        3000,
+      );
       if (continueShipping) {
+        if (contVisualAssist) anyVisualAssist = true;
         await continueShipping.click();
         await humanDelay(1500, 2000);
         await page.waitForLoadState("networkidle", { timeout: 10000 }).catch(() => {});
@@ -322,14 +331,21 @@ export async function runAmazon(ctx: RetailerContext): Promise<RetailerResult> {
       } catch (decryptErr) {
         log("WARN", `[${RETAILER}] Could not decrypt card: ${String(decryptErr)}`);
       }
-      const paymentContinue = await page.$(
+      const { el: paymentContinue, visualAssist: payContVisualAssist } = await waitForSelectorWithVisualFallback(
+        page,
         'input[name="ppw-widgetEvent:SetPaymentPlanSelectAction"], ' +
         'input[name="continue-to-review"], ' +
         'button:has-text("Use this payment method"), ' +
         'button:has-text("Continue"), ' +
         'input[value*="Use these"]',
+        RETAILER,
+        "find and click the Continue or Use this payment method button on Amazon checkout",
+        "continue_payment",
+        log,
+        3000,
       );
       if (paymentContinue) {
+        if (payContVisualAssist) anyVisualAssist = true;
         await paymentContinue.scrollIntoViewIfNeeded();
         await page.evaluate(el => (el as unknown as { click(): void }).click(), paymentContinue);
         await humanDelay(2000, 3000);

@@ -210,8 +210,16 @@ export async function runTarget(ctx: RetailerContext): Promise<RetailerResult> {
       log("INFO", `[${RETAILER}] Saved address on file — skipping address entry`);
     }
 
-    const continueShipping = await page.$('button:has-text("Save & continue"), button:has-text("Continue")');
-    if (continueShipping) { await continueShipping.click(); await humanDelay(2000, 3000); }
+    const { el: continueShipping, visualAssist: contVisualAssist } = await waitForSelectorWithVisualFallback(
+      page,
+      'button:has-text("Save & continue"), button:has-text("Continue")',
+      RETAILER,
+      "find and click the Continue button to advance through Target checkout",
+      "continue_shipping",
+      log,
+      3000,
+    );
+    if (continueShipping) { if (contVisualAssist) anyVisualAssist = true; await continueShipping.click(); await humanDelay(2000, 3000); }
     if (token.cancelled) return fail("Task cancelled");
 
     // ── Payment (skip if saved on account) ───────────────────────────────────
