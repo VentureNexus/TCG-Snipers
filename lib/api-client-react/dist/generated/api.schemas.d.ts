@@ -40,6 +40,8 @@ export interface UpdateSettingsBody {
     sessionTtlHours?: number | null;
     /** When true, a popup lets the user manually solve CAPTCHAs the bot cannot auto-solve. */
     captchaAssist?: boolean;
+    /** Write-only — stores the license JWT in the local api-server for community knowledge-base auth. Never returned in GET responses. */
+    licenseToken?: string;
 }
 export interface Profile {
     id: number;

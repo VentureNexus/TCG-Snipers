@@ -11,3 +11,4 @@ export * from "./devices";
 export * from "./magicLinkTokens";
 export * from "./checkoutSelectorStats";
 export * from "./retailerAccounts";
+export * from "./communityEvents";

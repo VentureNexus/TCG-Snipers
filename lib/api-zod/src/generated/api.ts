@@ -78,6 +78,12 @@ export const UpdateSettingsBody = zod.object({
     .describe(
       "When true, a popup lets the user manually solve CAPTCHAs the bot cannot auto-solve.",
     ),
+  licenseToken: zod
+    .string()
+    .optional()
+    .describe(
+      "Write-only — stores the license JWT in the local api-server for community knowledge-base auth. Never returned in GET responses.",
+    ),
 });
 
 export const UpdateSettingsResponse = zod.object({

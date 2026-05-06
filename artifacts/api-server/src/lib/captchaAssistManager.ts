@@ -138,4 +138,14 @@ export function saveLearning(
   } catch {
     // non-fatal
   }
+
+  // Share successful solves with the community knowledge base (fire-and-forget)
+  if (success) {
+    void (async () => {
+      try {
+        const { pushCommunityEvent } = await import("./communityClient");
+        await pushCommunityEvent(retailer, "captcha_solve", { captchaType, clicks });
+      } catch { /* non-fatal */ }
+    })();
+  }
 }

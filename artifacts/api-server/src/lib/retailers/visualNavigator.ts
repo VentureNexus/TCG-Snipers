@@ -403,6 +403,29 @@ export async function navigateTo(
     clearCachedPath(retailer, stage);
   }
 
+  // No local cache — try community knowledge base before calling the LLM
+  try {
+    const { pullCommunityNavPath } = await import("../communityClient");
+    const communityActions = await pullCommunityNavPath(retailer, stage);
+    if (communityActions.length > 0) {
+      log?.("INFO", `${TAG} Trying community path (${communityActions.length} step(s)): ${communityActions.map(a => a.descriptor).join(" → ")}`);
+      const result = await executeActions(page, communityActions as NavAction[]);
+      if (result.success) {
+        saveCachedPath(retailer, stage, communityActions as NavAction[]);
+        log?.("INFO", `${TAG} Community path succeeded — steps: ${result.stepsExecuted.join(", ")} (saved locally)`);
+        return {
+          success: true,
+          steps: result.stepsExecuted,
+          message: `Navigated via community path (${result.stepsExecuted.length} steps)`,
+          visualAssist: true,
+        };
+      }
+      log?.("WARN", `${TAG} Community path failed — falling back to LLM`);
+    }
+  } catch {
+    // Non-fatal — continue to LLM
+  }
+
   let screenshotBase64: string;
   try {
     const buf = await page.screenshot({ type: "jpeg", quality: 60 });
@@ -443,6 +466,13 @@ export async function navigateTo(
 
   if (result.success) {
     saveCachedPath(retailer, stage, actions);
+    // Push newly discovered path to community knowledge base (fire-and-forget)
+    void (async () => {
+      try {
+        const { pushCommunityEvent } = await import("../communityClient");
+        await pushCommunityEvent(retailer, "nav_path", { stage, actions });
+      } catch { /* non-fatal */ }
+    })();
     log?.("INFO", `${TAG} Navigation succeeded — steps: ${result.stepsExecuted.join(", ")} (path cached)`);
     return {
       success: true,

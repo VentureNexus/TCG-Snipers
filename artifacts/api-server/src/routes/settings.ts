@@ -24,9 +24,14 @@ async function getOrCreateSettings() {
   return created;
 }
 
+function stripPrivateFields(settings: Record<string, unknown>) {
+  const { licenseToken: _lt, ...safe } = settings;
+  return safe;
+}
+
 router.get("/settings", async (_req, res): Promise<void> => {
   const settings = await getOrCreateSettings();
-  res.json({ ...settings, ...getSystemConcurrencyHint() });
+  res.json({ ...stripPrivateFields(settings as unknown as Record<string, unknown>), ...getSystemConcurrencyHint() });
 });
 
 router.put("/settings", async (req, res): Promise<void> => {
@@ -50,7 +55,7 @@ router.put("/settings", async (req, res): Promise<void> => {
     setMaxConcurrency(updated.concurrency);
   }
   setTtlHours(updated.sessionTtlHours ?? null);
-  res.json({ ...updated, ...getSystemConcurrencyHint() });
+  res.json({ ...stripPrivateFields(updated as unknown as Record<string, unknown>), ...getSystemConcurrencyHint() });
 });
 
 export { getOrCreateSettings };

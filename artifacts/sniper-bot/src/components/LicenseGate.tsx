@@ -34,6 +34,19 @@ const PORTAL_URL =
 const DEV_BYPASS_KEY = "tcgsnipers_dev_bypass";
 const isDevPreview = import.meta.env.DEV && !window.electronAPI?.license;
 
+async function storeLicenseTokenInApiServer(token: string): Promise<void> {
+  try {
+    const apiBase = getApiBase();
+    await fetch(`${apiBase}/api/settings`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ licenseToken: token }),
+    });
+  } catch {
+    // Non-fatal — community features will simply be disabled on this session
+  }
+}
+
 async function stopAllTasks(): Promise<void> {
   try {
     const apiBase = getApiBase();
@@ -71,6 +84,7 @@ export function LicenseGate({ children }: { children: ReactNode }) {
         const r = await licenseApi.heartbeat({ token: stored.token, fingerprint: fp.fingerprint });
         if (!alive) return;
         if (r.status === "active") {
+          void storeLicenseTokenInApiServer(stored.token);
           setState({ kind: "active", email: stored.email, status: r.status });
         } else {
           await stopAllTasks();
@@ -191,6 +205,7 @@ function SignInScreen({
         osPlatform: fp.osPlatform,
       });
       await saveStoredLicense({ token: r.token, email });
+      void storeLicenseTokenInApiServer(r.token);
       onSignedIn(email, r.status);
     } catch (err) {
       const e = err as { status?: number; message?: string };
