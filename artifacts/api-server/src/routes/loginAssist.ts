@@ -2,6 +2,9 @@ import { Router, type IRouter } from "express";
 import {
   getActiveSession,
   relayLoginClick,
+  relayLoginMouseDown,
+  relayLoginMouseUp,
+  relayLoginScroll,
   relayLoginKey,
   relayLoginSpecialKey,
   getLoginScreenshot,
@@ -37,6 +40,47 @@ router.post("/login-assist/:id/click", async (req, res): Promise<void> => {
     return;
   }
   const ok = await relayLoginClick(req.params.id, normalizedX, normalizedY);
+  res.json({ ok });
+});
+
+router.post("/login-assist/:id/mousedown", async (req, res): Promise<void> => {
+  const { normalizedX, normalizedY } = req.body as {
+    normalizedX?: unknown;
+    normalizedY?: unknown;
+  };
+  if (typeof normalizedX !== "number" || typeof normalizedY !== "number") {
+    res.status(400).json({ error: "normalizedX and normalizedY (0–1) are required" });
+    return;
+  }
+  const ok = await relayLoginMouseDown(req.params.id, normalizedX, normalizedY);
+  res.json({ ok });
+});
+
+router.post("/login-assist/:id/mouseup", async (req, res): Promise<void> => {
+  const { normalizedX, normalizedY } = req.body as {
+    normalizedX?: unknown;
+    normalizedY?: unknown;
+  };
+  if (typeof normalizedX !== "number" || typeof normalizedY !== "number") {
+    res.status(400).json({ error: "normalizedX and normalizedY (0–1) are required" });
+    return;
+  }
+  const ok = await relayLoginMouseUp(req.params.id, normalizedX, normalizedY);
+  res.json({ ok });
+});
+
+router.post("/login-assist/:id/scroll", async (req, res): Promise<void> => {
+  const { normalizedX, normalizedY, deltaX, deltaY } = req.body as {
+    normalizedX?: unknown; normalizedY?: unknown; deltaX?: unknown; deltaY?: unknown;
+  };
+  if (
+    typeof normalizedX !== "number" || typeof normalizedY !== "number" ||
+    typeof deltaX !== "number" || typeof deltaY !== "number"
+  ) {
+    res.status(400).json({ error: "normalizedX, normalizedY, deltaX, deltaY are required" });
+    return;
+  }
+  const ok = await relayLoginScroll(req.params.id, normalizedX, normalizedY, deltaX, deltaY);
   res.json({ ok });
 });
 
