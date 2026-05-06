@@ -25,6 +25,7 @@ export async function runAmazon(ctx: RetailerContext): Promise<RetailerResult> {
   });
 
   const loginEmail = retailerAccount?.email ?? profile?.email ?? "";
+  let anyVisualAssist = false;
 
   try {
     // ── Session cache ────────────────────────────────────────────────────────
@@ -139,7 +140,7 @@ export async function runAmazon(ctx: RetailerContext): Promise<RetailerResult> {
         if (loginEmail) saveSession(RETAILER, loginEmail, await context.storageState());
         const orderNumber = `AMZ-${Date.now()}`;
         log("SUCCESS", `[${RETAILER}] Order placed via Buy Now! ${productName}${productPrice ? " @ $" + productPrice : ""}`);
-        return { success: true, productName, productImage, price: productPrice || null, orderNumber, errorMessage: "" };
+        return { success: true, productName, productImage, price: productPrice || null, orderNumber, errorMessage: "", ...(anyVisualAssist ? { visualAssist: true } : {}) };
       }
       log("INFO", `[${RETAILER}] Buy Now redirected to checkout page — continuing...`);
     } else {
@@ -158,6 +159,8 @@ export async function runAmazon(ctx: RetailerContext): Promise<RetailerResult> {
       await humanDelay(1000, 1800);
       await screenshot();
       if (token.cancelled) return fail("Task cancelled");
+      const cartCaptchaMsg = await handleChallengeInTask(page, task.id, RETAILER, log, setStatus);
+      if (cartCaptchaMsg) return { ...fail(cartCaptchaMsg), captchaPaused: true };
 
       const effectiveQty = await applyCartQuantity(page, task.quantity, log);
       log("INFO", `[${RETAILER}] Cart quantity: ${effectiveQty}`);
@@ -182,7 +185,7 @@ export async function runAmazon(ctx: RetailerContext): Promise<RetailerResult> {
           log,
         );
         if (!checkoutEl) return fail("Checkout button not found");
-        if (visualAssist) log("INFO", `[${RETAILER}] Visual navigator located checkout button`);
+        if (visualAssist) { log("INFO", `[${RETAILER}] Visual navigator located checkout button`); anyVisualAssist = true; }
         await checkoutEl.click();
       }
       await humanDelay(1500, 2500);
@@ -256,9 +259,11 @@ export async function runAmazon(ctx: RetailerContext): Promise<RetailerResult> {
       }
     }
 
-    // After all sign-in redirects settle, log where we are
+    // After all sign-in redirects settle, check for CAPTCHA then log where we are
     await page.waitForLoadState("networkidle", { timeout: 10000 }).catch(() => {});
     await screenshot();
+    const postLoginCaptcha = await handleChallengeInTask(page, task.id, RETAILER, log, setStatus);
+    if (postLoginCaptcha) return { ...fail(postLoginCaptcha), captchaPaused: true };
     log("INFO", `[${RETAILER}] Checkout URL: ${page.url()}`);
 
     // ── Address (skip if saved) ───────────────────────────────────────────────
@@ -437,7 +442,7 @@ export async function runAmazon(ctx: RetailerContext): Promise<RetailerResult> {
 
     const orderNumber = `AMZ-${Date.now()}`;
     log("SUCCESS", `[${RETAILER}] Order placed! ${productName}${productPrice ? " @ $" + productPrice : ""}`);
-    return { success: true, productName, productImage, price: productPrice || null, orderNumber, errorMessage: "" };
+    return { success: true, productName, productImage, price: productPrice || null, orderNumber, errorMessage: "", ...(anyVisualAssist ? { visualAssist: true } : {}) };
   } catch (err) {
     return fail(String(err));
   } finally {

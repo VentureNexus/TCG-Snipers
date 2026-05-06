@@ -25,6 +25,7 @@ export async function runWalmart(ctx: RetailerContext): Promise<RetailerResult> 
   });
 
   const loginEmail = retailerAccount?.email ?? profile?.email ?? "";
+  let anyVisualAssist = false;
 
   try {
     // ── Session cache ────────────────────────────────────────────────────────
@@ -157,6 +158,8 @@ export async function runWalmart(ctx: RetailerContext): Promise<RetailerResult> 
       await screenshot();
       log("INFO", `[${RETAILER}] Cart URL: ${page.url()}`);
       if (token.cancelled) return fail("Task cancelled");
+      const cartCaptchaMsg = await handleChallengeInTask(page, task.id, RETAILER, log, setStatus);
+      if (cartCaptchaMsg) return { ...fail(cartCaptchaMsg), captchaPaused: true };
 
       const effectiveQty = await applyCartQuantity(page, task.quantity, log);
       log("INFO", `[${RETAILER}] Cart quantity: ${effectiveQty}`);
@@ -225,7 +228,7 @@ export async function runWalmart(ctx: RetailerContext): Promise<RetailerResult> 
           log("INFO", `[${RETAILER}] Direct checkout URL: ${page.url()}`);
           if (token.cancelled) return fail("Task cancelled");
         } else {
-          if (visualAssist) log("INFO", `[${RETAILER}] Visual navigator located checkout button`);
+          if (visualAssist) { log("INFO", `[${RETAILER}] Visual navigator located checkout button`); anyVisualAssist = true; }
           await visEl.click().catch(() => {});
           await humanDelay(1500, 2500);
           await screenshot();
@@ -331,7 +334,19 @@ export async function runWalmart(ctx: RetailerContext): Promise<RetailerResult> 
       "button:has-text('Submit order')",
       "button:has-text('Complete purchase')",
     ]);
-    if (!placeOrderClicked) return fail("Place order button not found");
+    if (!placeOrderClicked) {
+      const { el: poEl, visualAssist: poVisualAssist } = await waitForSelectorWithVisualFallback(
+        page,
+        'button:has-text("Place Order"), button:has-text("Place order"), [data-automation-id="place-order-btn"]',
+        RETAILER,
+        "find and click the Place Order button to complete the Walmart purchase",
+        "place_order",
+        log,
+      );
+      if (!poEl) return fail("Place order button not found");
+      if (poVisualAssist) anyVisualAssist = true;
+      await poEl.click();
+    }
     await humanDelay(3000, 5000);
     await page.waitForLoadState("networkidle", { timeout: 15000 }).catch(() => {});
     await screenshot();
@@ -345,7 +360,7 @@ export async function runWalmart(ctx: RetailerContext): Promise<RetailerResult> 
 
     const orderNumber = `WMT-${Date.now()}`;
     log("SUCCESS", `[${RETAILER}] Order placed! ${productName}${productPrice ? " @ $" + productPrice : ""}`);
-    return { success: true, productName, productImage, price: productPrice || null, orderNumber, errorMessage: "" };
+    return { success: true, productName, productImage, price: productPrice || null, orderNumber, errorMessage: "", ...(anyVisualAssist ? { visualAssist: true } : {}) };
   } catch (err) {
     return fail(String(err));
   } finally {

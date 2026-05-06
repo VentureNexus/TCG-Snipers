@@ -26,6 +26,7 @@ export async function runSamsClub(ctx: RetailerContext): Promise<RetailerResult>
     emitScreenshot(task.id, page);
 
   const loginEmail = retailerAccount?.email ?? profile?.email ?? "";
+  let anyVisualAssist = false;
 
   try {
     // ── Session cache ────────────────────────────────────────────────────────
@@ -165,6 +166,8 @@ export async function runSamsClub(ctx: RetailerContext): Promise<RetailerResult>
     await page.goto("https://www.samsclub.com/cart", { waitUntil: "domcontentloaded" });
     await humanDelay(1000, 1800);
     if (token.cancelled) return fail("Task cancelled");
+    const cartCaptchaMsg = await handleChallengeInTask(page, task.id, RETAILER, log, setStatus);
+    if (cartCaptchaMsg) return { ...fail(cartCaptchaMsg), captchaPaused: true };
 
     const effectiveQty = await applyCartQuantity(page, task.quantity, log);
     log("INFO", `[${RETAILER}] Cart quantity: ${effectiveQty}`);
@@ -180,9 +183,12 @@ export async function runSamsClub(ctx: RetailerContext): Promise<RetailerResult>
       log,
     );
     if (!checkoutBtn) return fail("Checkout button not found");
-    if (checkoutVisualAssist) log("INFO", `[${RETAILER}] Visual navigator located checkout button`);
+    if (checkoutVisualAssist) { log("INFO", `[${RETAILER}] Visual navigator located checkout button`); anyVisualAssist = true; }
     await checkoutBtn.click();
     await humanDelay(2000, 3000);
+    await page.waitForLoadState("networkidle", { timeout: 10000 }).catch(() => {});
+    const postCheckoutCaptcha = await handleChallengeInTask(page, task.id, RETAILER, log, setStatus);
+    if (postCheckoutCaptcha) return { ...fail(postCheckoutCaptcha), captchaPaused: true };
     if (token.cancelled) return fail("Task cancelled");
     await screenshot(page);
 
@@ -237,8 +243,16 @@ export async function runSamsClub(ctx: RetailerContext): Promise<RetailerResult>
 
     await screenshot(page);
     log("INFO", `[${RETAILER}] Submitting order...`);
-    const placeOrder = await page.$('button:has-text("Place Order"), button:has-text("Place order")');
+    const { el: placeOrder, visualAssist: poVisualAssist } = await waitForSelectorWithVisualFallback(
+      page,
+      'button:has-text("Place Order"), button:has-text("Place order"), button:has-text("Submit order")',
+      RETAILER,
+      "find and click the Place Order button to submit the Sam's Club order",
+      "place_order",
+      log,
+    );
     if (!placeOrder) return fail("Place order button not found");
+    if (poVisualAssist) anyVisualAssist = true;
     await placeOrder.click();
     await humanDelay(3000, 5000);
 
@@ -253,7 +267,7 @@ export async function runSamsClub(ctx: RetailerContext): Promise<RetailerResult>
 
     const orderNumber = `SAM-${Date.now()}`;
     log("SUCCESS", `[${RETAILER}] Order placed! ${productName}${productPrice ? " @ $" + productPrice : ""}`);
-    return { success: true, productName, productImage, price: productPrice || null, orderNumber, errorMessage: "" };
+    return { success: true, productName, productImage, price: productPrice || null, orderNumber, errorMessage: "", ...(anyVisualAssist ? { visualAssist: true } : {}) };
   } catch (err) {
     return fail(String(err));
   } finally {

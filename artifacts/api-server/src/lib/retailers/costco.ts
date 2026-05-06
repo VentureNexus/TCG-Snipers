@@ -5,7 +5,7 @@ import { decrypt } from "../crypto";
 import { applyCartQuantity } from "./cartHelpers";
 import { emitScreenshot } from "./screenshotUtil";
 import { saveSession, loadSession, clearSession } from "./sessionCache";
-import { handleChallengeInTask, navigateTo } from "./visualNavigator";
+import { handleChallengeInTask, navigateTo, waitForSelectorWithVisualFallback } from "./visualNavigator";
 
 const RETAILER = "Costco";
 
@@ -26,6 +26,7 @@ export async function runCostco(ctx: RetailerContext): Promise<RetailerResult> {
     emitScreenshot(task.id, page);
 
   const loginEmail = retailerAccount?.email ?? profile?.email ?? "";
+  let anyVisualAssist = false;
 
   try {
     // ── Session cache ────────────────────────────────────────────────────────
@@ -167,16 +168,29 @@ export async function runCostco(ctx: RetailerContext): Promise<RetailerResult> {
     await page.goto("https://www.costco.com/CheckoutCartDisplayCmd", { waitUntil: "domcontentloaded" });
     await humanDelay(1000, 1800);
     if (token.cancelled) return fail("Task cancelled");
+    const cartCaptchaMsg = await handleChallengeInTask(page, task.id, RETAILER, log, setStatus);
+    if (cartCaptchaMsg) return { ...fail(cartCaptchaMsg), captchaPaused: true };
 
     const effectiveQty = await applyCartQuantity(page, task.quantity, log);
     log("INFO", `[${RETAILER}] Cart quantity: ${effectiveQty}`);
 
     log("INFO", `[${RETAILER}] Proceeding to checkout...`);
     await setStatus("checking_out");
-    const checkoutBtn = await page.$('a:has-text("Checkout"), button:has-text("Proceed to Checkout")');
+    const { el: checkoutBtn, visualAssist: checkoutVisualAssist } = await waitForSelectorWithVisualFallback(
+      page,
+      'a:has-text("Checkout"), button:has-text("Proceed to Checkout"), button:has-text("Checkout")',
+      RETAILER,
+      "find and click the Checkout or Proceed to Checkout button on the Costco cart page",
+      "checkout_btn",
+      log,
+    );
     if (!checkoutBtn) return fail("Checkout button not found");
+    if (checkoutVisualAssist) { log("INFO", `[${RETAILER}] Visual navigator located checkout button`); anyVisualAssist = true; }
     await checkoutBtn.click();
     await humanDelay(2000, 3000);
+    await page.waitForLoadState("networkidle", { timeout: 10000 }).catch(() => {});
+    const postCheckoutCaptcha = await handleChallengeInTask(page, task.id, RETAILER, log, setStatus);
+    if (postCheckoutCaptcha) return { ...fail(postCheckoutCaptcha), captchaPaused: true };
     if (token.cancelled) return fail("Task cancelled");
     await screenshot(page);
 
@@ -230,8 +244,16 @@ export async function runCostco(ctx: RetailerContext): Promise<RetailerResult> {
 
     await screenshot(page);
     log("INFO", `[${RETAILER}] Submitting order...`);
-    const placeOrder = await page.$('button:has-text("Place Order"), input[value="Place Order"]');
+    const { el: placeOrder, visualAssist: poVisualAssist } = await waitForSelectorWithVisualFallback(
+      page,
+      'button:has-text("Place Order"), input[value="Place Order"], button:has-text("Submit Order")',
+      RETAILER,
+      "find and click the Place Order button to submit the Costco order",
+      "place_order",
+      log,
+    );
     if (!placeOrder) return fail("Place order button not found");
+    if (poVisualAssist) anyVisualAssist = true;
     await placeOrder.click();
     await humanDelay(3000, 5000);
 
@@ -244,7 +266,7 @@ export async function runCostco(ctx: RetailerContext): Promise<RetailerResult> {
 
     const orderNumber = `CST-${Date.now()}`;
     log("SUCCESS", `[${RETAILER}] Order placed! ${productName}${productPrice ? " @ $" + productPrice : ""}`);
-    return { success: true, productName, productImage, price: productPrice || null, orderNumber, errorMessage: "" };
+    return { success: true, productName, productImage, price: productPrice || null, orderNumber, errorMessage: "", ...(anyVisualAssist ? { visualAssist: true } : {}) };
   } catch (err) {
     return fail(String(err));
   } finally {

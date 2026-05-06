@@ -26,6 +26,7 @@ export async function runPokemonCenter(ctx: RetailerContext): Promise<RetailerRe
     emitScreenshot(task.id, page);
 
   const loginEmail = retailerAccount?.email ?? profile?.email ?? "";
+  let anyVisualAssist = false;
 
   try {
     // ── Session cache ────────────────────────────────────────────────────────
@@ -165,6 +166,8 @@ export async function runPokemonCenter(ctx: RetailerContext): Promise<RetailerRe
       if (viewCart) { await viewCart.click(); await humanDelay(1000, 1800); }
       else await page.goto("https://www.pokemoncenter.com/cart", { waitUntil: "domcontentloaded" });
       if (token.cancelled) return fail("Task cancelled");
+      const cartCaptchaMsg = await handleChallengeInTask(page, task.id, RETAILER, log, setStatus);
+      if (cartCaptchaMsg) return { ...fail(cartCaptchaMsg), captchaPaused: true };
 
       const effectiveQty = await applyCartQuantity(page, task.quantity, log);
       log("INFO", `[${RETAILER}] Cart quantity: ${effectiveQty}`);
@@ -180,9 +183,12 @@ export async function runPokemonCenter(ctx: RetailerContext): Promise<RetailerRe
         log,
       );
       if (!checkoutBtn) return fail("Checkout button not found");
-      if (checkoutVisualAssist) log("INFO", `[${RETAILER}] Visual navigator located checkout button`);
+      if (checkoutVisualAssist) { log("INFO", `[${RETAILER}] Visual navigator located checkout button`); anyVisualAssist = true; }
       await checkoutBtn.click();
       await humanDelay(2000, 3000);
+      await page.waitForLoadState("networkidle", { timeout: 10000 }).catch(() => {});
+      const postCheckoutCaptcha = await handleChallengeInTask(page, task.id, RETAILER, log, setStatus);
+      if (postCheckoutCaptcha) return { ...fail(postCheckoutCaptcha), captchaPaused: true };
       if (token.cancelled) return fail("Task cancelled");
       await screenshot(page);
     }
@@ -272,8 +278,16 @@ export async function runPokemonCenter(ctx: RetailerContext): Promise<RetailerRe
 
     await screenshot(page);
     log("INFO", `[${RETAILER}] Submitting Shopify order...`);
-    const placeOrder = await page.$('button#continue_button, button:has-text("Pay now"), button:has-text("Complete order")');
+    const { el: placeOrder, visualAssist: poVisualAssist } = await waitForSelectorWithVisualFallback(
+      page,
+      'button#continue_button, button:has-text("Pay now"), button:has-text("Complete order")',
+      RETAILER,
+      "find and click the Pay Now or Complete Order button to submit the Pokemon Center order",
+      "place_order",
+      log,
+    );
     if (!placeOrder) return fail("Place order button not found");
+    if (poVisualAssist) anyVisualAssist = true;
     await placeOrder.click();
     await humanDelay(3000, 5000);
 
@@ -288,7 +302,7 @@ export async function runPokemonCenter(ctx: RetailerContext): Promise<RetailerRe
     const orderNumber = (await orderNumEl?.textContent())?.trim().replace(/[^0-9A-Z-]/g, "") || `PCK-${Date.now()}`;
 
     log("SUCCESS", `[${RETAILER}] Order placed! Order #${orderNumber} — ${productName}${productPrice ? " @ $" + productPrice : ""}`);
-    return { success: true, productName, productImage, price: productPrice || null, orderNumber, errorMessage: "" };
+    return { success: true, productName, productImage, price: productPrice || null, orderNumber, errorMessage: "", ...(anyVisualAssist ? { visualAssist: true } : {}) };
   } catch (err) {
     return fail(String(err));
   } finally {
