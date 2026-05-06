@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -76,6 +76,7 @@ export default function SettingsPage() {
   const engineBaseline = useRef<SettingsForm | null>(null);
   const [savedTick, setSavedTick] = useState(0);
 
+  const [captchaAssistEnabled, setCaptchaAssistEnabled] = useState(false);
   const [discordConnecting, setDiscordConnecting] = useState(false);
 
   const [taskDefaults, setTaskDefaults] = useState<TaskDefaults>(loadTaskDefaults);
@@ -111,7 +112,23 @@ export default function SettingsPage() {
       engineBaseline.current = baseline;
       setFormInitialized(true);
     }
+    if (settingsData) {
+      setCaptchaAssistEnabled(settingsData.captchaAssist ?? false);
+    }
   }, [settingsData, formInitialized]);
+
+  const handleCaptchaAssistToggle = useCallback(async (enabled: boolean) => {
+    setCaptchaAssistEnabled(enabled);
+    updateSettingsMutation.mutate(
+      { data: { captchaAssist: enabled } },
+      {
+        onError: () => {
+          setCaptchaAssistEnabled(!enabled);
+          toast({ title: "Failed to save setting", variant: "destructive" });
+        },
+      },
+    );
+  }, [updateSettingsMutation, toast]);
 
   useEffect(() => {
     if (isError) {
@@ -497,6 +514,35 @@ export default function SettingsPage() {
                     How long saved retailer login sessions are kept before re-login is required. Leave blank to use the default (24 h).
                   </p>
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="glass-card">
+            <CardHeader>
+              <CardTitle>CAPTCHA Assistance</CardTitle>
+              <CardDescription>
+                When enabled, a popup appears whenever the bot cannot auto-solve a CAPTCHA, letting you solve it manually by clicking in a live browser view. Each session is recorded so the bot can learn from your interactions over time.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium">Human CAPTCHA assist</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Default: <strong>off</strong>. When turned on, unsolvable CAPTCHAs open a popup instead of immediately pausing the task.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={captchaAssistEnabled}
+                  onClick={() => handleCaptchaAssistToggle(!captchaAssistEnabled)}
+                  disabled={saving}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none disabled:opacity-50 ${captchaAssistEnabled ? "bg-primary" : "bg-muted"}`}
+                >
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${captchaAssistEnabled ? "translate-x-6" : "translate-x-1"}`} />
+                </button>
               </div>
             </CardContent>
           </Card>

@@ -238,6 +238,7 @@ const STATUS_CONFIG: Record<string, { label: string; cls: string; dot?: string }
   monitoring: { label: "MONITORING", cls: "status-monitoring", dot: "animate-pulse" },
   adding_to_cart: { label: "ADDING TO CART", cls: "status-cart", dot: "animate-pulse" },
   checking_out: { label: "CHECKING OUT", cls: "status-checkout", dot: "animate-pulse" },
+  awaiting_user_captcha: { label: "⚠ SOLVING CAPTCHA", cls: "status-failed", dot: "animate-pulse" },
   paused_captcha: { label: "⚠ CAPTCHA", cls: "status-failed", dot: "animate-pulse" },
   success: { label: "SUCCESS", cls: "status-success" },
   failed: { label: "FAILED", cls: "status-failed" },
@@ -587,6 +588,19 @@ function TaskRow({
           </Button>
         </td>
       </tr>
+      {effectiveStatus === "awaiting_user_captcha" && (
+        <tr className="border-b border-amber-500/20 bg-amber-500/5">
+          <td colSpan={9} className="px-4 py-2">
+            <div className="flex items-center gap-3">
+              <span className="h-2 w-2 rounded-full bg-amber-400 animate-pulse shrink-0" />
+              <div className="flex flex-col gap-0.5 min-w-0">
+                <span className="text-xs font-mono font-semibold text-amber-300">Human CAPTCHA assist active</span>
+                <span className="text-[11px] text-amber-400/70">A popup window has opened — solve the CAPTCHA there, then click &ldquo;I'm Done&rdquo;.</span>
+              </div>
+            </div>
+          </td>
+        </tr>
+      )}
       {effectiveStatus === "paused_captcha" && (
         <tr className="border-b border-amber-500/20 bg-amber-500/5">
           <td colSpan={9} className="px-4 py-2">

@@ -13,34 +13,35 @@ export interface Settings {
   id: number;
   concurrency: number;
   monitorDelay: number;
-  monitorDelayMax?: number | null;
   webhookUrl: string;
   imapHost: string;
   imapPort: string;
   imapEmail: string;
   imapPassword: string;
-  discordGuildName?: string | null;
-  discordChannelName?: string | null;
-  /** @nullable */
+  /** How long saved login sessions are kept before re-login is required (hours). Null falls back to SESSION_TTL_HOURS env var or 24 h. */
   sessionTtlHours?: number | null;
+  /** Number of logical CPU cores detected on the server. */
   systemCores?: number;
+  /** Recommended minimum concurrency (equals systemCores). */
   recommendedMin?: number;
+  /** Recommended maximum concurrency (systemCores × 2, capped at 50). */
   recommendedMax?: number;
+  /** When true, a popup lets the user manually solve CAPTCHAs the bot cannot auto-solve. */
+  captchaAssist?: boolean;
 }
 
 export interface UpdateSettingsBody {
   concurrency?: number;
   monitorDelay?: number;
-  monitorDelayMax?: number | null;
   webhookUrl?: string;
   imapHost?: string;
   imapPort?: string;
   imapEmail?: string;
   imapPassword?: string;
-  discordGuildName?: string | null;
-  discordChannelName?: string | null;
-  /** @nullable */
+  /** How long saved login sessions are kept before re-login is required (hours). Null falls back to SESSION_TTL_HOURS env var or 24 h. */
   sessionTtlHours?: number | null;
+  /** When true, a popup lets the user manually solve CAPTCHAs the bot cannot auto-solve. */
+  captchaAssist?: boolean;
 }
 
 export interface Profile {
@@ -67,11 +68,9 @@ export interface Profile {
   billCountry: string;
   addressJigEnabled: boolean;
   costcoMembershipId: string;
-  samsMembershipId: string;
   imapHost: string;
   imapPort: string;
   imapUser: string;
-  imapPassword?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -115,7 +114,6 @@ export interface CreateProfileBody {
   billCountry?: string;
   addressJigEnabled?: boolean;
   costcoMembershipId?: string;
-  samsMembershipId?: string;
   imapHost?: string;
   imapPort?: string;
   imapUser?: string;
@@ -145,7 +143,6 @@ export interface UpdateProfileBody {
   billCountry?: string;
   addressJigEnabled?: boolean;
   costcoMembershipId?: string;
-  samsMembershipId?: string;
   imapHost?: string;
   imapPort?: string;
   imapUser?: string;
@@ -256,19 +253,8 @@ export interface Task {
   size: string;
   quantity: number;
   monitorDelay: number;
-  /** @nullable */
-  monitorDelayMax?: number | null;
   retryCount: number;
-  /** @nullable */
-  maxPrice?: number | null;
-  /** @nullable */
-  stopAfterMs?: number | null;
-  /** @nullable */
-  stopAtTime?: string | null;
-  priority: number;
   status: string;
-  /** @nullable */
-  startedAt?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -282,8 +268,6 @@ export const CreateTaskBodyRetailer = {
   Best_Buy: "Best Buy",
   Costco: "Costco",
   Pokemon_Center: "Pokemon Center",
-  Sams_Club: "Sam's Club",
-  Walmart: "Walmart",
 } as const;
 
 export interface CreateTaskBody {
@@ -296,12 +280,7 @@ export interface CreateTaskBody {
   size?: string;
   quantity?: number;
   monitorDelay?: number;
-  monitorDelayMax?: number | null;
   retryCount?: number;
-  maxPrice?: number;
-  stopAfterMs?: number | null;
-  stopAtTime?: string | null;
-  priority?: number;
 }
 
 export type UpdateTaskBodyRetailer =
@@ -313,8 +292,6 @@ export const UpdateTaskBodyRetailer = {
   Best_Buy: "Best Buy",
   Costco: "Costco",
   Pokemon_Center: "Pokemon Center",
-  Sams_Club: "Sam's Club",
-  Walmart: "Walmart",
 } as const;
 
 export interface UpdateTaskBody {
@@ -327,12 +304,7 @@ export interface UpdateTaskBody {
   size?: string;
   quantity?: number;
   monitorDelay?: number;
-  monitorDelayMax?: number | null;
   retryCount?: number;
-  maxPrice?: number | null;
-  stopAfterMs?: number | null;
-  stopAtTime?: string | null;
-  priority?: number;
   status?: string;
 }
 

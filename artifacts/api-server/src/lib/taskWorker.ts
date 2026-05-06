@@ -327,6 +327,11 @@ export async function stopTask(taskId: number): Promise<void> {
     token.cancelled = true;
     cancellationTokens.delete(taskId);
   }
+  // Release any pending human CAPTCHA assist session so the worker doesn't hang
+  try {
+    const { abortSession } = await import("./captchaAssistManager");
+    abortSession(taskId);
+  } catch { /* non-fatal */ }
   const queueIdx = pendingQueue.findIndex((t) => t.id === taskId);
   if (queueIdx !== -1) pendingQueue.splice(queueIdx, 1);
   await db.update(tasksTable).set({ status: "stopped", startedAt: null }).where(eq(tasksTable.id, taskId));

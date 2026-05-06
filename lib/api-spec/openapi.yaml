@@ -884,6 +884,9 @@ components:
         recommendedMax:
           type: integer
           description: Recommended maximum concurrency (systemCores × 2, capped at 50).
+        captchaAssist:
+          type: boolean
+          description: When true, a popup lets the user manually solve CAPTCHAs the bot cannot auto-solve.
       required:
         - id
         - concurrency
@@ -915,6 +918,9 @@ components:
           type: number
           nullable: true
           description: How long saved login sessions are kept before re-login is required (hours). Null falls back to SESSION_TTL_HOURS env var or 24 h.
+        captchaAssist:
+          type: boolean
+          description: When true, a popup lets the user manually solve CAPTCHAs the bot cannot auto-solve.
 
     # ── PROFILE EXPORT/IMPORT ─────────────────────────────────────────────
     ProfileExportData:

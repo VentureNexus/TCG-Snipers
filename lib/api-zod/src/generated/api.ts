@@ -22,14 +22,37 @@ export const GetSettingsResponse = zod.object({
   id: zod.number(),
   concurrency: zod.number(),
   monitorDelay: zod.number(),
-  monitorDelayMax: zod.number().nullable().optional(),
   webhookUrl: zod.string(),
   imapHost: zod.string(),
   imapPort: zod.string(),
   imapEmail: zod.string(),
   imapPassword: zod.string(),
-  discordGuildName: zod.string().nullable().optional(),
-  discordChannelName: zod.string().nullable().optional(),
+  sessionTtlHours: zod
+    .number()
+    .nullish()
+    .describe(
+      "How long saved login sessions are kept before re-login is required (hours). Null falls back to SESSION_TTL_HOURS env var or 24 h.",
+    ),
+  systemCores: zod
+    .number()
+    .optional()
+    .describe("Number of logical CPU cores detected on the server."),
+  recommendedMin: zod
+    .number()
+    .optional()
+    .describe("Recommended minimum concurrency (equals systemCores)."),
+  recommendedMax: zod
+    .number()
+    .optional()
+    .describe(
+      "Recommended maximum concurrency (systemCores × 2, capped at 50).",
+    ),
+  captchaAssist: zod
+    .boolean()
+    .optional()
+    .describe(
+      "When true, a popup lets the user manually solve CAPTCHAs the bot cannot auto-solve.",
+    ),
 });
 
 /**
@@ -38,28 +61,60 @@ export const GetSettingsResponse = zod.object({
 export const UpdateSettingsBody = zod.object({
   concurrency: zod.number().optional(),
   monitorDelay: zod.number().optional(),
-  monitorDelayMax: zod.number().nullable().optional(),
   webhookUrl: zod.string().optional(),
   imapHost: zod.string().optional(),
   imapPort: zod.string().optional(),
   imapEmail: zod.string().optional(),
   imapPassword: zod.string().optional(),
-  discordGuildName: zod.string().nullable().optional(),
-  discordChannelName: zod.string().nullable().optional(),
+  sessionTtlHours: zod
+    .number()
+    .nullish()
+    .describe(
+      "How long saved login sessions are kept before re-login is required (hours). Null falls back to SESSION_TTL_HOURS env var or 24 h.",
+    ),
+  captchaAssist: zod
+    .boolean()
+    .optional()
+    .describe(
+      "When true, a popup lets the user manually solve CAPTCHAs the bot cannot auto-solve.",
+    ),
 });
 
 export const UpdateSettingsResponse = zod.object({
   id: zod.number(),
   concurrency: zod.number(),
   monitorDelay: zod.number(),
-  monitorDelayMax: zod.number().nullable().optional(),
   webhookUrl: zod.string(),
   imapHost: zod.string(),
   imapPort: zod.string(),
   imapEmail: zod.string(),
   imapPassword: zod.string(),
-  discordGuildName: zod.string().nullable().optional(),
-  discordChannelName: zod.string().nullable().optional(),
+  sessionTtlHours: zod
+    .number()
+    .nullish()
+    .describe(
+      "How long saved login sessions are kept before re-login is required (hours). Null falls back to SESSION_TTL_HOURS env var or 24 h.",
+    ),
+  systemCores: zod
+    .number()
+    .optional()
+    .describe("Number of logical CPU cores detected on the server."),
+  recommendedMin: zod
+    .number()
+    .optional()
+    .describe("Recommended minimum concurrency (equals systemCores)."),
+  recommendedMax: zod
+    .number()
+    .optional()
+    .describe(
+      "Recommended maximum concurrency (systemCores × 2, capped at 50).",
+    ),
+  captchaAssist: zod
+    .boolean()
+    .optional()
+    .describe(
+      "When true, a popup lets the user manually solve CAPTCHAs the bot cannot auto-solve.",
+    ),
 });
 
 /**
@@ -91,7 +146,6 @@ export const ExportProfilesResponse = zod.object({
       billCountry: zod.string(),
       addressJigEnabled: zod.boolean(),
       costcoMembershipId: zod.string(),
-      samsMembershipId: zod.string(),
       imapHost: zod.string(),
       imapPort: zod.string(),
       imapUser: zod.string(),
@@ -143,7 +197,6 @@ export const ListProfilesResponseItem = zod.object({
   billCountry: zod.string(),
   addressJigEnabled: zod.boolean(),
   costcoMembershipId: zod.string(),
-  samsMembershipId: zod.string(),
   imapHost: zod.string(),
   imapPort: zod.string(),
   imapUser: zod.string(),
@@ -178,7 +231,6 @@ export const CreateProfileBody = zod.object({
   billCountry: zod.string().optional(),
   addressJigEnabled: zod.boolean().optional(),
   costcoMembershipId: zod.string().optional(),
-  samsMembershipId: zod.string().optional(),
   imapHost: zod.string().optional(),
   imapPort: zod.string().optional(),
   imapUser: zod.string().optional(),
@@ -216,7 +268,6 @@ export const GetProfileResponse = zod.object({
   billCountry: zod.string(),
   addressJigEnabled: zod.boolean(),
   costcoMembershipId: zod.string(),
-  samsMembershipId: zod.string(),
   imapHost: zod.string(),
   imapPort: zod.string(),
   imapUser: zod.string(),
@@ -254,7 +305,6 @@ export const UpdateProfileBody = zod.object({
   billCountry: zod.string().optional(),
   addressJigEnabled: zod.boolean().optional(),
   costcoMembershipId: zod.string().optional(),
-  samsMembershipId: zod.string().optional(),
   imapHost: zod.string().optional(),
   imapPort: zod.string().optional(),
   imapUser: zod.string().optional(),
@@ -285,7 +335,6 @@ export const UpdateProfileResponse = zod.object({
   billCountry: zod.string(),
   addressJigEnabled: zod.boolean(),
   costcoMembershipId: zod.string(),
-  samsMembershipId: zod.string(),
   imapHost: zod.string(),
   imapPort: zod.string(),
   imapUser: zod.string(),
@@ -601,12 +650,7 @@ export const ListTasksResponseItem = zod.object({
   size: zod.string(),
   quantity: zod.number(),
   monitorDelay: zod.number(),
-  monitorDelayMax: zod.number().nullish(),
   retryCount: zod.number(),
-  maxPrice: zod.number().nullish(),
-  stopAfterMs: zod.number().nullish(),
-  stopAtTime: zod.string().nullish(),
-  priority: zod.number(),
   status: zod.string(),
   createdAt: zod.string(),
   updatedAt: zod.string(),
@@ -626,29 +670,14 @@ export const CreateTaskBody = zod.object({
     "Best Buy",
     "Costco",
     "Pokemon Center",
-    "Sam's Club",
-    "Walmart",
   ]),
   productUrl: zod.string().optional(),
   productKeywords: zod.string().optional(),
   size: zod.string().optional(),
   quantity: zod.number().optional(),
   monitorDelay: zod.number().optional(),
-  monitorDelayMax: zod.number().nullable().optional(),
   retryCount: zod.number().optional(),
-  maxPrice: zod.number().int().min(0).optional(),
-  stopAfterMs: zod.number().int().min(0).nullable().optional(),
-  stopAtTime: zod.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/).nullable().optional(),
-  priority: zod.number().int().min(1).max(3).optional(),
-}).refine(
-  (data) => {
-    if (data.monitorDelay != null && data.monitorDelayMax != null) {
-      return data.monitorDelayMax > data.monitorDelay;
-    }
-    return true;
-  },
-  { message: "Min Delay must be less than Max Delay", path: ["monitorDelayMax"] },
-);
+});
 
 /**
  * @summary Get a task by ID
@@ -668,12 +697,7 @@ export const GetTaskResponse = zod.object({
   size: zod.string(),
   quantity: zod.number(),
   monitorDelay: zod.number(),
-  monitorDelayMax: zod.number().nullish(),
   retryCount: zod.number(),
-  maxPrice: zod.number().nullish(),
-  stopAfterMs: zod.number().nullish(),
-  stopAtTime: zod.string().nullish(),
-  priority: zod.number(),
   status: zod.string(),
   createdAt: zod.string(),
   updatedAt: zod.string(),
@@ -691,29 +715,16 @@ export const UpdateTaskBody = zod.object({
   profileId: zod.number().optional(),
   proxyId: zod.number().optional(),
   retailer: zod
-    .enum(["Target", "Amazon", "Best Buy", "Costco", "Pokemon Center", "Sam's Club", "Walmart"])
+    .enum(["Target", "Amazon", "Best Buy", "Costco", "Pokemon Center"])
     .optional(),
   productUrl: zod.string().optional(),
   productKeywords: zod.string().optional(),
   size: zod.string().optional(),
   quantity: zod.number().optional(),
   monitorDelay: zod.number().optional(),
-  monitorDelayMax: zod.number().nullable().optional(),
   retryCount: zod.number().optional(),
-  maxPrice: zod.number().int().min(0).nullable().optional(),
-  stopAfterMs: zod.number().int().min(0).nullable().optional(),
-  stopAtTime: zod.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/).nullable().optional(),
-  priority: zod.number().int().min(1).max(3).optional(),
   status: zod.string().optional(),
-}).refine(
-  (data) => {
-    if (data.monitorDelay != null && data.monitorDelayMax != null) {
-      return data.monitorDelayMax > data.monitorDelay;
-    }
-    return true;
-  },
-  { message: "Min Delay must be less than Max Delay", path: ["monitorDelayMax"] },
-);
+});
 
 export const UpdateTaskResponse = zod.object({
   id: zod.number(),
@@ -726,12 +737,7 @@ export const UpdateTaskResponse = zod.object({
   size: zod.string(),
   quantity: zod.number(),
   monitorDelay: zod.number(),
-  monitorDelayMax: zod.number().nullish(),
   retryCount: zod.number(),
-  maxPrice: zod.number().nullish(),
-  stopAfterMs: zod.number().nullish(),
-  stopAtTime: zod.string().nullish(),
-  priority: zod.number(),
   status: zod.string(),
   createdAt: zod.string(),
   updatedAt: zod.string(),
@@ -762,12 +768,7 @@ export const StartTaskResponse = zod.object({
   size: zod.string(),
   quantity: zod.number(),
   monitorDelay: zod.number(),
-  monitorDelayMax: zod.number().nullish(),
   retryCount: zod.number(),
-  maxPrice: zod.number().nullish(),
-  stopAfterMs: zod.number().nullish(),
-  stopAtTime: zod.string().nullish(),
-  priority: zod.number(),
   status: zod.string(),
   createdAt: zod.string(),
   updatedAt: zod.string(),
@@ -791,12 +792,7 @@ export const StopTaskResponse = zod.object({
   size: zod.string(),
   quantity: zod.number(),
   monitorDelay: zod.number(),
-  monitorDelayMax: zod.number().nullish(),
   retryCount: zod.number(),
-  maxPrice: zod.number().nullish(),
-  stopAfterMs: zod.number().nullish(),
-  stopAtTime: zod.string().nullish(),
-  priority: zod.number(),
   status: zod.string(),
   createdAt: zod.string(),
   updatedAt: zod.string(),

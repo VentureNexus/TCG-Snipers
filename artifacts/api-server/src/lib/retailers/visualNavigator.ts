@@ -508,7 +508,7 @@ export async function handleChallengeInTask(
     }
   }
 
-  // ── All auto-solve attempts failed — pause and notify user ──────────────
+  // ── All auto-solve attempts failed — check for human assistance ──────────
 
   const label =
     challenge.type === "cloudflare" ? "Cloudflare bot detection"
@@ -520,11 +520,6 @@ export async function handleChallengeInTask(
     ? " (auto-solve attempted)"
     : "";
 
-  const msg = `[${retailer}] ${label} detected${attemptedNote} — task paused. Complete verification manually then restart the task.`;
-
-  log("ERROR", msg);
-  await setStatus("paused_captcha").catch(() => {});
-
   // Capture fresh screenshot for the UI notification
   let screenshot = challenge.screenshot;
   if (!screenshot) {
@@ -533,6 +528,52 @@ export async function handleChallengeInTask(
       screenshot = "data:image/jpeg;base64," + buf.toString("base64");
     } catch { }
   }
+
+  // Check if human CAPTCHA assistance is enabled in settings
+  try {
+    const { db: dbSettings, settingsTable: stbl } = await import("@workspace/db");
+    const [settRow] = await dbSettings
+      .select({ captchaAssist: stbl.captchaAssist })
+      .from(stbl)
+      .limit(1);
+
+    if (settRow?.captchaAssist) {
+      log("WARN", `[${retailer}] ${label} detected${attemptedNote} — requesting human assistance. Use the CAPTCHA Assist popup in the app.`);
+      await setStatus("awaiting_user_captcha").catch(() => {});
+
+      if (screenshot) {
+        try {
+          const { broadcastScreenshot } = await import("../websocket");
+          broadcastScreenshot(taskId, screenshot);
+        } catch { /* non-fatal */ }
+      }
+
+      const { registerSession, saveLearning } = await import("../captchaAssistManager");
+      const { outcome, clicks } = await registerSession(taskId, page, retailer, challenge.type);
+
+      if (outcome === "done") {
+        const recheck = await detectChallenge(page).catch(() => null);
+        const resolved = !recheck || recheck.type === "none";
+        saveLearning(retailer, challenge.type, clicks, resolved);
+        if (resolved) {
+          log("SUCCESS", `[${retailer}] CAPTCHA resolved via human assist — continuing`);
+          return null;
+        }
+        log("WARN", `[${retailer}] CAPTCHA still detected after human assist — pausing task`);
+      } else if (outcome === "timeout") {
+        log("WARN", `[${retailer}] Human assist timed out (5 min) — pausing task`);
+      } else {
+        log("WARN", `[${retailer}] Human assist cancelled — pausing task`);
+      }
+    }
+  } catch {
+    // Settings fetch failed — fall through to normal pause
+  }
+
+  const msg = `[${retailer}] ${label} detected${attemptedNote} — task paused. Complete verification manually then restart the task.`;
+
+  log("ERROR", msg);
+  await setStatus("paused_captcha").catch(() => {});
 
   if (screenshot) {
     try {

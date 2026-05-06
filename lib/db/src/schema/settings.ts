@@ -1,4 +1,4 @@
-import { pgTable, serial, integer, text, real } from "drizzle-orm/pg-core";
+import { pgTable, serial, integer, text, real, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -15,6 +15,7 @@ export const settingsTable = pgTable("settings", {
   discordGuildName: text("discord_guild_name"),
   discordChannelName: text("discord_channel_name"),
   sessionTtlHours: real("session_ttl_hours"),
+  captchaAssist: boolean("captcha_assist").notNull().default(false),
 });
 
 export const insertSettingsSchema = createInsertSchema(settingsTable).omit({ id: true });

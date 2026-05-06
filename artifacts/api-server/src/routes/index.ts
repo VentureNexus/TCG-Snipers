@@ -10,6 +10,7 @@ import analyticsRouter from "./analytics";
 import settingsRouter from "./settings";
 import ogImageRouter from "./ogImage";
 import retailerAccountsRouter from "./retailerAccounts";
+import captchaAssistRouter from "./captchaAssist";
 const router: IRouter = Router();
 
 router.use(healthRouter);
@@ -23,5 +24,6 @@ router.use(analyticsRouter);
 router.use(settingsRouter);
 router.use(ogImageRouter);
 router.use(retailerAccountsRouter);
+router.use(captchaAssistRouter);
 
 export default router;
