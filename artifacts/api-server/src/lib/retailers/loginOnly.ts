@@ -204,14 +204,44 @@ export async function loginRetailer(
       }
 
       if (!emailFound) {
-        const currentUrl = page.url();
-        const navMsg = navResult
-          ? ` (visual navigator: ${navResult.message})`
-          : "";
-        return {
-          success: false,
-          message: `Email field not found on login page (url: ${currentUrl})${navMsg}`,
-        };
+        // Visual navigator also failed — ask the user to manually navigate
+        // to the login form via the Login Assist popup in the app.
+        try {
+          const { registerLoginAssist } = await import("../loginAssistManager");
+          const currentUrl = page.url();
+          const navMsg = navResult ? ` (visual navigator: ${navResult.message})` : "";
+          console.log(
+            `[login-assist] Email field not found (url: ${currentUrl})${navMsg} — requesting human assistance`,
+          );
+
+          const { promise } = registerLoginAssist(page, retailer);
+          const outcome = await promise;
+
+          if (outcome === "done") {
+            // Re-try finding the email field from wherever the user landed
+            emailFound = await page
+              .waitForSelector(config.emailSel, { timeout: 8000 })
+              .catch(() => null);
+          }
+
+          if (!emailFound) {
+            const afterUrl = page.url();
+            const reason =
+              outcome === "giveup"
+                ? "User cancelled login assist"
+                : outcome === "timeout"
+                  ? "Login assist timed out (5 min)"
+                  : `Email field still not found after human assist (url: ${afterUrl})`;
+            return { success: false, message: reason };
+          }
+        } catch {
+          // loginAssistManager unavailable — fall back to error message
+          const currentUrl = page.url();
+          return {
+            success: false,
+            message: `Email field not found on login page (url: ${currentUrl})`,
+          };
+        }
       }
     }
     await humanDelay(800, 1500);
