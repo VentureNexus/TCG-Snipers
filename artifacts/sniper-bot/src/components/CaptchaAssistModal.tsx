@@ -5,7 +5,9 @@ import { Button } from "@/components/ui/button";
 import { CheckCircle, XCircle, MousePointer } from "lucide-react";
 
 export function CaptchaAssistModal() {
-  const { data: tasks = [] } = useListTasks(undefined, { query: { refetchInterval: 2000, queryKey: getListTasksQueryKey() } });
+  const { data: tasks = [] } = useListTasks(undefined, {
+    query: { refetchInterval: 2000, queryKey: getListTasksQueryKey() },
+  });
 
   const assistTask = tasks.find((t) => t.status === "awaiting_user_captcha") ?? null;
   const taskId = assistTask?.id ?? null;
@@ -16,6 +18,7 @@ export function CaptchaAssistModal() {
   const imgRef = useRef<HTMLImageElement>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const prevObjectUrl = useRef<string | null>(null);
+  const mouseDownPos = useRef<{ nx: number; ny: number } | null>(null);
   const apiBase = getApiBase();
 
   const fetchScreenshot = useCallback(
@@ -45,24 +48,62 @@ export function CaptchaAssistModal() {
       return;
     }
     fetchScreenshot(taskId);
-    pollRef.current = setInterval(() => fetchScreenshot(taskId), 1200);
+    pollRef.current = setInterval(() => fetchScreenshot(taskId), 500);
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
     };
   }, [taskId, fetchScreenshot]);
 
-  const handleImageClick = async (e: React.MouseEvent<HTMLImageElement>) => {
-    if (!taskId || !imgRef.current || signalled) return;
+  function getNormalized(e: React.MouseEvent<HTMLImageElement>): { nx: number; ny: number } | null {
+    if (!imgRef.current) return null;
     const rect = imgRef.current.getBoundingClientRect();
     const nx = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
     const ny = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
-    setClickFeedback({ x: e.clientX - rect.left, y: e.clientY - rect.top });
-    setTimeout(() => setClickFeedback(null), 700);
+    return { nx, ny };
+  }
+
+  const handleMouseDown = async (e: React.MouseEvent<HTMLImageElement>) => {
+    if (!taskId || signalled) return;
+    e.preventDefault();
+    const pos = getNormalized(e);
+    if (!pos) return;
+    mouseDownPos.current = pos;
+    setClickFeedback({ x: e.clientX - imgRef.current!.getBoundingClientRect().left, y: e.clientY - imgRef.current!.getBoundingClientRect().top });
     try {
-      await fetch(`${apiBase}/api/captcha-assist/${taskId}/click`, {
+      await fetch(`${apiBase}/api/captcha-assist/${taskId}/mousedown`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ normalizedX: nx, normalizedY: ny }),
+        body: JSON.stringify({ normalizedX: pos.nx, normalizedY: pos.ny }),
+      });
+    } catch { /* ignore */ }
+  };
+
+  const handleMouseUp = async (e: React.MouseEvent<HTMLImageElement>) => {
+    if (!taskId || signalled) return;
+    e.preventDefault();
+    setTimeout(() => setClickFeedback(null), 600);
+    const pos = getNormalized(e);
+    if (!pos) return;
+    mouseDownPos.current = null;
+    try {
+      await fetch(`${apiBase}/api/captcha-assist/${taskId}/mouseup`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ normalizedX: pos.nx, normalizedY: pos.ny }),
+      });
+    } catch { /* ignore */ }
+  };
+
+  const handleWheel = async (e: React.WheelEvent<HTMLImageElement>) => {
+    if (!taskId || signalled || !imgRef.current) return;
+    const rect = imgRef.current.getBoundingClientRect();
+    const nx = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    const ny = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
+    try {
+      await fetch(`${apiBase}/api/captcha-assist/${taskId}/scroll`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ normalizedX: nx, normalizedY: ny, deltaX: e.deltaX, deltaY: e.deltaY }),
       });
     } catch { /* ignore */ }
   };
@@ -106,8 +147,9 @@ export function CaptchaAssistModal() {
           <p className="text-xs text-muted-foreground leading-relaxed">
             The bot couldn't auto-solve this CAPTCHA.{" "}
             <strong className="text-foreground">Click directly on the image</strong> to interact
-            with the live browser — tick checkboxes, select tiles, press buttons. When you've solved
-            it, click{" "}
+            with the live browser — tick checkboxes, select tiles, press buttons. For{" "}
+            <strong className="text-foreground">press-and-hold</strong> challenges, hold your mouse
+            button down on the image. When done, click{" "}
             <strong className="text-emerald-400">I'm Done</strong>.
           </p>
         </div>
@@ -115,8 +157,8 @@ export function CaptchaAssistModal() {
         {/* Screenshot */}
         <div className="px-5 pb-3 flex-1 min-h-0 overflow-hidden">
           <div
-            className="relative rounded-lg overflow-hidden border border-border/30 bg-black cursor-crosshair select-none"
-            style={{ minHeight: 200 }}
+            className="relative rounded-lg overflow-hidden border border-border/30 bg-black select-none"
+            style={{ minHeight: 200, cursor: "crosshair" }}
           >
             {screenshotSrc ? (
               <>
@@ -125,8 +167,11 @@ export function CaptchaAssistModal() {
                   src={screenshotSrc}
                   alt="Live browser view"
                   className="w-full object-contain"
-                  onClick={handleImageClick}
+                  onMouseDown={handleMouseDown}
+                  onMouseUp={handleMouseUp}
+                  onWheel={handleWheel}
                   draggable={false}
+                  style={{ userSelect: "none", WebkitUserSelect: "none" }}
                 />
                 {clickFeedback && (
                   <div
@@ -150,7 +195,7 @@ export function CaptchaAssistModal() {
           </div>
           <p className="mt-1.5 text-[11px] text-muted-foreground text-center">
             <MousePointer className="inline w-3 h-3 mr-1 -mt-0.5" />
-            Refreshes every ~1 s · Click anywhere in the image to interact with the page
+            Refreshes every 0.5 s · Click or hold to interact · Scroll to scroll the page
           </p>
         </div>
 
@@ -175,7 +220,6 @@ export function CaptchaAssistModal() {
           </Button>
         </div>
 
-        {/* Overlay shown while waiting for the bot to re-check after user signals done */}
         {signalled && (
           <div className="absolute inset-0 flex items-center justify-center bg-zinc-900/80 backdrop-blur-sm rounded-xl">
             <div className="text-center space-y-3">
