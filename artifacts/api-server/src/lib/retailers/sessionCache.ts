@@ -7,8 +7,14 @@ const CACHE_DIR = path.join(
   "sessions",
 );
 
-/** Default max age before a session is considered stale and triggers a re-login (12 hours). */
-const DEFAULT_MAX_AGE_MS = 12 * 60 * 60 * 1000;
+/** Default max age before a session is considered stale and triggers a re-login (24 hours). */
+const DEFAULT_TTL_HOURS = 24;
+
+function getTtlMs(): number {
+  const envHours = parseFloat(process.env.SESSION_TTL_HOURS ?? "");
+  const hours = Number.isFinite(envHours) && envHours > 0 ? envHours : DEFAULT_TTL_HOURS;
+  return hours * 60 * 60 * 1000;
+}
 
 function sessionPath(retailer: string, email: string): string {
   const safe = `${retailer}_${email}`.toLowerCase().replace(/[^a-z0-9@._-]/g, "_");
@@ -37,10 +43,17 @@ export function loadSession(retailer: string, email: string): StorageState | nul
     const parsed = JSON.parse(raw);
     // New format: { savedAt, state }
     if (parsed && typeof parsed === "object" && "state" in parsed) {
-      return (parsed as SessionFile).state as StorageState;
+      const file = parsed as SessionFile;
+      const savedAt = (file as unknown as Record<string, unknown>).savedAt;
+      if (typeof savedAt !== "number" || !Number.isFinite(savedAt) || Date.now() - savedAt > getTtlMs()) {
+        clearSession(retailer, email);
+        return null;
+      }
+      return file.state as StorageState;
     }
-    // Legacy format: plain Playwright storage state object
-    return parsed as StorageState;
+    // Legacy format: plain Playwright storage state object — no timestamp, treat as stale
+    clearSession(retailer, email);
+    return null;
   } catch (_) {
     return null;
   }
@@ -53,7 +66,7 @@ export function loadSession(retailer: string, email: string): StorageState | nul
 export function isSessionFresh(
   retailer: string,
   email: string,
-  maxAgeMs = DEFAULT_MAX_AGE_MS,
+  maxAgeMs = getTtlMs(),
 ): boolean {
   try {
     const raw = fs.readFileSync(sessionPath(retailer, email), "utf-8");
