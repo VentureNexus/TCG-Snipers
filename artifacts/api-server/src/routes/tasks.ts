@@ -76,7 +76,7 @@ router.post("/tasks/start-all", async (_req, res): Promise<void> => {
   const idleTasks = await db
     .select()
     .from(tasksTable)
-    .where(inArray(tasksTable.status, ["idle", "stopped", "failed"]));
+    .where(inArray(tasksTable.status, ["idle", "stopped", "failed", "paused_captcha"]));
   let started = 0;
   let queued = 0;
   let skipped = 0;

@@ -72,7 +72,7 @@ export async function runPokemonCenter(ctx: RetailerContext): Promise<RetailerRe
         if (token.cancelled) return fail("Task cancelled");
 
         const captchaMsg = await handleChallengeInTask(page, task.id, RETAILER, log, setStatus);
-        if (captchaMsg) return fail(captchaMsg);
+        if (captchaMsg) return { ...fail(captchaMsg), captchaPaused: true };
 
         const queue = await page.$('[id*="queue"], [class*="waiting-room"], h1:has-text("Waiting")');
         if (queue) {

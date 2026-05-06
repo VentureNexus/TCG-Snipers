@@ -71,7 +71,7 @@ export async function runBestBuy(ctx: RetailerContext): Promise<RetailerResult> 
         if (token.cancelled) return fail("Task cancelled");
 
         const captchaMsg = await handleChallengeInTask(page, task.id, RETAILER, log, setStatus);
-        if (captchaMsg) return fail(captchaMsg);
+        if (captchaMsg) return { ...fail(captchaMsg), captchaPaused: true };
 
         const titleEl = await page.$('.sku-title h1, [itemprop="name"]');
         if (titleEl) productName = (await titleEl.textContent())?.trim() ?? productName;

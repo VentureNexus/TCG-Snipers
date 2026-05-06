@@ -47,4 +47,11 @@ export interface RetailerResult {
   price: string | null;
   orderNumber: string;
   errorMessage: string;
+  /** Set to true when the task was paused due to a CAPTCHA / bot-detection
+   *  challenge.  The taskWorker uses this flag to avoid overwriting the
+   *  "paused_captcha" status with "failed" at the end of the run. */
+  captchaPaused?: boolean;
+  /** Set to true when the visual navigator was invoked during this run
+   *  (i.e. at least one selector fallback used Claude vision). */
+  visualAssist?: boolean;
 }

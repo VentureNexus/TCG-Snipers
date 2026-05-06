@@ -7,7 +7,7 @@ import { smartClick } from "../checkoutLearner";
 import { imapFetchCode } from "../imap";
 import { emitScreenshot } from "./screenshotUtil";
 import { saveSession, loadSession, clearSession } from "./sessionCache";
-import { handleChallengeInTask, navigateTo } from "./visualNavigator";
+import { handleChallengeInTask, navigateTo, waitForSelectorWithVisualFallback } from "./visualNavigator";
 
 const RETAILER = "Walmart";
 
@@ -77,7 +77,7 @@ export async function runWalmart(ctx: RetailerContext): Promise<RetailerResult> 
         if (token.cancelled) return fail("Task cancelled");
 
         const captchaMsg = await handleChallengeInTask(page, task.id, RETAILER, log, setStatus);
-        if (captchaMsg) return fail(captchaMsg);
+        if (captchaMsg) return { ...fail(captchaMsg), captchaPaused: true };
 
         const titleEl = await page.$('[itemprop="name"], h1.prod-ProductTitle, h1');
         if (titleEl) productName = (await titleEl.textContent())?.trim() ?? productName;
@@ -206,14 +206,30 @@ export async function runWalmart(ctx: RetailerContext): Promise<RetailerResult> 
       try {
         await page.waitForSelector(checkoutSelectors.join(", "), { timeout: 8000 });
       } catch (_) {
-        log("WARN", `[${RETAILER}] Checkout button not found — trying direct navigation to /checkout...`);
+        log("WARN", `[${RETAILER}] Checkout button not found — asking visual navigator for help...`);
         await screenshot();
-        await page.goto("https://www.walmart.com/checkout", { waitUntil: "domcontentloaded" });
-        await page.waitForLoadState("networkidle", { timeout: 10000 }).catch(() => {});
-        await screenshot();
-        log("INFO", `[${RETAILER}] Direct checkout URL: ${page.url()}`);
-        // Skip the checkout button click — we're already on checkout
-        if (token.cancelled) return fail("Task cancelled");
+        const { el: visEl, visualAssist } = await waitForSelectorWithVisualFallback(
+          page,
+          checkoutSelectors.join(", "),
+          RETAILER,
+          "find and click the Checkout button on the Walmart cart page",
+          "checkout_btn",
+          log,
+        );
+        if (!visEl) {
+          // Final fallback: direct URL navigation
+          log("WARN", `[${RETAILER}] Visual navigator could not find checkout button — navigating directly to /checkout...`);
+          await page.goto("https://www.walmart.com/checkout", { waitUntil: "domcontentloaded" });
+          await page.waitForLoadState("networkidle", { timeout: 10000 }).catch(() => {});
+          await screenshot();
+          log("INFO", `[${RETAILER}] Direct checkout URL: ${page.url()}`);
+          if (token.cancelled) return fail("Task cancelled");
+        } else {
+          if (visualAssist) log("INFO", `[${RETAILER}] Visual navigator located checkout button`);
+          await visEl.click().catch(() => {});
+          await humanDelay(1500, 2500);
+          await screenshot();
+        }
       }
 
       const checkoutClicked = await smartClick(page, RETAILER, "checkout_btn", checkoutSelectors);

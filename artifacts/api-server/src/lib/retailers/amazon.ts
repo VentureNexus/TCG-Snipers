@@ -7,7 +7,7 @@ import { applyCartQuantity } from "./cartHelpers";
 import { smartClick, smartFind } from "../checkoutLearner";
 import { emitScreenshot } from "./screenshotUtil";
 import { saveSession, loadSession, clearSession } from "./sessionCache";
-import { handleChallengeInTask } from "./visualNavigator";
+import { handleChallengeInTask, waitForSelectorWithVisualFallback } from "./visualNavigator";
 
 const RETAILER = "Amazon";
 
@@ -75,7 +75,7 @@ export async function runAmazon(ctx: RetailerContext): Promise<RetailerResult> {
         if (token.cancelled) return fail("Task cancelled");
 
         const captchaMsg = await handleChallengeInTask(page, task.id, RETAILER, log, setStatus);
-        if (captchaMsg) return fail(captchaMsg);
+        if (captchaMsg) return { ...fail(captchaMsg), captchaPaused: true };
 
         const titleEl = await page.$('#productTitle, h1.a-size-large');
         if (titleEl) productName = (await titleEl.textContent())?.trim() ?? productName;
@@ -171,7 +171,20 @@ export async function runAmazon(ctx: RetailerContext): Promise<RetailerResult> {
         "button:has-text('Proceed to checkout')",
         "a:has-text('Proceed to checkout')",
       ]);
-      if (!clicked) return fail("Checkout button not found");
+      if (!clicked) {
+        // smartClick failed — ask visual navigator to locate the checkout button
+        const { el: checkoutEl, visualAssist } = await waitForSelectorWithVisualFallback(
+          page,
+          "[name='proceedToRetailCheckout'], button:has-text('Proceed to checkout'), a:has-text('Proceed to checkout')",
+          RETAILER,
+          "find and click the Proceed to Checkout button on the Amazon cart page",
+          "checkout_btn",
+          log,
+        );
+        if (!checkoutEl) return fail("Checkout button not found");
+        if (visualAssist) log("INFO", `[${RETAILER}] Visual navigator located checkout button`);
+        await checkoutEl.click();
+      }
       await humanDelay(1500, 2500);
       await screenshot();
     }

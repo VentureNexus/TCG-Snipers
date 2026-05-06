@@ -85,9 +85,9 @@ async function runTaskAutomation(task: TaskRow, token: { cancelled: boolean }) {
   await db.update(tasksTable).set({ startedAt: task.startedAt ?? new Date() }).where(eq(tasksTable.id, task.id)).catch(() => {});
 
   const setStatus = async (status: string) => {
-    // "captcha" is treated like a terminal status so startedAt is cleared and
-    // the task shows as restartable in the UI (users solve the CAPTCHA then restart).
-    const isTerminal = ["success", "failed", "stopped", "captcha"].includes(status);
+    // "paused_captcha" is treated like a terminal status so startedAt is cleared
+    // and the task shows as restartable in the UI (user solves the challenge then restarts).
+    const isTerminal = ["success", "failed", "stopped", "paused_captcha"].includes(status);
     await db.update(tasksTable)
       .set(isTerminal ? { status, startedAt: null } : { status })
       .where(eq(tasksTable.id, task.id));
@@ -177,6 +177,7 @@ async function runTaskAutomation(task: TaskRow, token: { cancelled: boolean }) {
 
     const profileNickname = profile?.name ?? "No Profile";
     let anySuccess = false;
+    let anyPaused = false;
 
     for (let cardIdx = 0; cardIdx < cardSlots.length; cardIdx++) {
       if (token.cancelled) break;
@@ -213,6 +214,8 @@ async function runTaskAutomation(task: TaskRow, token: { cancelled: boolean }) {
       });
 
       if (token.cancelled) break;
+
+      if (result.captchaPaused) anyPaused = true;
 
       if (result.success) {
         anySuccess = true;
@@ -275,9 +278,11 @@ async function runTaskAutomation(task: TaskRow, token: { cancelled: boolean }) {
     }
 
     // Final task status: success if at least one card checked out, failed if all failed.
+    // Do NOT overwrite "paused_captcha" — the runner already set that status and cleared
+    // startedAt so the user can restart after solving the challenge manually.
     if (anySuccess) {
       await setStatus("success");
-    } else if (!token.cancelled) {
+    } else if (!token.cancelled && !anyPaused) {
       await setStatus("failed");
     }
   } catch (err) {

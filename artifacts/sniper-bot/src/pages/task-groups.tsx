@@ -60,7 +60,7 @@ const RUNNING_STATUSES = ["monitoring", "adding_to_cart", "checking_out"];
 function getGroupStatusSummary(tasks: { status: string }[]) {
   if (tasks.length === 0) return { label: "No tasks", cls: "text-muted-foreground" };
   const running = tasks.filter((t) => RUNNING_STATUSES.includes(t.status)).length;
-  const captcha = tasks.filter((t) => t.status === "captcha").length;
+  const captcha = tasks.filter((t) => t.status === "paused_captcha").length;
   const success = tasks.filter((t) => t.status === "success").length;
   const failed = tasks.filter((t) => t.status === "failed").length;
 
@@ -74,6 +74,7 @@ function getGroupStatusSummary(tasks: { status: string }[]) {
   if (captcha > 0) {
     return { label: `${captcha} need CAPTCHA`, cls: "text-red-400", dot: true };
   }
+
   if (success > 0 && failed === 0) {
     return { label: `All succeeded`, cls: "text-emerald-400" };
   }

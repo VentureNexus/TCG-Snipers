@@ -413,7 +413,7 @@ export async function handleChallengeInTask(
   const msg = `[${retailer}] ${label} detected${challenge.attempted ? " (auto-click attempted)" : ""} — task paused. Complete verification manually then restart the task.`;
 
   log("ERROR", msg);
-  await setStatus("captcha").catch(() => {});
+  await setStatus("paused_captcha").catch(() => {});
 
   if (challenge.screenshot) {
     try {
@@ -425,6 +425,38 @@ export async function handleChallengeInTask(
   }
 
   return msg;
+}
+
+// ---------------------------------------------------------------------------
+// Public: waitForSelectorWithVisualFallback
+// Tries to find `selector` on the page. If not immediately found, invokes
+// navigateTo() with `visualGoal` as the instruction (e.g. "click Proceed to
+// Checkout") and retries once.  Returns the element handle on success, null
+// on failure.  Used by checkout runners to avoid silently failing when a
+// retailer moves a button to a new location.
+// ---------------------------------------------------------------------------
+
+export async function waitForSelectorWithVisualFallback(
+  page: Page,
+  selector: string,
+  retailer: string,
+  visualGoal: string,
+  stage: string,
+  log?: (level: "INFO" | "SUCCESS" | "WARN" | "ERROR", msg: string) => void,
+): Promise<{ el: Awaited<ReturnType<Page["$"]>>; visualAssist: boolean }> {
+  // Fast-path: element already present
+  const existing = await page.$(selector).catch(() => null);
+  if (existing) return { el: existing, visualAssist: false };
+
+  // Slow-path: ask the AI to navigate to the element
+  log?.("WARN", `[${retailer}] Selector not found: "${selector}" — asking visual navigator for help...`);
+  const navResult = await navigateTo(page, retailer, visualGoal, stage).catch(() => null);
+  if (navResult?.success) {
+    log?.("INFO", `[${retailer}] Visual navigator: ${navResult.message}`);
+  }
+
+  const el = await page.$(selector).catch(() => null);
+  return { el, visualAssist: true };
 }
 
 // ---------------------------------------------------------------------------

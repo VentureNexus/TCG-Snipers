@@ -79,7 +79,7 @@ export async function runSamsClub(ctx: RetailerContext): Promise<RetailerResult>
         if (token.cancelled) return fail("Task cancelled");
 
         const captchaMsg = await handleChallengeInTask(page, task.id, RETAILER, log, setStatus);
-        if (captchaMsg) return fail(captchaMsg);
+        if (captchaMsg) return { ...fail(captchaMsg), captchaPaused: true };
 
         const signInBtn = await page.$('a[href*="login"], button:has-text("Sign In"), a:has-text("Sign in")');
         const samLoginIdentity = retailerAccount ?? (profile ? { email: profile.email, password: null } : null);
