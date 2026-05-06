@@ -4,6 +4,7 @@ import type { RetailerContext, RetailerResult } from "./types";
 import { decrypt } from "../crypto";
 import { applyCartQuantity } from "./cartHelpers";
 import { emitScreenshot } from "./screenshotUtil";
+import { saveSession, loadSession, clearSession } from "./sessionCache";
 
 const RETAILER = "Best Buy";
 
@@ -23,10 +24,20 @@ export async function runBestBuy(ctx: RetailerContext): Promise<RetailerResult> 
   const screenshot = async (page: Parameters<typeof emitScreenshot>[1]) =>
     emitScreenshot(task.id, page);
 
+  const loginEmail = retailerAccount?.email ?? profile?.email ?? "";
+
   try {
+    // ── Session cache ────────────────────────────────────────────────────────
+    const cachedSession = loginEmail ? loadSession(RETAILER, loginEmail) : null;
+    if (cachedSession && loginEmail) {
+      log("INFO", `[${RETAILER}] Restoring saved session for ${loginEmail}...`);
+    }
+
     log("INFO", `[${RETAILER}] Launching stealth browser...`);
     browser = await createBrowser(proxy);
-    const context = await createStealthContext(browser);
+    const context = await createStealthContext(browser, {
+      storageState: cachedSession ?? undefined,
+    });
     const page = await context.newPage();
     await page.setDefaultNavigationTimeout(30000);
 
@@ -129,7 +140,12 @@ export async function runBestBuy(ctx: RetailerContext): Promise<RetailerResult> 
     const bbSignInEmail = await page.$('input[id="userName"], input[name="email"], input[type="email"]');
     const bbLoginIdentity = retailerAccount ?? (profile ? { email: profile.email, password: null } : null);
     if (bbSignInEmail && bbLoginIdentity) {
-      log("INFO", `[${RETAILER}] Sign-in prompt — logging in as ${bbLoginIdentity.email}...`);
+      if (cachedSession && loginEmail) {
+        log("WARN", `[${RETAILER}] Cached session expired — re-authenticating as ${loginEmail}...`);
+        clearSession(RETAILER, loginEmail);
+      } else {
+        log("INFO", `[${RETAILER}] Sign-in prompt — logging in as ${bbLoginIdentity.email}...`);
+      }
       try { await humanType(page, 'input[id="userName"], input[name="email"]', bbLoginIdentity.email); } catch (_) {}
       await humanDelay(300, 600);
       if (retailerAccount?.password) {
@@ -140,6 +156,12 @@ export async function runBestBuy(ctx: RetailerContext): Promise<RetailerResult> 
       if (loginSubmit) { await loginSubmit.click(); await humanDelay(2000, 3000); }
       await screenshot(page);
       if (token.cancelled) return fail("Task cancelled");
+
+      // Save session after login
+      if (loginEmail) {
+        saveSession(RETAILER, loginEmail, await context.storageState());
+        log("INFO", `[${RETAILER}] Session cached for ${loginEmail}`);
+      }
     }
 
     // ── Shipping address (skip if saved on account) ──────────────────────────
@@ -201,6 +223,9 @@ export async function runBestBuy(ctx: RetailerContext): Promise<RetailerResult> 
     await screenshot(page);
     const confirmation = await page.$('[class*="thank-you"], [class*="confirmation"], h1:has-text("Thank you")');
     if (!confirmation) return fail("Order confirmation not detected");
+
+    // Save fresh session after successful order
+    if (loginEmail) saveSession(RETAILER, loginEmail, await context.storageState());
 
     const orderNumber = `BBY-${Date.now()}`;
     log("SUCCESS", `[${RETAILER}] Order placed! ${productName}${productPrice ? " @ $" + productPrice : ""}`);

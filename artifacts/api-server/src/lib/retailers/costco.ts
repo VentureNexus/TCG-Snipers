@@ -4,6 +4,7 @@ import type { RetailerContext, RetailerResult } from "./types";
 import { decrypt } from "../crypto";
 import { applyCartQuantity } from "./cartHelpers";
 import { emitScreenshot } from "./screenshotUtil";
+import { saveSession, loadSession, clearSession } from "./sessionCache";
 
 const RETAILER = "Costco";
 
@@ -23,10 +24,20 @@ export async function runCostco(ctx: RetailerContext): Promise<RetailerResult> {
   const screenshot = async (page: Parameters<typeof emitScreenshot>[1]) =>
     emitScreenshot(task.id, page);
 
+  const loginEmail = retailerAccount?.email ?? profile?.email ?? "";
+
   try {
+    // ── Session cache ────────────────────────────────────────────────────────
+    const cachedSession = loginEmail ? loadSession(RETAILER, loginEmail) : null;
+    if (cachedSession && loginEmail) {
+      log("INFO", `[${RETAILER}] Restoring saved session for ${loginEmail}...`);
+    }
+
     log("INFO", `[${RETAILER}] Launching stealth browser...`);
     browser = await createBrowser(proxy);
-    const context = await createStealthContext(browser);
+    const context = await createStealthContext(browser, {
+      storageState: cachedSession ?? undefined,
+    });
     const page = await context.newPage();
     await page.setDefaultNavigationTimeout(30000);
 
@@ -77,7 +88,12 @@ export async function runCostco(ctx: RetailerContext): Promise<RetailerResult> {
         const memberGate = await page.$('a:has-text("Sign In"), button:has-text("Member Sign In")');
         const costcoLoginIdentity = retailerAccount ?? (profile ? { email: profile.email, password: null } : null);
         if (memberGate && costcoLoginIdentity) {
-          log("INFO", `[${RETAILER}] Member gate detected — signing in...`);
+          if (cachedSession && loginEmail) {
+            log("WARN", `[${RETAILER}] Cached session expired — re-authenticating as ${loginEmail}...`);
+            clearSession(RETAILER, loginEmail);
+          } else {
+            log("INFO", `[${RETAILER}] Member gate detected — signing in...`);
+          }
           await memberGate.click();
           await humanDelay(1000, 2000);
           await screenshot(page);
@@ -91,6 +107,12 @@ export async function runCostco(ctx: RetailerContext): Promise<RetailerResult> {
             const loginBtn = await page.$('button:has-text("Sign In"), #login-btn');
             if (loginBtn) { await loginBtn.click(); await humanDelay(2000, 3000); }
             await screenshot(page);
+
+            // Save session after login
+            if (loginEmail) {
+              saveSession(RETAILER, loginEmail, await context.storageState());
+              log("INFO", `[${RETAILER}] Session cached for ${loginEmail}`);
+            }
           } catch (_) {}
         }
 
@@ -199,6 +221,9 @@ export async function runCostco(ctx: RetailerContext): Promise<RetailerResult> {
     await screenshot(page);
     const confirmation = await page.$('[class*="confirmation"], h1:has-text("Thank you"), h1:has-text("Order Confirmed")');
     if (!confirmation) return fail("Order confirmation not detected");
+
+    // Save fresh session after successful order
+    if (loginEmail) saveSession(RETAILER, loginEmail, await context.storageState());
 
     const orderNumber = `CST-${Date.now()}`;
     log("SUCCESS", `[${RETAILER}] Order placed! ${productName}${productPrice ? " @ $" + productPrice : ""}`);
