@@ -212,7 +212,7 @@ export async function runWalmart(ctx: RetailerContext): Promise<RetailerResult> 
           page,
           checkoutSelectors.join(", "),
           RETAILER,
-          "find and click the Checkout button on the Walmart cart page",
+          "find and click the Checkout button in the Walmart cart",
           "checkout_btn",
           log,
         );

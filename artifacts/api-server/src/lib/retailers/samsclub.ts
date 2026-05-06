@@ -5,7 +5,7 @@ import { decrypt } from "../crypto";
 import { applyCartQuantity } from "./cartHelpers";
 import { emitScreenshot } from "./screenshotUtil";
 import { saveSession, loadSession, clearSession } from "./sessionCache";
-import { handleChallengeInTask } from "./visualNavigator";
+import { handleChallengeInTask, waitForSelectorWithVisualFallback } from "./visualNavigator";
 
 const RETAILER = "Sam's Club";
 
@@ -171,8 +171,16 @@ export async function runSamsClub(ctx: RetailerContext): Promise<RetailerResult>
 
     log("INFO", `[${RETAILER}] Proceeding to checkout...`);
     await setStatus("checking_out");
-    const checkoutBtn = await page.$('button:has-text("Checkout"), a:has-text("Proceed to Checkout")');
+    const { el: checkoutBtn, visualAssist: checkoutVisualAssist } = await waitForSelectorWithVisualFallback(
+      page,
+      'button:has-text("Checkout"), a:has-text("Proceed to Checkout"), button:has-text("Proceed to Checkout")',
+      RETAILER,
+      "find and click the Checkout or Proceed to Checkout button on the Sam's Club cart page",
+      "checkout_btn",
+      log,
+    );
     if (!checkoutBtn) return fail("Checkout button not found");
+    if (checkoutVisualAssist) log("INFO", `[${RETAILER}] Visual navigator located checkout button`);
     await checkoutBtn.click();
     await humanDelay(2000, 3000);
     if (token.cancelled) return fail("Task cancelled");

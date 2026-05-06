@@ -106,7 +106,7 @@ export async function runCostco(ctx: RetailerContext): Promise<RetailerResult> {
           // navigator to find the "Sign In" button in any slide-out panel that appeared.
           const loginFormVisible = await page.$('#signInName, input[name="logonId"], input[name="email"]').catch(() => null);
           if (!loginFormVisible) {
-            const navResult = await navigateTo(page, RETAILER, "click the Sign In or Log In button to reach the login form", "member_gate").catch(() => null);
+            const navResult = await navigateTo(page, RETAILER, "click the Sign In or Log In button to reach the login form", "member_gate", log).catch(() => null);
             if (navResult?.success) {
               log("INFO", `[${RETAILER}] Visual navigator found login path: ${navResult.message}`);
             }

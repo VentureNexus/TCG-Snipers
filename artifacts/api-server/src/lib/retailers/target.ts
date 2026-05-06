@@ -5,7 +5,7 @@ import { decrypt } from "../crypto";
 import { applyCartQuantity } from "./cartHelpers";
 import { emitScreenshot } from "./screenshotUtil";
 import { saveSession, loadSession, clearSession } from "./sessionCache";
-import { handleChallengeInTask } from "./visualNavigator";
+import { handleChallengeInTask, waitForSelectorWithVisualFallback } from "./visualNavigator";
 
 const RETAILER = "Target";
 
@@ -140,8 +140,16 @@ export async function runTarget(ctx: RetailerContext): Promise<RetailerResult> {
 
     log("INFO", `[${RETAILER}] Proceeding to checkout...`);
     await setStatus("checking_out");
-    const checkoutBtn = await page.$('[data-test="checkout-button"], button:has-text("Check out")');
+    const { el: checkoutBtn, visualAssist: checkoutVisualAssist } = await waitForSelectorWithVisualFallback(
+      page,
+      '[data-test="checkout-button"], button:has-text("Check out"), a:has-text("Check out")',
+      RETAILER,
+      "find and click the Check Out button on the Target cart page",
+      "checkout_btn",
+      log,
+    );
     if (!checkoutBtn) return fail("Checkout button not found");
+    if (checkoutVisualAssist) log("INFO", `[${RETAILER}] Visual navigator located checkout button`);
     await checkoutBtn.click();
     await humanDelay(2000, 3000);
     if (token.cancelled) return fail("Task cancelled");

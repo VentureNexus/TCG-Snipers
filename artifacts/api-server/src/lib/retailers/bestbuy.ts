@@ -5,7 +5,7 @@ import { decrypt } from "../crypto";
 import { applyCartQuantity } from "./cartHelpers";
 import { emitScreenshot } from "./screenshotUtil";
 import { saveSession, loadSession, clearSession } from "./sessionCache";
-import { handleChallengeInTask } from "./visualNavigator";
+import { handleChallengeInTask, waitForSelectorWithVisualFallback } from "./visualNavigator";
 
 const RETAILER = "Best Buy";
 
@@ -133,8 +133,16 @@ export async function runBestBuy(ctx: RetailerContext): Promise<RetailerResult> 
 
     log("INFO", `[${RETAILER}] Proceeding to checkout...`);
     await setStatus("checking_out");
-    const checkoutBtn = await page.$('button.btn-primary:has-text("Checkout"), a:has-text("Checkout")');
+    const { el: checkoutBtn, visualAssist: checkoutVisualAssist } = await waitForSelectorWithVisualFallback(
+      page,
+      'button.btn-primary:has-text("Checkout"), a:has-text("Checkout"), button:has-text("Checkout")',
+      RETAILER,
+      "find and click the Checkout button on the Best Buy cart page",
+      "checkout_btn",
+      log,
+    );
     if (!checkoutBtn) return fail("Checkout button not found");
+    if (checkoutVisualAssist) log("INFO", `[${RETAILER}] Visual navigator located checkout button`);
     await checkoutBtn.click();
     await humanDelay(2000, 3000);
     if (token.cancelled) return fail("Task cancelled");

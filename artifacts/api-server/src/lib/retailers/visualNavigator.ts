@@ -325,12 +325,17 @@ export async function navigateTo(
   retailer: string,
   goal: string,
   stage: string,
+  log?: (level: "INFO" | "SUCCESS" | "WARN" | "ERROR", msg: string) => void,
 ): Promise<NavResult> {
+  const TAG = `[VisualNav][${retailer}/${stage}]`;
+
   const cached = loadCachedPath(retailer, stage);
 
   if (cached && cached.length > 0) {
+    log?.("INFO", `${TAG} Replaying cached path (${cached.length} step(s)): ${cached.map(a => a.descriptor).join(" → ")}`);
     const result = await executeActions(page, cached);
     if (result.success) {
+      log?.("INFO", `${TAG} Cached path succeeded: ${result.stepsExecuted.join(", ")}`);
       return {
         success: true,
         steps: result.stepsExecuted,
@@ -338,6 +343,7 @@ export async function navigateTo(
         visualAssist: true,
       };
     }
+    log?.("WARN", `${TAG} Cached path failed at step: ${result.stepsExecuted.at(-1) ?? "unknown"} — invalidating cache`);
     clearCachedPath(retailer, stage);
   }
 
@@ -351,18 +357,24 @@ export async function navigateTo(
 
   let actions: NavAction[];
   try {
+    log?.("INFO", `${TAG} Asking Claude for navigation steps toward: "${goal}"`);
     actions = await askLlmForActions(screenshotBase64, retailer, goal);
   } catch (err) {
+    log?.("WARN", `${TAG} Vision LLM error: ${String(err)}`);
     return { success: false, steps: [], message: `Vision LLM error: ${String(err)}`, visualAssist: true };
   }
 
   if (actions.length === 0) {
+    log?.("INFO", `${TAG} Goal already achieved (LLM returned no actions)`);
     return { success: true, steps: [], message: "Goal already achieved (no navigation needed)", visualAssist: true };
   }
+
+  log?.("INFO", `${TAG} LLM suggested ${actions.length} step(s): ${actions.map((a, i) => `${i + 1}.[${a.action}] ${a.descriptor}`).join(" | ")}`);
 
   const hasCaptchaOrBlock = actions.some((a) => a.action === "captcha" || a.action === "blocked");
   if (hasCaptchaOrBlock) {
     const actionDesc = actions[0];
+    log?.("WARN", `${TAG} LLM detected ${actionDesc.action}: ${actionDesc.descriptor}`);
     return {
       success: false,
       steps: [actionDesc.descriptor],
@@ -375,6 +387,7 @@ export async function navigateTo(
 
   if (result.success) {
     saveCachedPath(retailer, stage, actions);
+    log?.("INFO", `${TAG} Navigation succeeded — steps: ${result.stepsExecuted.join(", ")} (path cached)`);
     return {
       success: true,
       steps: result.stepsExecuted,
@@ -383,6 +396,7 @@ export async function navigateTo(
     };
   }
 
+  log?.("WARN", `${TAG} Navigation failed — last step: ${result.stepsExecuted.at(-1) ?? "unknown"}`);
   return {
     success: false,
     steps: result.stepsExecuted,
@@ -450,7 +464,7 @@ export async function waitForSelectorWithVisualFallback(
 
   // Slow-path: ask the AI to navigate to the element
   log?.("WARN", `[${retailer}] Selector not found: "${selector}" — asking visual navigator for help...`);
-  const navResult = await navigateTo(page, retailer, visualGoal, stage).catch(() => null);
+  const navResult = await navigateTo(page, retailer, visualGoal, stage, log).catch(() => null);
   if (navResult?.success) {
     log?.("INFO", `[${retailer}] Visual navigator: ${navResult.message}`);
   }
@@ -471,18 +485,33 @@ const CAPTCHA_FRAME_PATTERNS = [
   "captcha",
 ];
 
+// High-confidence text patterns that unambiguously indicate a CAPTCHA or
+// bot-detection page — deliberately narrow to avoid false-positives on
+// normal site content (loading states, 403 pages, etc.)
 const CAPTCHA_TEXT_PATTERNS = [
   /verify you.?re human/i,
   /i.?m not a robot/i,
   /complete the security check/i,
-  /enable javascript and cookies/i,
-  /checking your browser/i,
-  /please wait/i,
-  /ray id/i,
-  /cloudflare/i,
-  /access denied/i,
-  /please verify/i,
+  /enable javascript and cookies to continue/i,
+  /checking your browser before accessing/i,
   /human verification/i,
+];
+
+// Cloudflare-specific text indicators (only considered alongside a page
+// element check to avoid triggering on sites that merely mention Cloudflare)
+const CLOUDFLARE_TEXT_PATTERNS = [
+  /ray id:/i,
+  /one more step\s*please complete the security check/i,
+  /ddos protection by cloudflare/i,
+];
+
+// DOM elements that strongly indicate a Cloudflare challenge is active
+const CLOUDFLARE_ELEMENT_SELECTORS = [
+  "iframe[src*='challenges.cloudflare.com']",
+  "[id*='cf-please-wait']",
+  "[class*='cf-browser-verification']",
+  "form#challenge-form",
+  "#turnstile-wrapper",
 ];
 
 export async function detectChallenge(page: Page): Promise<ChallengeResult> {
@@ -515,10 +544,43 @@ export async function detectChallenge(page: Page): Promise<ChallengeResult> {
     }
 
     const bodyText = await page.textContent("body").catch(() => "") ?? "";
+
+    // Check for Cloudflare challenge: require BOTH a specific text indicator AND
+    // at least one Cloudflare DOM element to avoid false-positives.
+    const hasCloudflareText = CLOUDFLARE_TEXT_PATTERNS.some((p) => p.test(bodyText));
+    const hasCloudflareElement = hasCloudflareText
+      ? (await Promise.all(
+          CLOUDFLARE_ELEMENT_SELECTORS.map((sel) => page.$(sel).then(el => !!el).catch(() => false)),
+        )).some(Boolean)
+      : false;
+
+    if (hasCloudflareText && hasCloudflareElement) {
+      // Attempt auto-solve via turnstile/checkbox if visible
+      let attempted = false;
+      const checkbox = await page.$("input[type='checkbox']").catch(() => null);
+      if (checkbox && await checkbox.isVisible().catch(() => false)) {
+        try {
+          await checkbox.click();
+          await new Promise((r) => setTimeout(r, 3000));
+          attempted = true;
+          if (!(await checkbox.isVisible().catch(() => false))) {
+            return { type: "none", attempted: true };
+          }
+        } catch { }
+      }
+
+      let screenshot: string | undefined;
+      try {
+        const buf = await page.screenshot({ type: "jpeg", quality: 50 });
+        screenshot = "data:image/jpeg;base64," + buf.toString("base64");
+      } catch { }
+
+      return { type: "cloudflare", attempted, screenshot };
+    }
+
+    // Check for generic CAPTCHA via high-confidence text patterns only
     for (const pat of CAPTCHA_TEXT_PATTERNS) {
       if (pat.test(bodyText)) {
-        const isCloudflare = /ray id|cloudflare|checking your browser/i.test(bodyText);
-
         let attempted = false;
         const checkbox = await page.$("input[type='checkbox']").catch(() => null);
         if (checkbox && await checkbox.isVisible().catch(() => false)) {
@@ -539,11 +601,7 @@ export async function detectChallenge(page: Page): Promise<ChallengeResult> {
           screenshot = "data:image/jpeg;base64," + buf.toString("base64");
         } catch { }
 
-        return {
-          type: isCloudflare ? "cloudflare" : "captcha",
-          attempted,
-          screenshot,
-        };
+        return { type: "captcha", attempted, screenshot };
       }
     }
 
