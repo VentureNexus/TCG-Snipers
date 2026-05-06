@@ -42,14 +42,18 @@ jobs:
             echo "name=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Create published release (skip if already exists)
+      - name: Create or publish release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
         run: |
           TAG="${{ steps.tag.outputs.name }}"
           if gh release view "$TAG" &>/dev/null; then
-            echo "Release $TAG already exists — skipping creation."
+            echo "Release $TAG already exists — ensuring it is published and marked latest."
+            gh release edit "$TAG" \
+              --draft=false \
+              --prerelease=false \
+              --latest
           else
             gh release create "$TAG" \
               --title "$TAG" \
