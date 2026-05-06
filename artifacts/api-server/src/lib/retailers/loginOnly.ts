@@ -100,6 +100,39 @@ const CONFIGS: Record<string, RetailerConfig> = {
   },
 };
 
+/** Click any unchecked "Keep me signed in" / "Remember me" checkbox on the page. */
+async function tickKeepSignedIn(page: import("playwright-core").Page): Promise<void> {
+  const KEEP_SIGNED_IN_SEL = [
+    "input[type='checkbox'][name*='remember' i]",
+    "input[type='checkbox'][name*='keep' i]",
+    "input[type='checkbox'][id*='remember' i]",
+    "input[type='checkbox'][id*='keep' i]",
+    "input[type='checkbox'][id*='staySignedIn' i]",
+    "input[type='checkbox'][id*='stay-signed' i]",
+    "#rememberMe",
+    "#remember",
+    "#keepSignedIn",
+    "#staySignedIn",
+    "input[data-automation-id*='remember' i]",
+    "input[data-automation-id*='keep' i]",
+    // label-wrapped checkboxes
+    "label:has-text('Keep me signed in') input[type='checkbox']",
+    "label:has-text('Remember me') input[type='checkbox']",
+    "label:has-text('Stay signed in') input[type='checkbox']",
+    "label:has-text('Keep me logged in') input[type='checkbox']",
+  ].join(", ");
+
+  try {
+    const checkbox = await page.$(KEEP_SIGNED_IN_SEL);
+    if (checkbox) {
+      const checked = await checkbox.isChecked().catch(() => false);
+      if (!checked) await checkbox.check();
+    }
+  } catch (_) {
+    // non-fatal — not all sites have this checkbox
+  }
+}
+
 export interface LoginResult {
   success: boolean;
   message: string;
@@ -130,6 +163,9 @@ export async function loginRetailer(
       return { success: false, message: `Email field not found on login page (url: ${currentUrl}) — page may have changed or requires cookie consent` };
     }
     await humanDelay(800, 1500);
+
+    // Tick "Keep me signed in" if present on email page
+    await tickKeepSignedIn(page);
 
     // Fill email
     try {
@@ -165,6 +201,9 @@ export async function loginRetailer(
     }
 
     // ── Step 3: Fill password ─────────────────────────────────────────────────
+    // Tick "Keep me signed in" if it appears on the password page
+    await tickKeepSignedIn(page);
+
     const passwordVisible = await page.$(config.passwordSel);
     if (!passwordVisible) {
       return { success: false, message: "Password field not found — login page may have changed or requires 2FA" };
