@@ -730,6 +730,12 @@ const RELEASE_NOTES: Record<string, string> = {
     "- Improved Walmart login field detection across the identity.walmart.com page flow",
     "- Improved Costco login — slide-out sign-in panel now falls back to human assist automatically",
   ].join("\n"),
+  "1.0.56": [
+    "- Fixed: clicks in both human assist popups now actually land in the browser — menus open, slide-out panels appear, buttons respond",
+    "- Fixed: press-and-hold CAPTCHAs (Walmart reCAPTCHA) now work — hold your mouse on the image and it holds in the real browser",
+    "- Added scroll support — scroll the wheel on the image to scroll the live page",
+    "- Browser view now refreshes every 0.5 s for a much more responsive feel",
+  ].join("\n"),
 };
 
 // Called by the renderer on mount to check if a "What's New" payload is

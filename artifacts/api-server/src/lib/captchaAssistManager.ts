@@ -55,6 +55,14 @@ export function registerSession(
   });
 }
 
+function getXY(session: AssistSession, nx: number, ny: number): { x: number; y: number } {
+  const vp = session.page.viewportSize();
+  return {
+    x: Math.round(nx * (vp?.width ?? 1280)),
+    y: Math.round(ny * (vp?.height ?? 720)),
+  };
+}
+
 export async function relayClick(
   taskId: number,
   normalizedX: number,
@@ -63,13 +71,68 @@ export async function relayClick(
   const session = sessions.get(taskId);
   if (!session) return false;
   try {
-    const viewport = session.page.viewportSize();
-    const vw = viewport?.width ?? 1280;
-    const vh = viewport?.height ?? 720;
-    const x = Math.round(normalizedX * vw);
-    const y = Math.round(normalizedY * vh);
-    await session.page.mouse.click(x, y);
+    const { x, y } = getXY(session, normalizedX, normalizedY);
+    await session.page.bringToFront();
+    await session.page.mouse.move(x, y);
+    await session.page.mouse.down();
+    await new Promise((r) => setTimeout(r, 60));
+    await session.page.mouse.up();
     session.clicks.push({ nx: normalizedX, ny: normalizedY });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function relayMouseDown(
+  taskId: number,
+  normalizedX: number,
+  normalizedY: number,
+): Promise<boolean> {
+  const session = sessions.get(taskId);
+  if (!session) return false;
+  try {
+    const { x, y } = getXY(session, normalizedX, normalizedY);
+    await session.page.bringToFront();
+    await session.page.mouse.move(x, y);
+    await session.page.mouse.down();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function relayMouseUp(
+  taskId: number,
+  normalizedX: number,
+  normalizedY: number,
+): Promise<boolean> {
+  const session = sessions.get(taskId);
+  if (!session) return false;
+  try {
+    const { x, y } = getXY(session, normalizedX, normalizedY);
+    await session.page.mouse.move(x, y);
+    await session.page.mouse.up();
+    session.clicks.push({ nx: normalizedX, ny: normalizedY });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function relayScroll(
+  taskId: number,
+  normalizedX: number,
+  normalizedY: number,
+  deltaX: number,
+  deltaY: number,
+): Promise<boolean> {
+  const session = sessions.get(taskId);
+  if (!session) return false;
+  try {
+    const { x, y } = getXY(session, normalizedX, normalizedY);
+    await session.page.mouse.move(x, y);
+    await session.page.mouse.wheel(deltaX, deltaY);
     return true;
   } catch {
     return false;

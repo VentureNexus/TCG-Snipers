@@ -1,5 +1,13 @@
 import { Router, type IRouter } from "express";
-import { relayClick, getScreenshot, signalDone, signalGiveUp } from "../lib/captchaAssistManager";
+import {
+  relayClick,
+  relayMouseDown,
+  relayMouseUp,
+  relayScroll,
+  getScreenshot,
+  signalDone,
+  signalGiveUp,
+} from "../lib/captchaAssistManager";
 
 const router: IRouter = Router();
 
@@ -25,6 +33,50 @@ router.post("/captcha-assist/:id/click", async (req, res): Promise<void> => {
   }
 
   const ok = await relayClick(taskId, normalizedX, normalizedY);
+  res.json({ ok });
+});
+
+router.post("/captcha-assist/:id/mousedown", async (req, res): Promise<void> => {
+  const taskId = parseInt(req.params.id, 10);
+  if (isNaN(taskId)) { res.status(400).json({ error: "Invalid task ID" }); return; }
+
+  const { normalizedX, normalizedY } = req.body as { normalizedX?: unknown; normalizedY?: unknown };
+  if (typeof normalizedX !== "number" || typeof normalizedY !== "number") {
+    res.status(400).json({ error: "normalizedX and normalizedY (0–1) are required" }); return;
+  }
+
+  const ok = await relayMouseDown(taskId, normalizedX, normalizedY);
+  res.json({ ok });
+});
+
+router.post("/captcha-assist/:id/mouseup", async (req, res): Promise<void> => {
+  const taskId = parseInt(req.params.id, 10);
+  if (isNaN(taskId)) { res.status(400).json({ error: "Invalid task ID" }); return; }
+
+  const { normalizedX, normalizedY } = req.body as { normalizedX?: unknown; normalizedY?: unknown };
+  if (typeof normalizedX !== "number" || typeof normalizedY !== "number") {
+    res.status(400).json({ error: "normalizedX and normalizedY (0–1) are required" }); return;
+  }
+
+  const ok = await relayMouseUp(taskId, normalizedX, normalizedY);
+  res.json({ ok });
+});
+
+router.post("/captcha-assist/:id/scroll", async (req, res): Promise<void> => {
+  const taskId = parseInt(req.params.id, 10);
+  if (isNaN(taskId)) { res.status(400).json({ error: "Invalid task ID" }); return; }
+
+  const { normalizedX, normalizedY, deltaX, deltaY } = req.body as {
+    normalizedX?: unknown; normalizedY?: unknown; deltaX?: unknown; deltaY?: unknown;
+  };
+  if (
+    typeof normalizedX !== "number" || typeof normalizedY !== "number" ||
+    typeof deltaX !== "number" || typeof deltaY !== "number"
+  ) {
+    res.status(400).json({ error: "normalizedX, normalizedY, deltaX, deltaY are required" }); return;
+  }
+
+  const ok = await relayScroll(taskId, normalizedX, normalizedY, deltaX, deltaY);
   res.json({ ok });
 });
 

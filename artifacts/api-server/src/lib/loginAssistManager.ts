@@ -34,18 +34,70 @@ export function getActiveSession(): { id: string; retailer: string } | null {
   return { id: first.id, retailer: first.retailer };
 }
 
-export async function relayLoginClick(
+function getXY(s: LoginAssistSession, nx: number, ny: number): { x: number; y: number } {
+  const vp = s.page.viewportSize();
+  return {
+    x: Math.round(nx * (vp?.width ?? 1280)),
+    y: Math.round(ny * (vp?.height ?? 720)),
+  };
+}
+
+export async function relayLoginClick(id: string, nx: number, ny: number): Promise<boolean> {
+  const s = sessions.get(id);
+  if (!s) return false;
+  try {
+    const { x, y } = getXY(s, nx, ny);
+    await s.page.bringToFront();
+    await s.page.mouse.move(x, y);
+    await s.page.mouse.down();
+    await new Promise((r) => setTimeout(r, 60));
+    await s.page.mouse.up();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function relayLoginMouseDown(id: string, nx: number, ny: number): Promise<boolean> {
+  const s = sessions.get(id);
+  if (!s) return false;
+  try {
+    const { x, y } = getXY(s, nx, ny);
+    await s.page.bringToFront();
+    await s.page.mouse.move(x, y);
+    await s.page.mouse.down();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function relayLoginMouseUp(id: string, nx: number, ny: number): Promise<boolean> {
+  const s = sessions.get(id);
+  if (!s) return false;
+  try {
+    const { x, y } = getXY(s, nx, ny);
+    await s.page.mouse.move(x, y);
+    await s.page.mouse.up();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function relayLoginScroll(
   id: string,
   nx: number,
   ny: number,
+  deltaX: number,
+  deltaY: number,
 ): Promise<boolean> {
   const s = sessions.get(id);
   if (!s) return false;
   try {
-    const vp = s.page.viewportSize();
-    const x = Math.round(nx * (vp?.width ?? 1280));
-    const y = Math.round(ny * (vp?.height ?? 720));
-    await s.page.mouse.click(x, y);
+    const { x, y } = getXY(s, nx, ny);
+    await s.page.mouse.move(x, y);
+    await s.page.mouse.wheel(deltaX, deltaY);
     return true;
   } catch {
     return false;

@@ -1,4 +1,4 @@
-- Login Human Assist: when the bot can't find the login form, a popup lets you navigate the browser manually so it can take over from wherever you land
-- Your navigation steps are saved to train the bot for future logins on that retailer
-- Walmart login: improved field detection across identity.walmart.com page flow
-- Costco login: improved handling of slide-out sign-in panel via human assist fallback
+- Fixed: clicks and navigation now actually work in human assist popups — buttons, menus, and slide-out panels respond correctly
+- Fixed: press-and-hold CAPTCHAs (like Walmart reCAPTCHA) now work — hold your mouse button down on the image and it holds in the real browser too
+- Added scroll support to both Login Assist and CAPTCHA Assist — scroll the wheel on the image to scroll the page
+- Browser view now refreshes every 0.5 s (was 1.2 s) for a much more responsive feel
