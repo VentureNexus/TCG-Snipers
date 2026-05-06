@@ -320,6 +320,35 @@ export async function runAmazon(ctx: RetailerContext): Promise<RetailerResult> {
 
     if (token.cancelled) return fail("Task cancelled");
 
+    // ── Dismiss Amazon Prime / upsell interstitials ───────────────────────────
+    // Amazon shows a "Try Prime" page mid-checkout (URL contains referrer=prime
+    // or pipelineType=Chewbacca). Clicking "No thanks" continues to place-order.
+    for (let primePass = 0; primePass < 3; primePass++) {
+      await page.waitForLoadState("networkidle", { timeout: 8000 }).catch(() => {});
+      const primeNoThanks = await page.$(
+        "#prime-interstitial-nothanks, " +
+        "a:has-text('No thanks'), a:has-text('No, thanks'), " +
+        "button:has-text('No thanks'), button:has-text('No, thanks'), " +
+        "a[href*='nothanks'], a[href*='no-thanks'], " +
+        "input[value*='No thanks'], input[value*='No, thanks'], " +
+        "span:has-text('No thanks'), " +
+        "[data-prime-interstitial] a, [id*='prime'][id*='nothanks'], " +
+        "a:has-text('Continue without'), button:has-text('Continue without'), " +
+        "a:has-text('Decline'), button:has-text('Decline offer')"
+      );
+      if (primeNoThanks) {
+        log("INFO", `[${RETAILER}] Dismissing Prime/upsell offer — clicking No thanks...`);
+        await screenshot();
+        await primeNoThanks.click();
+        await humanDelay(1500, 2500);
+        await page.waitForLoadState("networkidle", { timeout: 10000 }).catch(() => {});
+        await screenshot();
+        log("INFO", `[${RETAILER}] Post-Prime URL: ${page.url()}`);
+      } else {
+        break; // no more interstitials
+      }
+    }
+
     // ── Place order ───────────────────────────────────────────────────────────
     log("INFO", `[${RETAILER}] Submitting order... (page: ${page.url()})`);
 
