@@ -10,6 +10,12 @@ interface RetailerConfig {
   url: string;
   emailSel: string;
   continueSel?: string;
+  /**
+   * Optional: after clicking Continue, if this selector appears it must be
+   * clicked to select the sign-in method (e.g. Walmart's Password radio button)
+   * before the password field becomes visible.
+   */
+  selectMethodSel?: string;
   passwordSel: string;
   submitSel: string;
   /** Selector that should be ABSENT after a successful login */
@@ -26,23 +32,36 @@ const CONFIGS: Record<string, RetailerConfig> = {
     failureCheck: "#ap_email, input[name='email']",
   },
   Walmart: {
-    // creator.walmart.com uses the same Walmart ID / SSO but has a simpler,
-    // less bot-detected login form.  The resulting session cookies are shared
-    // with walmart.com so checkout works normally after login.
-    url: "https://creator.walmart.com/account/login",
+    // Walmart's identity system lives at identity.walmart.com.
+    // walmart.com/account/login redirects there automatically.
+    // Page 1: "Phone number or email" text input → Continue button
+    // Page 2: choose sign-in method (Password radio is default) → password field → Sign in
+    url: "https://www.walmart.com/account/login",
     emailSel: [
+      // identity.walmart.com uses autocomplete="username" for the phone-or-email field
+      "input[autocomplete='username']",
+      "input[autocomplete='email']",
       "input[type='email']",
       "input[name='email']",
+      "input[name='phoneOrEmail']",
       "#email",
-      "input[autocomplete='email']",
-      "input[placeholder*='email' i]",
-      "input[data-automation-id='email']",
+      // generic text fallback — identity.walmart.com renders a plain <input type="text">
+      "input[type='text']:not([type='hidden'])",
     ].join(", "),
     continueSel: [
       "button:has-text('Continue')",
-      "button:has-text('Next')",
       "button[type='submit']:has-text('Continue')",
       "button[data-automation-id='signin-continue-btn']",
+    ].join(", "),
+    // After Continue, Walmart shows a "Choose a sign in method" page.
+    // We must click the Password radio to reveal the password field.
+    selectMethodSel: [
+      "label:has-text('Password') input[type='radio']",
+      "input[type='radio'][value*='password' i]",
+      "input[type='radio'][id*='password' i]",
+      "[data-testid*='password'] input[type='radio']",
+      // If Password is already selected, clicking again is a no-op — safe either way
+      "input[type='radio']:last-of-type",
     ].join(", "),
     passwordSel: [
       "input[type='password']",
@@ -52,13 +71,18 @@ const CONFIGS: Record<string, RetailerConfig> = {
       "input[data-automation-id='password']",
     ].join(", "),
     submitSel: [
-      "button[type='submit']",
       "button:has-text('Sign in')",
       "button:has-text('Sign In')",
-      "button:has-text('Log in')",
+      "button[type='submit']",
       "button[data-automation-id='signin-submit-btn']",
     ].join(", "),
-    failureCheck: "input[type='email'], input[name='email'], input[data-automation-id='email']",
+    // After successful login identity.walmart.com redirects to walmart.com —
+    // the phone-or-email input will be gone.
+    failureCheck: [
+      "input[autocomplete='username']",
+      "input[type='text']:not([type='hidden'])",
+      "input[name='phoneOrEmail']",
+    ].join(", "),
   },
   "Best Buy": {
     url: "https://www.bestbuy.com/identity/global/signin",
@@ -175,7 +199,7 @@ export async function loginRetailer(
     }
     await humanDelay(300, 600);
 
-    // ── Step 2: Click Continue (two-step login pages like creator.walmart.com) ─
+    // ── Step 2: Click Continue (two-step login pages) ────────────────────────
     if (config.continueSel) {
       const continueEl = await page.$(config.continueSel);
       if (continueEl) {
@@ -185,6 +209,22 @@ export async function loginRetailer(
         const emailEl = await page.$(config.emailSel);
         if (emailEl) await emailEl.press("Enter");
       }
+      await humanDelay(1200, 2000);
+
+      // ── Step 2b: Select sign-in method (e.g. Walmart Password radio) ───────
+      // Some retailers show a "choose how to sign in" page between the email
+      // and password steps.  We wait briefly for the method selector, click it
+      // if present, then proceed to wait for the password field.
+      if (config.selectMethodSel) {
+        const methodEl = await page
+          .waitForSelector(config.selectMethodSel, { timeout: 6000 })
+          .catch(() => null);
+        if (methodEl) {
+          await methodEl.click();
+          await humanDelay(600, 1200);
+        }
+      }
+
       // Wait up to 12 s for the password field to appear after page transition
       const pwAppeared = await page
         .waitForSelector(config.passwordSel, { timeout: 12000 })
@@ -197,7 +237,7 @@ export async function loginRetailer(
           message: `Password field did not appear after Continue (url: ${currentUrl}) — ${snippet}`,
         };
       }
-      await humanDelay(800, 1400);
+      await humanDelay(600, 1000);
     }
 
     // ── Step 3: Fill password ─────────────────────────────────────────────────
