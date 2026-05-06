@@ -6,6 +6,8 @@ import { dispatchRetailer } from "./retailers";
 import { notifySuccess, notifyFailure } from "./discord";
 import { getOrCreateSettings } from "../routes/settings";
 import type { ImapConfig } from "./imap";
+import { isSessionFresh } from "./retailers/sessionCache";
+import { loginRetailer } from "./retailers/loginOnly";
 
 interface TaskRow {
   id: number;
@@ -104,6 +106,31 @@ async function runTaskAutomation(task: TaskRow, token: { cancelled: boolean }) {
       : null;
     if (retailerAccount) {
       log("INFO", `[${task.retailer}] Using saved account: ${retailerAccount.email}`);
+
+      // ── Pre-task session check ────────────────────────────────────────────
+      // If no session exists or the cached session is older than 12 hours,
+      // login now (before monitoring starts) so checkout can skip the login
+      // step entirely and run faster.
+      const sessionReady = isSessionFresh(task.retailer, retailerAccount.email);
+      if (sessionReady) {
+        log("INFO", `[${task.retailer}] Session cache is fresh — skipping pre-login.`);
+      } else {
+        log("INFO", `[${task.retailer}] No fresh session found — logging in as ${retailerAccount.email} before starting...`);
+        try {
+          const loginResult = await loginRetailer(
+            task.retailer,
+            retailerAccount.email,
+            retailerAccount.password,
+          );
+          if (loginResult.success) {
+            log("SUCCESS", `[${task.retailer}] Pre-task login successful — session cached, checkout will be faster.`);
+          } else {
+            log("WARN", `[${task.retailer}] Pre-task login failed: ${loginResult.message} — will attempt login during checkout if needed.`);
+          }
+        } catch (loginErr) {
+          log("WARN", `[${task.retailer}] Pre-task login threw an error: ${String(loginErr)} — continuing anyway.`);
+        }
+      }
     }
 
     const proxyRow = task.proxyId
