@@ -255,6 +255,13 @@ async function startApiServer(): Promise<void> {
       process.env.ENCRYPTION_KEY = getOrCreateEncryptionKey();
     }
 
+    // Community knowledge-base URL — points to the deployed license-api server.
+    // The api-server's communityClient reads this to push/pull anonymized success
+    // data. Silently disabled if unset (local dev without the flag set).
+    if (!process.env.COMMUNITY_API_URL) {
+      process.env.COMMUNITY_API_URL = "https://tcgsnipers.replit.app";
+    }
+
     // ── Detect and inject browser executable path ─────────────────────────
     // The API server's browser.ts checks PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH
     // first. We resolve it here (before the module is imported) so the correct
