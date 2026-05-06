@@ -139,18 +139,32 @@ export async function loginRetailer(
     }
     await humanDelay(300, 600);
 
-    // Click Continue if two-step login
+    // ── Step 2: Click Continue (two-step login pages like creator.walmart.com) ─
     if (config.continueSel) {
       const continueEl = await page.$(config.continueSel);
       if (continueEl) {
         await continueEl.click();
-        await humanDelay(1500, 2500);
-        // Wait for password field to appear
-        await page.waitForSelector(config.passwordSel, { timeout: 8000 }).catch(() => {});
+      } else {
+        // Fallback: press Enter — works for any submit-on-enter email form
+        const emailEl = await page.$(config.emailSel);
+        if (emailEl) await emailEl.press("Enter");
       }
+      // Wait up to 12 s for the password field to appear after page transition
+      const pwAppeared = await page
+        .waitForSelector(config.passwordSel, { timeout: 12000 })
+        .catch(() => null);
+      if (!pwAppeared) {
+        const currentUrl = page.url();
+        const snippet = (await page.textContent("body").catch(() => ""))?.slice(0, 300) ?? "";
+        return {
+          success: false,
+          message: `Password field did not appear after Continue (url: ${currentUrl}) — ${snippet}`,
+        };
+      }
+      await humanDelay(800, 1400);
     }
 
-    // Fill password
+    // ── Step 3: Fill password ─────────────────────────────────────────────────
     const passwordVisible = await page.$(config.passwordSel);
     if (!passwordVisible) {
       return { success: false, message: "Password field not found — login page may have changed or requires 2FA" };
@@ -162,12 +176,15 @@ export async function loginRetailer(
     }
     await humanDelay(300, 600);
 
-    // Submit
+    // ── Step 4: Submit (Sign in) ──────────────────────────────────────────────
     const submitEl = await page.$(config.submitSel);
-    if (!submitEl) {
-      return { success: false, message: "Submit button not found" };
+    if (submitEl) {
+      await submitEl.click();
+    } else {
+      // Fallback: press Enter on the password field
+      const pwEl = await page.$(config.passwordSel);
+      if (pwEl) await pwEl.press("Enter");
     }
-    await submitEl.click();
 
     // Wait for navigation and network to settle
     await page.waitForLoadState("networkidle", { timeout: 20000 }).catch(() => {});
