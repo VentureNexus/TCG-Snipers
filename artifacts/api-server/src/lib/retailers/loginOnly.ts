@@ -102,10 +102,7 @@ const CONFIGS: Record<string, RetailerConfig> = {
     failureCheck: "#username, #password",
   },
   Costco: {
-    // Costco's sign-in is behind an Account nav link that opens a slide-out
-    // panel — navigating directly to the homepage lets the visual navigator
-    // discover and cache that path on first use.
-    url: "https://www.costco.com",
+    url: "https://www.costco.com/LogonForm",
     emailSel: "#signInName, input[name='logonId'], input[name='email'], input[type='email']",
     passwordSel: "#logonPassword, input[name='logonPassword'], input[name='password'], input[type='password']",
     submitSel: "button[type='submit'], input[type='submit'], button:has-text('Sign In'), button:has-text('Log In')",
