@@ -71,24 +71,61 @@ export function LoginAssistModal() {
       return;
     }
     fetchScreenshot(session.id);
-    pollScreenshotRef.current = setInterval(() => fetchScreenshot(session.id), 1200);
+    pollScreenshotRef.current = setInterval(() => fetchScreenshot(session.id), 500);
     return () => {
       if (pollScreenshotRef.current) clearInterval(pollScreenshotRef.current);
     };
   }, [session, fetchScreenshot]);
 
-  const handleImageClick = async (e: React.MouseEvent<HTMLImageElement>) => {
-    if (!session || !imgRef.current || signalled) return;
+  function getNormalized(e: React.MouseEvent<HTMLImageElement>): { nx: number; ny: number } | null {
+    if (!imgRef.current) return null;
     const rect = imgRef.current.getBoundingClientRect();
     const nx = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
     const ny = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
+    return { nx, ny };
+  }
+
+  const handleMouseDown = async (e: React.MouseEvent<HTMLImageElement>) => {
+    if (!session || signalled) return;
+    e.preventDefault();
+    const pos = getNormalized(e);
+    if (!pos) return;
+    const rect = imgRef.current!.getBoundingClientRect();
     setClickFeedback({ x: e.clientX - rect.left, y: e.clientY - rect.top });
-    setTimeout(() => setClickFeedback(null), 700);
     try {
-      await fetch(`${apiBase}/api/login-assist/${session.id}/click`, {
+      await fetch(`${apiBase}/api/login-assist/${session.id}/mousedown`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ normalizedX: nx, normalizedY: ny }),
+        body: JSON.stringify({ normalizedX: pos.nx, normalizedY: pos.ny }),
+      });
+    } catch { /* ignore */ }
+  };
+
+  const handleMouseUp = async (e: React.MouseEvent<HTMLImageElement>) => {
+    if (!session || signalled) return;
+    e.preventDefault();
+    setTimeout(() => setClickFeedback(null), 600);
+    const pos = getNormalized(e);
+    if (!pos) return;
+    try {
+      await fetch(`${apiBase}/api/login-assist/${session.id}/mouseup`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ normalizedX: pos.nx, normalizedY: pos.ny }),
+      });
+    } catch { /* ignore */ }
+  };
+
+  const handleWheel = async (e: React.WheelEvent<HTMLImageElement>) => {
+    if (!session || signalled || !imgRef.current) return;
+    const rect = imgRef.current.getBoundingClientRect();
+    const nx = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    const ny = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
+    try {
+      await fetch(`${apiBase}/api/login-assist/${session.id}/scroll`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ normalizedX: nx, normalizedY: ny, deltaX: e.deltaX, deltaY: e.deltaY }),
       });
     } catch { /* ignore */ }
   };
@@ -174,20 +211,20 @@ export function LoginAssistModal() {
         {/* Instructions */}
         <div className="px-5 pt-3 pb-2 shrink-0">
           <p className="text-xs text-muted-foreground leading-relaxed">
-            The bot couldn't find the login form automatically.{" "}
-            <strong className="text-foreground">Click the image</strong> to navigate the browser —
-            find and open the sign-in page. Use the keyboard bar below to type. When the login form
-            is visible, click{" "}
-            <strong className="text-emerald-400">I'm Done</strong> and the bot will take over.
-            Your navigation steps are saved to improve future logins.
+            The bot couldn't find the login form.{" "}
+            <strong className="text-foreground">Click the image</strong> to navigate the live
+            browser — open menus, click Sign In, reach the login page. Use the keyboard bar to
+            type. Scroll to scroll the page. When the login form is visible, click{" "}
+            <strong className="text-emerald-400">I'm Done</strong> and the bot fills your
+            credentials automatically.
           </p>
         </div>
 
         {/* Screenshot */}
         <div className="px-5 pb-2 flex-1 min-h-0 overflow-hidden">
           <div
-            className="relative rounded-lg overflow-hidden border border-border/30 bg-black cursor-crosshair select-none"
-            style={{ minHeight: 200 }}
+            className="relative rounded-lg overflow-hidden border border-border/30 bg-black select-none"
+            style={{ minHeight: 200, cursor: "crosshair" }}
           >
             {screenshotSrc ? (
               <>
@@ -196,8 +233,11 @@ export function LoginAssistModal() {
                   src={screenshotSrc}
                   alt="Live browser view"
                   className="w-full object-contain"
-                  onClick={handleImageClick}
+                  onMouseDown={handleMouseDown}
+                  onMouseUp={handleMouseUp}
+                  onWheel={handleWheel}
                   draggable={false}
+                  style={{ userSelect: "none", WebkitUserSelect: "none" }}
                 />
                 {clickFeedback && (
                   <div
@@ -221,7 +261,7 @@ export function LoginAssistModal() {
           </div>
           <p className="mt-1.5 text-[11px] text-muted-foreground text-center">
             <MousePointer className="inline w-3 h-3 mr-1 -mt-0.5" />
-            Refreshes every ~1 s · Click anywhere in the image to interact with the page
+            Refreshes every 0.5 s · Click or hold to interact · Scroll to scroll the page
           </p>
         </div>
 
