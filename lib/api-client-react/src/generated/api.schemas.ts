@@ -67,6 +67,7 @@ export interface Profile {
   imapHost: string;
   imapPort: string;
   imapUser: string;
+  imapPassword?: string;
   createdAt: string;
   updatedAt: string;
 }
