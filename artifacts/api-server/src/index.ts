@@ -4,6 +4,7 @@ import { logger } from "./lib/logger";
 import { createWebSocketServer, initStatusCacheFromDb } from "./lib/websocket";
 import { setMaxConcurrency } from "./lib/taskWorker";
 import { getOrCreateSettings } from "./routes/settings";
+import { runStartupLoginCheck } from "./lib/startupLoginCheck";
 
 const rawPort = process.env["PORT"];
 
@@ -43,6 +44,11 @@ async function bootstrap(): Promise<void> {
 
   server.listen(port, () => {
     logger.info({ port }, "Server listening");
+    // Fire-and-forget: pre-login all retailer accounts with stale/missing sessions.
+    // Runs in the background so it never delays the server accepting requests.
+    runStartupLoginCheck().catch((err) => {
+      logger.warn({ err }, "[StartupLoginCheck] Unexpected error during startup sweep");
+    });
   });
 
   server.on("error", (err) => {
