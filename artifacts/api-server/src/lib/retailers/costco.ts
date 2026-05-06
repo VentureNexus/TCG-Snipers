@@ -71,7 +71,7 @@ export async function runCostco(ctx: RetailerContext): Promise<RetailerResult> {
         if (priceEl) productPrice = (await priceEl.textContent())?.trim().replace(/[^0-9.]/g, "") ?? "";
 
         if (!productImage) {
-          productImage = await page.$eval('meta[property="og:image"], img.product-image-main', el => el.getAttribute("content") || (el as HTMLImageElement).src || "").catch(() => "");
+          productImage = await page.$eval('meta[property="og:image"], img.product-image-main', el => el.getAttribute("content") || (el as any).src || "").catch(() => "");
         }
 
         const memberGate = await page.$('a:has-text("Sign In"), button:has-text("Member Sign In")');

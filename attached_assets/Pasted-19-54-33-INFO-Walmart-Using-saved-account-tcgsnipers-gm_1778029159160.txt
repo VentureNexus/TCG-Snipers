@@ -1,0 +1,69 @@
+19:54:33
+INFO
+[Walmart] Using saved account: tcgsnipers@gmail.com
+19:54:33
+INFO
+[Walmart] Launching stealth browser...
+19:54:34
+INFO
+[Walmart] Checking stock: https://www.walmart.com/ip/POKEMON-ME2-5-ASCENDED-HEROES-2PK-BLISTER/18911118976?conditionGroupCode=4&classType=REGULAR&from=/search
+19:54:36
+WARN
+[Walmart] Product not available for purchase
+19:54:36
+WARN
+[Walmart] OOS — waiting 200–800ms before retry 1/3...
+19:54:36
+INFO
+[Walmart] Checking stock: https://www.walmart.com/ip/POKEMON-ME2-5-ASCENDED-HEROES-2PK-BLISTER/18911118976?conditionGroupCode=4&classType=REGULAR&from=/search
+19:54:38
+WARN
+[Walmart] Product not available for purchase
+19:54:38
+WARN
+[Walmart] OOS — waiting 200–800ms before retry 2/3...
+19:54:39
+INFO
+[Walmart] Checking stock: https://www.walmart.com/ip/POKEMON-ME2-5-ASCENDED-HEROES-2PK-BLISTER/18911118976?conditionGroupCode=4&classType=REGULAR&from=/search
+19:54:42
+WARN
+[Walmart] Product not available for purchase
+19:54:42
+WARN
+[Walmart] OOS — waiting 200–800ms before retry 3/3...
+19:54:42
+INFO
+[Walmart] Checking stock: https://www.walmart.com/ip/POKEMON-ME2-5-ASCENDED-HEROES-2PK-BLISTER/18911118976?conditionGroupCode=4&classType=REGULAR&from=/search
+19:54:44
+WARN
+[Walmart] Product not available for purchase
+19:54:44
+ERROR
+[Walmart] Checkout failed: Product out of stock after all retries
+19:57:20
+INFO
+[Walmart] Using saved account: tcgsnipers@gmail.com
+19:57:20
+INFO
+[Walmart] Launching stealth browser...
+19:57:21
+INFO
+[Walmart] Checking stock: https://www.walmart.com/ip/POKEMON-ME2-5-ASCENDED-HEROES-2PK-BLISTER/18911118976?conditionGroupCode=4&classType=REGULAR&from=/search
+19:57:24
+SUCCESS
+[Walmart] In stock: POKEMON ME2.5 ASCENDED HEROES 2PK BLISTER @ $27.00
+19:57:24
+INFO
+[Walmart] Adding to cart...
+19:57:27
+INFO
+[Walmart] Navigating to cart...
+19:57:29
+INFO
+[Walmart] Cart quantity: 1
+19:57:29
+INFO
+[Walmart] Proceeding to checkout...
+19:57:40
+ERROR
+[Walmart] Checkout failed: Checkout button not found

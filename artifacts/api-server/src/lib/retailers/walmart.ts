@@ -6,6 +6,7 @@ import { applyCartQuantity } from "./cartHelpers";
 import { smartClick } from "../checkoutLearner";
 import { imapFetchCode } from "../imap";
 import { emitScreenshot } from "./screenshotUtil";
+import { saveSession, loadSession, clearSession } from "./sessionCache";
 
 const RETAILER = "Walmart";
 
@@ -22,15 +23,24 @@ export async function runWalmart(ctx: RetailerContext): Promise<RetailerResult> 
     errorMessage: msg,
   });
 
-  const screenshot = async (page: Parameters<typeof emitScreenshot>[1]) =>
-    emitScreenshot(task.id, page);
+  const loginEmail = retailerAccount?.email ?? profile?.email ?? "";
 
   try {
+    // ── Session cache ────────────────────────────────────────────────────────
+    const cachedSession = loginEmail ? loadSession(RETAILER, loginEmail) : null;
+    if (cachedSession && loginEmail) {
+      log("INFO", `[${RETAILER}] Restoring saved session for ${loginEmail}...`);
+    }
+
     log("INFO", `[${RETAILER}] Launching stealth browser...`);
     browser = await createBrowser(proxy);
-    const context = await createStealthContext(browser);
+    const context = await createStealthContext(browser, {
+      storageState: cachedSession ?? undefined,
+    });
     const page = await context.newPage();
     await page.setDefaultNavigationTimeout(30000);
+
+    const screenshot = async () => emitScreenshot(task.id, page);
 
     const targetUrl = task.productUrl ||
       `https://www.walmart.com/search?q=${encodeURIComponent(task.productKeywords ?? "")}`;
@@ -62,6 +72,7 @@ export async function runWalmart(ctx: RetailerContext): Promise<RetailerResult> 
         log("INFO", `[${RETAILER}] Checking stock: ${targetUrl}`);
         await page.goto(targetUrl, { waitUntil: "domcontentloaded" });
         await humanDelay(800, 1500);
+        await screenshot();
         if (token.cancelled) return fail("Task cancelled");
 
         const titleEl = await page.$('[itemprop="name"], h1.prod-ProductTitle, h1');
@@ -74,10 +85,8 @@ export async function runWalmart(ctx: RetailerContext): Promise<RetailerResult> 
           productImage = await page.$eval('meta[property="og:image"]', el => el.getAttribute("content") ?? "").catch(() => "");
         }
 
-        // Check Buy Now first, then ATC
         const buyNowBtn = await page.$(
-          'button[data-automation-id="buy-now"]:not([disabled]), ' +
-          'a[link-identifier="buyNow"]:not([disabled])'
+          'button[data-automation-id="buy-now"]:not([disabled]), a[link-identifier="buyNow"]:not([disabled])'
         );
         const atcBtn = await page.$(
           'button[data-automation-id="add-to-cart"]:not([disabled]), button:has-text("Add to cart"):not([disabled])'
@@ -88,7 +97,7 @@ export async function runWalmart(ctx: RetailerContext): Promise<RetailerResult> 
           if (task.maxPrice != null && productPrice) {
             const priceCents = Math.round(parseFloat(productPrice) * 100);
             if (Number.isFinite(priceCents) && priceCents > task.maxPrice) {
-              log("WARN", `[${RETAILER}] Price $${productPrice} exceeds limit $${(task.maxPrice / 100).toFixed(2)} — waiting for price to drop...`);
+              log("WARN", `[${RETAILER}] Price $${productPrice} exceeds limit $${(task.maxPrice / 100).toFixed(2)} — waiting...`);
               continue;
             }
           }
@@ -107,27 +116,28 @@ export async function runWalmart(ctx: RetailerContext): Promise<RetailerResult> 
     if (token.cancelled) return fail("Task cancelled");
 
     if (buyNowAvailable) {
-      // ── Buy Now path: skip cart entirely ──────────────────────────────────
-      log("INFO", `[${RETAILER}] Clicking Buy Now — skipping cart for faster checkout...`);
+      // ── Buy Now path ──────────────────────────────────────────────────────
+      log("INFO", `[${RETAILER}] Clicking Buy Now — skipping cart...`);
       await setStatus("checking_out");
+      await screenshot();
       const clicked = await smartClick(page, RETAILER, "buy_now", [
         "button[data-automation-id='buy-now']:not([disabled])",
         "a[link-identifier='buyNow']:not([disabled])",
       ]);
       if (!clicked) {
-        // Fall back to ATC if Buy Now click fails
         log("WARN", `[${RETAILER}] Buy Now click failed — falling back to ATC`);
         buyNowAvailable = false;
       } else {
         await humanDelay(2000, 3000);
-        await screenshot(page);
+        await screenshot();
       }
     }
 
     if (!buyNowAvailable) {
-      // ── Standard Add-to-Cart path ──────────────────────────────────────────
+      // ── Add to Cart path ─────────────────────────────────────────────────
       await setStatus("adding_to_cart");
       log("INFO", `[${RETAILER}] Adding to cart...`);
+      await screenshot();
       const atcClicked = await smartClick(page, RETAILER, "atc", [
         "button[data-automation-id='add-to-cart']:not([disabled])",
         "button:has-text('Add to cart'):not([disabled])",
@@ -135,100 +145,111 @@ export async function runWalmart(ctx: RetailerContext): Promise<RetailerResult> 
       ]);
       if (!atcClicked) return fail("Could not click Add to Cart button");
       await humanDelay(1500, 2500);
+      await screenshot();
 
       log("INFO", `[${RETAILER}] Navigating to cart...`);
       await page.goto("https://www.walmart.com/cart", { waitUntil: "domcontentloaded" });
-      await humanDelay(1000, 1800);
+      await page.waitForLoadState("networkidle", { timeout: 10000 }).catch(() => {});
+      await screenshot();
+      log("INFO", `[${RETAILER}] Cart URL: ${page.url()}`);
       if (token.cancelled) return fail("Task cancelled");
 
       const effectiveQty = await applyCartQuantity(page, task.quantity, log);
       log("INFO", `[${RETAILER}] Cart quantity: ${effectiveQty}`);
 
+      // ── Sign-in from cart if session invalid ─────────────────────────────
+      const cartSignIn = await page.$('input[name="email"], input[type="email"]');
+      const cartLoginIdentity = retailerAccount ?? (profile ? { email: profile.email, password: null } : null);
+      if (cartSignIn && cartLoginIdentity) {
+        if (cachedSession && loginEmail) {
+          log("WARN", `[${RETAILER}] Cached session expired — re-authenticating as ${loginEmail}...`);
+          clearSession(RETAILER, loginEmail);
+        } else {
+          log("INFO", `[${RETAILER}] Sign-in required on cart page — logging in as ${loginEmail}...`);
+        }
+        await _walmartLogin(page, loginEmail, retailerAccount?.password ?? null, ctx, log, screenshot);
+        if (loginEmail) {
+          saveSession(RETAILER, loginEmail, await context.storageState());
+          log("INFO", `[${RETAILER}] Session cached for ${loginEmail}`);
+        }
+        await humanDelay(1500, 2500);
+        await screenshot();
+        if (token.cancelled) return fail("Task cancelled");
+      }
+
+      // ── Find checkout button ─────────────────────────────────────────────
       log("INFO", `[${RETAILER}] Proceeding to checkout...`);
       await setStatus("checking_out");
-      try {
-        await page.waitForSelector(
-          "[data-automation-id='cart-checkout-btn'], button:has-text('Continue to checkout'), button:has-text('Check out'), button:has-text('Checkout')",
-          { timeout: 10000 },
-        );
-      } catch (_) {}
-      const checkoutClicked = await smartClick(page, RETAILER, "checkout_btn", [
-        "[data-automation-id='cart-checkout-btn']",
+
+      // Scroll to bottom — checkout button may be below fold
+      await page.evaluate("window.scrollTo(0, document.body.scrollHeight)");
+      await humanDelay(500, 1000);
+      await screenshot();
+
+      const checkoutSelectors = [
+        "button[data-automation-id='cart-checkout-btn']",
         "button:has-text('Continue to checkout')",
         "button:has-text('Check out')",
         "button:has-text('Checkout')",
-        "[class*='checkout-btn']",
-        "[class*='checkoutBtn']",
-        "a[href*='/checkout']:not([href*='help']):not([href*='account'])",
-      ]);
-      if (!checkoutClicked) return fail("Checkout button not found");
-      await humanDelay(2000, 3000);
-      if (token.cancelled) return fail("Task cancelled");
-      await screenshot(page);
-    }
+        "a:has-text('Checkout')",
+        "[class*='checkout-btn']:is(button,a):not([disabled])",
+        "[class*='checkoutBtn']:is(button,a):not([disabled])",
+        "button[class*='checkout']:not([disabled])",
+        "a[href*='/checkout']:not([href*='help']):not([href*='account']):not([href*='returns'])",
+      ];
 
-    // ── Sign-in (if prompted) ──────────────────────────────────────────────
-    const walmartSignInEmail = await page.$('input[name="email"], input[type="email"], input[id*="email"]');
-    const loginIdentity = retailerAccount ?? (profile ? { email: profile.email, password: null } : null);
-    if (walmartSignInEmail && loginIdentity) {
-      log("INFO", `[${RETAILER}] Sign-in required — logging in as ${loginIdentity.email}...`);
-      try { await humanType(page, 'input[name="email"], input[type="email"]', loginIdentity.email); } catch (_) {}
-      await humanDelay(300, 600);
+      // Wait up to 8 seconds for checkout button to appear
+      try {
+        await page.waitForSelector(checkoutSelectors.join(", "), { timeout: 8000 });
+      } catch (_) {
+        log("WARN", `[${RETAILER}] Checkout button not found — trying direct navigation to /checkout...`);
+        await screenshot();
+        await page.goto("https://www.walmart.com/checkout", { waitUntil: "domcontentloaded" });
+        await page.waitForLoadState("networkidle", { timeout: 10000 }).catch(() => {});
+        await screenshot();
+        log("INFO", `[${RETAILER}] Direct checkout URL: ${page.url()}`);
+        // Skip the checkout button click — we're already on checkout
+        if (token.cancelled) return fail("Task cancelled");
+      }
 
-      const signInContinue = await page.$(
-        'button:has-text("Continue"), button:has-text("Sign in"), ' +
-        'button[type="submit"], input[type="submit"]',
-      );
-      if (signInContinue) {
-        await signInContinue.click();
+      const checkoutClicked = await smartClick(page, RETAILER, "checkout_btn", checkoutSelectors);
+      if (!checkoutClicked && !page.url().includes("/checkout")) {
+        return fail("Checkout button not found and direct navigation failed");
+      }
+      if (checkoutClicked) {
         await humanDelay(2000, 3000);
+        await page.waitForLoadState("networkidle", { timeout: 10000 }).catch(() => {});
+        await screenshot();
       }
       if (token.cancelled) return fail("Task cancelled");
-      await screenshot(page);
+    }
 
-      const passwordField = await page.$('input[name="password"], input[type="password"]');
-      if (passwordField && retailerAccount?.password) {
-        log("INFO", `[${RETAILER}] Password prompt — entering credentials...`);
-        try { await humanType(page, 'input[name="password"], input[type="password"]', retailerAccount.password); } catch (_) {}
-        await humanDelay(300, 600);
-        const submitBtn = await page.$('button[type="submit"], button:has-text("Sign in"), button:has-text("Continue")');
-        if (submitBtn) { await submitBtn.click(); await humanDelay(2000, 3000); }
-        await screenshot(page);
-      } else {
-        const otpField = await page.$('input[name="code"], input[name="otpCode"], input[placeholder*="code" i], input[aria-label*="code" i]');
-        const walmartImapConfig = profile?.imapHost
-          ? { host: profile.imapHost, port: parseInt(profile.imapPort, 10), user: profile.imapUser, password: profile.imapPassword }
-          : ctx.globalImapConfig;
-
-        if (otpField && walmartImapConfig) {
-          log("INFO", `[${RETAILER}] OTP prompt — fetching code from IMAP...`);
-          const code = await imapFetchCode(walmartImapConfig, /walmart|verification|sign.?in|code/i, 30000);
-          if (code) {
-            log("SUCCESS", `[${RETAILER}] OTP code retrieved`);
-            await humanType(page, 'input[name="code"], input[name="otpCode"]', code);
-            await humanDelay(300, 600);
-            const submitOtp = await page.$('button[type="submit"], button:has-text("Verify"), button:has-text("Continue")');
-            if (submitOtp) { await submitOtp.click(); await humanDelay(2000, 3000); }
-            await screenshot(page);
-          } else {
-            log("WARN", `[${RETAILER}] OTP code not found in IMAP within timeout — continuing anyway`);
-          }
-        } else if (!otpField) {
-          log("INFO", `[${RETAILER}] No OTP or password prompt — proceeding`);
-        } else {
-          log("WARN", `[${RETAILER}] OTP prompt visible but no IMAP config set — cannot fetch code`);
-        }
+    // ── Sign-in on checkout page (if not already done) ─────────────────────
+    const walmartSignInEmail = await page.$('input[name="email"], input[type="email"], input[id*="email"]');
+    const walmartLoginIdentity = retailerAccount ?? (profile ? { email: profile.email, password: null } : null);
+    if (walmartSignInEmail && walmartLoginIdentity) {
+      log("INFO", `[${RETAILER}] Sign-in on checkout — logging in as ${loginEmail}...`);
+      await screenshot();
+      await _walmartLogin(page, loginEmail, retailerAccount?.password ?? null, ctx, log, screenshot);
+      if (loginEmail) {
+        saveSession(RETAILER, loginEmail, await context.storageState());
+        log("INFO", `[${RETAILER}] Session cached for ${loginEmail}`);
       }
       await humanDelay(1500, 2500);
+      await page.waitForLoadState("networkidle", { timeout: 10000 }).catch(() => {});
+      await screenshot();
       if (token.cancelled) return fail("Task cancelled");
-    } else if (walmartSignInEmail && !loginIdentity) {
-      return fail("Walmart requires sign-in but no profile or account is assigned to this task");
+    } else if (walmartSignInEmail && !walmartLoginIdentity) {
+      return fail("Walmart requires sign-in but no profile or account is assigned");
     }
 
-    // ── Shipping address (skip if saved on account) ───────────────────────
+    log("INFO", `[${RETAILER}] Checkout URL: ${page.url()}`);
+
+    // ── Shipping address (skip if saved) ──────────────────────────────────
     const hasAddressForm = await page.$('input[name="addressLineOne"], input[id*="address-1"], input[name="firstName"]');
     if (hasAddressForm && profile) {
       log("INFO", `[${RETAILER}] Filling shipping for profile: ${profile.name}`);
+      await screenshot();
       const addrFields: Array<[string, string]> = [
         ['input[name="firstName"], input[id*="first-name"]', profile.shipFirstName || profile.name],
         ['input[name="lastName"], input[id*="last-name"]', profile.shipLastName || ""],
@@ -242,29 +263,33 @@ export async function runWalmart(ctx: RetailerContext): Promise<RetailerResult> 
         if (!val) continue;
         try { await humanType(page, sel, val); await humanDelay(80, 150); } catch (_) {}
       }
+      await screenshot();
       const continueBtn = await page.$('button:has-text("Continue"), button:has-text("Save & Continue")');
       if (continueBtn) { await continueBtn.click(); await humanDelay(2000, 3000); }
+      await page.waitForLoadState("networkidle", { timeout: 10000 }).catch(() => {});
+      await screenshot();
       if (token.cancelled) return fail("Task cancelled");
     } else if (!hasAddressForm) {
       log("INFO", `[${RETAILER}] Saved address on file — skipping address entry`);
     }
 
-    // ── Payment (skip if saved on account) ───────────────────────────────
+    // ── Payment (skip if saved) ───────────────────────────────────────────
     const hasPaymentForm = await page.$('input[name="cardNumber"], input[id*="card-number"]');
     if (hasPaymentForm && card) {
       log("INFO", `[${RETAILER}] Entering payment (${card.cardType} ****${card.lastFour})...`);
+      await screenshot();
       try {
         const cardNumber = decrypt(card.encryptedNumber);
         const cvv = decrypt(card.encryptedCvv);
-        const payFields: Array<[string, string]> = [
+        for (const [sel, val] of [
           ['input[name="cardNumber"], input[id*="card-number"]', cardNumber],
           ['input[name="expirationMonth"]', card.expiryMonth],
           ['input[name="expirationYear"]', card.expiryYear],
           ['input[name="cvv"], input[name="cvc"]', cvv],
-        ];
-        for (const [sel, val] of payFields) {
+        ] as Array<[string, string]>) {
           try { await humanType(page, sel, val); await humanDelay(80, 150); } catch (_) {}
         }
+        await screenshot();
       } catch (decryptErr) {
         log("WARN", `[${RETAILER}] Could not decrypt card: ${String(decryptErr)}`);
       }
@@ -274,22 +299,29 @@ export async function runWalmart(ctx: RetailerContext): Promise<RetailerResult> 
       log("WARN", `[${RETAILER}] No credit card provided — skipping payment step`);
     }
 
-    await screenshot(page);
-    log("INFO", `[${RETAILER}] Submitting order...`);
+    await page.evaluate("window.scrollTo(0, document.body.scrollHeight)");
+    await humanDelay(500, 1000);
+    await screenshot();
+    log("INFO", `[${RETAILER}] Submitting order... (page: ${page.url()})`);
+
     const placeOrderClicked = await smartClick(page, RETAILER, "place_order", [
       "button:has-text('Place Order')",
       "button:has-text('Place order')",
       "[data-automation-id='place-order-btn']",
       "button:has-text('Submit order')",
+      "button:has-text('Complete purchase')",
     ]);
     if (!placeOrderClicked) return fail("Place order button not found");
     await humanDelay(3000, 5000);
+    await page.waitForLoadState("networkidle", { timeout: 15000 }).catch(() => {});
+    await screenshot();
 
-    await screenshot(page);
     const confirmation = await page.$(
       '[class*="confirmation"], h1:has-text("Thank you"), h1:has-text("Order Confirmed"), h2:has-text("Your order")'
     );
     if (!confirmation) return fail("Order confirmation not detected");
+
+    if (loginEmail) saveSession(RETAILER, loginEmail, await context.storageState());
 
     const orderNumber = `WMT-${Date.now()}`;
     log("SUCCESS", `[${RETAILER}] Order placed! ${productName}${productPrice ? " @ $" + productPrice : ""}`);
@@ -298,5 +330,55 @@ export async function runWalmart(ctx: RetailerContext): Promise<RetailerResult> 
     return fail(String(err));
   } finally {
     if (browser) await browser.close().catch(() => {});
+  }
+}
+
+async function _walmartLogin(
+  page: import("playwright-core").Page,
+  email: string,
+  password: string | null,
+  ctx: RetailerContext,
+  log: RetailerContext["log"],
+  screenshot: () => Promise<void>,
+): Promise<void> {
+  try { await humanType(page, 'input[name="email"], input[type="email"]', email); } catch (_) {}
+  await screenshot();
+  await humanDelay(300, 600);
+
+  const signInContinue = await page.$('button:has-text("Continue"), button:has-text("Sign in"), button[type="submit"], input[type="submit"]');
+  if (signInContinue) { await signInContinue.click(); await humanDelay(2000, 3000); }
+  await screenshot();
+
+  const passwordField = await page.$('input[name="password"], input[type="password"]');
+  if (passwordField && password) {
+    log("INFO", `[Walmart] Password prompt — entering credentials...`);
+    try { await humanType(page, 'input[name="password"], input[type="password"]', password); } catch (_) {}
+    await screenshot();
+    await humanDelay(300, 600);
+    const submitBtn = await page.$('button[type="submit"], button:has-text("Sign in"), button:has-text("Continue")');
+    if (submitBtn) { await submitBtn.click(); await humanDelay(2000, 3000); }
+    await screenshot();
+  } else {
+    // OTP path
+    const otpField = await page.$('input[name="code"], input[name="otpCode"], input[placeholder*="code" i], input[aria-label*="code" i]');
+    const walmartImapConfig = ctx.profile?.imapHost
+      ? { host: ctx.profile.imapHost, port: parseInt(ctx.profile.imapPort, 10), user: ctx.profile.imapUser, password: ctx.profile.imapPassword }
+      : ctx.globalImapConfig;
+    if (otpField && walmartImapConfig) {
+      log("INFO", `[Walmart] OTP prompt — fetching code from IMAP...`);
+      await screenshot();
+      const code = await imapFetchCode(walmartImapConfig, /walmart|verification|sign.?in|code/i, 30000);
+      if (code) {
+        log("SUCCESS", `[Walmart] OTP code retrieved`);
+        await humanType(page, 'input[name="code"], input[name="otpCode"]', code);
+        await screenshot();
+        await humanDelay(300, 600);
+        const submitOtp = await page.$('button[type="submit"], button:has-text("Verify"), button:has-text("Continue")');
+        if (submitOtp) { await submitOtp.click(); await humanDelay(2000, 3000); }
+        await screenshot();
+      } else {
+        log("WARN", `[Walmart] OTP code not found in IMAP — continuing anyway`);
+      }
+    }
   }
 }
