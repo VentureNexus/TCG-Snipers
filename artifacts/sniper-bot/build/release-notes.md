@@ -1,2 +1,3 @@
-- Fixed: Walmart login no longer fails silently — the bot was finding a hidden ghost input injected by Walmart's identity page instead of the real email field, typing into it invisibly, then timing out without ever opening the human assist window
-- The real visible email field is now targeted correctly every time
+- Fixed: press-and-hold CAPTCHA lag eliminated — mouse button press and release now fire instantly with no HTTP round-trip blocking in between
+- Fixed: browser view now refreshes at ~150ms (was 500ms) with zero capture latency — screenshots are pre-captured in the background so the image is always ready to serve immediately
+- Both Login Assist and CAPTCHA Assist windows benefit from these improvements

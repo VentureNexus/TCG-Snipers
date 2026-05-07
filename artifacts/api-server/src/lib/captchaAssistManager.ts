@@ -25,6 +25,8 @@ interface AssistSession {
   captchaType: string;
   clicks: ClickRecord[];
   timeoutHandle: ReturnType<typeof setTimeout>;
+  screenshotCache: Buffer | null;
+  captureInterval: ReturnType<typeof setInterval>;
 }
 
 const sessions = new Map<number, AssistSession>();
@@ -39,19 +41,36 @@ export function registerSession(
   return new Promise((resolve) => {
     const timeoutHandle = setTimeout(() => {
       if (sessions.has(taskId)) {
+        const s = sessions.get(taskId)!;
+        clearInterval(s.captureInterval);
         sessions.delete(taskId);
         resolve({ outcome: "timeout", clicks: [] });
       }
     }, timeoutMs);
 
-    sessions.set(taskId, {
+    const session: AssistSession = {
       page,
       resolve,
       retailer,
       captchaType,
       clicks: [],
       timeoutHandle,
-    });
+      screenshotCache: null,
+      captureInterval: setInterval(() => {}, 999999), // placeholder, replaced below
+    };
+
+    // Background capture loop — always-fresh frames served instantly on request
+    let capturing = false;
+    session.captureInterval = setInterval(async () => {
+      if (capturing) return;
+      capturing = true;
+      try {
+        session.screenshotCache = await page.screenshot({ type: "jpeg", quality: 70 });
+      } catch { /* page may be closing */ }
+      capturing = false;
+    }, 150);
+
+    sessions.set(taskId, session);
   });
 }
 
@@ -139,20 +158,17 @@ export async function relayScroll(
   }
 }
 
-export async function getScreenshot(taskId: number): Promise<Buffer | null> {
+export function getScreenshot(taskId: number): Buffer | null {
   const session = sessions.get(taskId);
   if (!session) return null;
-  try {
-    return await session.page.screenshot({ type: "jpeg", quality: 75 });
-  } catch {
-    return null;
-  }
+  return session.screenshotCache;
 }
 
 export function signalDone(taskId: number): boolean {
   const session = sessions.get(taskId);
   if (!session) return false;
   clearTimeout(session.timeoutHandle);
+  clearInterval(session.captureInterval);
   const clicks = [...session.clicks];
   sessions.delete(taskId);
   session.resolve({ outcome: "done", clicks });
@@ -163,6 +179,7 @@ export function signalGiveUp(taskId: number): boolean {
   const session = sessions.get(taskId);
   if (!session) return false;
   clearTimeout(session.timeoutHandle);
+  clearInterval(session.captureInterval);
   sessions.delete(taskId);
   session.resolve({ outcome: "giveup", clicks: [] });
   return true;
@@ -172,6 +189,7 @@ export function abortSession(taskId: number): boolean {
   const session = sessions.get(taskId);
   if (!session) return false;
   clearTimeout(session.timeoutHandle);
+  clearInterval(session.captureInterval);
   sessions.delete(taskId);
   session.resolve({ outcome: "giveup", clicks: [] });
   return true;

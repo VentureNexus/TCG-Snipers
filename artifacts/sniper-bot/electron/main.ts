@@ -743,6 +743,10 @@ const RELEASE_NOTES: Record<string, string> = {
     "- Fixed: Walmart login no longer fails silently — the bot was finding a hidden ghost input injected by Walmart's identity page instead of the real email field",
     "- The real visible email field is now targeted correctly, and human assist opens as expected if the page doesn't load properly",
   ].join("\n"),
+  "1.0.59": [
+    "- Fixed: press-and-hold CAPTCHA lag eliminated — mouse press and release now fire instantly with zero HTTP blocking between them",
+    "- Browser view in human assist popups now refreshes at ~150ms with no capture latency — frames are pre-captured in the background",
+  ].join("\n"),
 };
 
 // Called by the renderer on mount to check if a "What's New" payload is
