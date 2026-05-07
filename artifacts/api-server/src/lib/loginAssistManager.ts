@@ -6,6 +6,8 @@ export interface LoginAssistSession {
   retailer: string;
   resolve: (outcome: "done" | "giveup" | "timeout") => void;
   timeoutHandle: ReturnType<typeof setTimeout>;
+  screenshotCache: Buffer | null;
+  captureInterval: ReturnType<typeof setInterval>;
 }
 
 const sessions = new Map<string, LoginAssistSession>();
@@ -19,11 +21,35 @@ export function registerLoginAssist(
   const promise = new Promise<"done" | "giveup" | "timeout">((resolve) => {
     const timeoutHandle = setTimeout(() => {
       if (sessions.has(id)) {
+        const s = sessions.get(id)!;
+        clearInterval(s.captureInterval);
         sessions.delete(id);
         resolve("timeout");
       }
     }, timeoutMs);
-    sessions.set(id, { id, page, retailer, resolve, timeoutHandle });
+
+    const session: LoginAssistSession = {
+      id,
+      page,
+      retailer,
+      resolve,
+      timeoutHandle,
+      screenshotCache: null,
+      captureInterval: setInterval(() => {}, 999999), // placeholder, replaced below
+    };
+
+    // Background capture loop — always-fresh frames served instantly on request
+    let capturing = false;
+    session.captureInterval = setInterval(async () => {
+      if (capturing) return;
+      capturing = true;
+      try {
+        session.screenshotCache = await page.screenshot({ type: "jpeg", quality: 70 });
+      } catch { /* page may be closing */ }
+      capturing = false;
+    }, 150);
+
+    sessions.set(id, session);
   });
   return { id, promise };
 }
@@ -126,20 +152,17 @@ export async function relayLoginSpecialKey(id: string, key: string): Promise<boo
   }
 }
 
-export async function getLoginScreenshot(id: string): Promise<Buffer | null> {
+export function getLoginScreenshot(id: string): Buffer | null {
   const s = sessions.get(id);
   if (!s) return null;
-  try {
-    return await s.page.screenshot({ type: "jpeg", quality: 75 });
-  } catch {
-    return null;
-  }
+  return s.screenshotCache;
 }
 
 export function signalLoginDone(id: string): boolean {
   const s = sessions.get(id);
   if (!s) return false;
   clearTimeout(s.timeoutHandle);
+  clearInterval(s.captureInterval);
   sessions.delete(id);
   s.resolve("done");
   return true;
@@ -149,6 +172,7 @@ export function signalLoginGiveUp(id: string): boolean {
   const s = sessions.get(id);
   if (!s) return false;
   clearTimeout(s.timeoutHandle);
+  clearInterval(s.captureInterval);
   sessions.delete(id);
   s.resolve("giveup");
   return true;
@@ -158,6 +182,7 @@ export function abortLoginSession(id: string): void {
   const s = sessions.get(id);
   if (s) {
     clearTimeout(s.timeoutHandle);
+    clearInterval(s.captureInterval);
     sessions.delete(id);
     s.resolve("giveup");
   }
