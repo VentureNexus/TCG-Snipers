@@ -71,7 +71,7 @@ export function LoginAssistModal() {
       return;
     }
     fetchScreenshot(session.id);
-    pollScreenshotRef.current = setInterval(() => fetchScreenshot(session.id), 500);
+    pollScreenshotRef.current = setInterval(() => fetchScreenshot(session.id), 150);
     return () => {
       if (pollScreenshotRef.current) clearInterval(pollScreenshotRef.current);
     };
@@ -85,35 +85,33 @@ export function LoginAssistModal() {
     return { nx, ny };
   }
 
-  const handleMouseDown = async (e: React.MouseEvent<HTMLImageElement>) => {
+  const handleMouseDown = (e: React.MouseEvent<HTMLImageElement>) => {
     if (!session || signalled) return;
     e.preventDefault();
     const pos = getNormalized(e);
     if (!pos) return;
     const rect = imgRef.current!.getBoundingClientRect();
     setClickFeedback({ x: e.clientX - rect.left, y: e.clientY - rect.top });
-    try {
-      await fetch(`${apiBase}/api/login-assist/${session.id}/mousedown`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ normalizedX: pos.nx, normalizedY: pos.ny }),
-      });
-    } catch { /* ignore */ }
+    // Fire-and-forget — no await so mouseup is never blocked by mousedown's round-trip
+    fetch(`${apiBase}/api/login-assist/${session.id}/mousedown`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ normalizedX: pos.nx, normalizedY: pos.ny }),
+    }).catch(() => {});
   };
 
-  const handleMouseUp = async (e: React.MouseEvent<HTMLImageElement>) => {
+  const handleMouseUp = (e: React.MouseEvent<HTMLImageElement>) => {
     if (!session || signalled) return;
     e.preventDefault();
     setTimeout(() => setClickFeedback(null), 600);
     const pos = getNormalized(e);
     if (!pos) return;
-    try {
-      await fetch(`${apiBase}/api/login-assist/${session.id}/mouseup`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ normalizedX: pos.nx, normalizedY: pos.ny }),
-      });
-    } catch { /* ignore */ }
+    // Fire-and-forget — sends immediately, no waiting for mousedown to complete
+    fetch(`${apiBase}/api/login-assist/${session.id}/mouseup`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ normalizedX: pos.nx, normalizedY: pos.ny }),
+    }).catch(() => {});
   };
 
   const handleWheel = async (e: React.WheelEvent<HTMLImageElement>) => {
