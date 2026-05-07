@@ -1,3 +1,3 @@
-- Fixed: press-and-hold CAPTCHA lag eliminated — mouse button press and release now fire instantly with no HTTP round-trip blocking in between
-- Fixed: browser view now refreshes at ~150ms (was 500ms) with zero capture latency — screenshots are pre-captured in the background so the image is always ready to serve immediately
-- Both Login Assist and CAPTCHA Assist windows benefit from these improvements
+- Fixed: Costco (and all retailers) no longer get "Access Denied" from Akamai's bot detection — the browser now presents as current Chrome 135/136 with matching Client Hints headers (Sec-CH-UA) that Akamai validates
+- Previously the bot was using Chrome 118–120 user agents (years old), which Akamai immediately flags as suspicious
+- Strengthened browser fingerprint: realistic plugin list, full chrome.runtime object, correct WebGL vendor strings, and platform-matched stealth patches

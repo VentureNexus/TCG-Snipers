@@ -747,6 +747,11 @@ const RELEASE_NOTES: Record<string, string> = {
     "- Fixed: press-and-hold CAPTCHA lag eliminated — mouse press and release now fire instantly with zero HTTP blocking between them",
     "- Browser view in human assist popups now refreshes at ~150ms with no capture latency — frames are pre-captured in the background",
   ].join("\n"),
+  "1.0.60": [
+    "- Fixed: Costco 'Access Denied' from Akamai bot detection — browser now presents as current Chrome 135/136 with matching Sec-CH-UA Client Hints headers that Akamai validates against the user-agent string",
+    "- Old Chrome 118–120 user agents flagged immediately by Akamai; all browsers now use Chrome 134–136",
+    "- Strengthened fingerprint: realistic plugin list, full chrome.runtime object, correct WebGL GPU strings",
+  ].join("\n"),
 };
 
 // Called by the renderer on mount to check if a "What's New" payload is
