@@ -96,6 +96,11 @@ const api = {
       ipcRenderer.on("api:recovered", listener);
       return () => ipcRenderer.removeListener("api:recovered", listener);
     },
+    onDbReset: (handler: () => void): (() => void) => {
+      const listener = () => handler();
+      ipcRenderer.on("api:db-reset", listener);
+      return () => ipcRenderer.removeListener("api:db-reset", listener);
+    },
   },
 
   /** License management — backed by Electron safeStorage and node:os fingerprinting. */
