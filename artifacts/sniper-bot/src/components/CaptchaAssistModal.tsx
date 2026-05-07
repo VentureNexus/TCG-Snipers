@@ -48,7 +48,7 @@ export function CaptchaAssistModal() {
       return;
     }
     fetchScreenshot(taskId);
-    pollRef.current = setInterval(() => fetchScreenshot(taskId), 500);
+    pollRef.current = setInterval(() => fetchScreenshot(taskId), 150);
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
     };
@@ -62,36 +62,34 @@ export function CaptchaAssistModal() {
     return { nx, ny };
   }
 
-  const handleMouseDown = async (e: React.MouseEvent<HTMLImageElement>) => {
+  const handleMouseDown = (e: React.MouseEvent<HTMLImageElement>) => {
     if (!taskId || signalled) return;
     e.preventDefault();
     const pos = getNormalized(e);
     if (!pos) return;
     mouseDownPos.current = pos;
     setClickFeedback({ x: e.clientX - imgRef.current!.getBoundingClientRect().left, y: e.clientY - imgRef.current!.getBoundingClientRect().top });
-    try {
-      await fetch(`${apiBase}/api/captcha-assist/${taskId}/mousedown`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ normalizedX: pos.nx, normalizedY: pos.ny }),
-      });
-    } catch { /* ignore */ }
+    // Fire-and-forget — no await so mouseup is never blocked by mousedown's round-trip
+    fetch(`${apiBase}/api/captcha-assist/${taskId}/mousedown`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ normalizedX: pos.nx, normalizedY: pos.ny }),
+    }).catch(() => {});
   };
 
-  const handleMouseUp = async (e: React.MouseEvent<HTMLImageElement>) => {
+  const handleMouseUp = (e: React.MouseEvent<HTMLImageElement>) => {
     if (!taskId || signalled) return;
     e.preventDefault();
     setTimeout(() => setClickFeedback(null), 600);
     const pos = getNormalized(e);
     if (!pos) return;
     mouseDownPos.current = null;
-    try {
-      await fetch(`${apiBase}/api/captcha-assist/${taskId}/mouseup`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ normalizedX: pos.nx, normalizedY: pos.ny }),
-      });
-    } catch { /* ignore */ }
+    // Fire-and-forget — sends immediately, no waiting for mousedown to complete
+    fetch(`${apiBase}/api/captcha-assist/${taskId}/mouseup`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ normalizedX: pos.nx, normalizedY: pos.ny }),
+    }).catch(() => {});
   };
 
   const handleWheel = async (e: React.WheelEvent<HTMLImageElement>) => {
