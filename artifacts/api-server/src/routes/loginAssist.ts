@@ -43,7 +43,7 @@ router.post("/login-assist/:id/click", async (req, res): Promise<void> => {
   res.json({ ok });
 });
 
-router.post("/login-assist/:id/mousedown", async (req, res): Promise<void> => {
+router.post("/login-assist/:id/mousedown", (req, res): void => {
   const { normalizedX, normalizedY } = req.body as {
     normalizedX?: unknown;
     normalizedY?: unknown;
@@ -52,11 +52,12 @@ router.post("/login-assist/:id/mousedown", async (req, res): Promise<void> => {
     res.status(400).json({ error: "normalizedX and normalizedY (0–1) are required" });
     return;
   }
-  const ok = await relayLoginMouseDown(req.params.id, normalizedX, normalizedY);
-  res.json({ ok });
+  // Respond immediately so mouseup is never blocked by mousedown's round-trip
+  res.json({ ok: true });
+  relayLoginMouseDown(req.params.id, normalizedX, normalizedY).catch(() => {});
 });
 
-router.post("/login-assist/:id/mouseup", async (req, res): Promise<void> => {
+router.post("/login-assist/:id/mouseup", (req, res): void => {
   const { normalizedX, normalizedY } = req.body as {
     normalizedX?: unknown;
     normalizedY?: unknown;
@@ -65,8 +66,9 @@ router.post("/login-assist/:id/mouseup", async (req, res): Promise<void> => {
     res.status(400).json({ error: "normalizedX and normalizedY (0–1) are required" });
     return;
   }
-  const ok = await relayLoginMouseUp(req.params.id, normalizedX, normalizedY);
-  res.json({ ok });
+  // Respond immediately so the client is unblocked as fast as possible
+  res.json({ ok: true });
+  relayLoginMouseUp(req.params.id, normalizedX, normalizedY).catch(() => {});
 });
 
 router.post("/login-assist/:id/scroll", async (req, res): Promise<void> => {
