@@ -1,0 +1,56 @@
+TCG Snipers Diagnostic Report
+Generated: 2026-05-07T00:38:11.170Z
+Version: 1.0.61
+
+=== Server Status ===
+API alive: false
+Port: 8080
+Start OK: false
+Uptime: 12s
+Start failure: Failed to initialize API: unreachable
+
+=== Client Errors (21) ===
+07:37:59 PM  GET    /api/login-assist/active                 ERR  2.4s  Failed to fetch
+07:38:00 PM  PUT    /api/settings                            ERR  2.1s  Failed to fetch
+07:38:00 PM  GET    /api/profiles                            ERR  2.3s  Failed to fetch
+07:38:00 PM  GET    /api/analytics/summary                   ERR  2.3s  Failed to fetch
+07:38:00 PM  GET    /api/checkout-results                    ERR  2.3s  Failed to fetch
+07:38:00 PM  GET    /api/analytics/checkouts-over-time       ERR  4.1s  Failed to fetch
+07:38:01 PM  GET    /api/login-assist/active                 ERR  2.7s  Failed to fetch
+07:38:03 PM  GET    /api/tasks                               ERR  2.3s  Failed to fetch
+07:38:03 PM  GET    /api/profiles                            ERR  2.3s  Failed to fetch
+07:38:03 PM  GET    /api/analytics/summary                   ERR  2.3s  Failed to fetch
+07:38:03 PM  GET    /api/checkout-results                    ERR  2.3s  Failed to fetch
+07:38:03 PM  GET    /api/login-assist/active                 ERR  3.0s  Failed to fetch
+07:38:05 PM  GET    /api/analytics/checkouts-over-time       ERR  2.3s  Failed to fetch
+07:38:05 PM  GET    /api/login-assist/active                 ERR  2.3s  Failed to fetch
+07:38:08 PM  GET    /api/checkout-results                    ERR  1.2s  signal is aborted without reason
+07:38:07 PM  GET    /api/tasks                               ERR  2.3s  Failed to fetch
+07:38:07 PM  GET    /api/login-assist/active                 ERR  2.3s  Failed to fetch
+07:38:08 PM  GET    /api/profiles                            ERR  2.4s  Failed to fetch
+07:38:08 PM  GET    /api/analytics/summary                   ERR  2.4s  Failed to fetch
+07:38:09 PM  GET    /api/settings                            ERR  1.1s  Failed to fetch
+
+=== Client Requests (last 22) ===
+07:37:59 PM  POST   /license/heartbeat                       200  457ms
+07:37:59 PM  GET    /api/tasks                               ERR  2.4s
+07:37:59 PM  GET    /api/login-assist/active                 ERR  2.4s
+07:38:00 PM  PUT    /api/settings                            ERR  2.1s
+07:38:00 PM  GET    /api/profiles                            ERR  2.3s
+07:38:00 PM  GET    /api/analytics/summary                   ERR  2.3s
+07:38:00 PM  GET    /api/checkout-results                    ERR  2.3s
+07:38:00 PM  GET    /api/analytics/checkouts-over-time       ERR  4.1s
+07:38:01 PM  GET    /api/login-assist/active                 ERR  2.7s
+07:38:03 PM  GET    /api/tasks                               ERR  2.3s
+07:38:03 PM  GET    /api/profiles                            ERR  2.3s
+07:38:03 PM  GET    /api/analytics/summary                   ERR  2.3s
+07:38:03 PM  GET    /api/checkout-results                    ERR  2.3s
+07:38:03 PM  GET    /api/login-assist/active                 ERR  3.0s
+07:38:05 PM  GET    /api/analytics/checkouts-over-time       ERR  2.3s
+07:38:05 PM  GET    /api/login-assist/active                 ERR  2.3s
+07:38:08 PM  GET    /api/checkout-results                    ERR  1.2s
+07:38:07 PM  GET    /api/tasks                               ERR  2.3s
+07:38:07 PM  GET    /api/login-assist/active                 ERR  2.3s
+07:38:08 PM  GET    /api/profiles                            ERR  2.4s
+07:38:08 PM  GET    /api/analytics/summary                   ERR  2.4s
+07:38:09 PM  GET    /api/settings                            ERR  1.1s
