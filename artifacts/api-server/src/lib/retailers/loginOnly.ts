@@ -182,6 +182,43 @@ export async function loginRetailer(
 
     await page.goto(config.url, { waitUntil: "domcontentloaded" });
 
+    // ── Helper: open Login Assist and wait for the user ───────────────────────
+    // Returns the outcome string, or throws if loginAssistManager is unavailable.
+    const openLoginAssist = async (reason: string): Promise<"done" | "giveup" | "timeout"> => {
+      const { registerLoginAssist } = await import("../loginAssistManager");
+      console.log(`[login-assist] ${reason} (url: ${page.url()}) — requesting human assistance`);
+      const { promise } = registerLoginAssist(page, retailer);
+      return promise;
+    };
+
+    // ── Immediate bot-detection check ─────────────────────────────────────────
+    // If Akamai / Cloudflare blocked us on load (Access Denied, robot check,
+    // "please enable cookies" etc.) skip the 15 s email-field wait and jump
+    // straight to Login Assist so the user sees the problem immediately.
+    const bodyTextAfterLoad = (await page.textContent("body").catch(() => "")) ?? "";
+    const isBotBlocked =
+      /access denied|your access to this service has been|you have been blocked|enable cookies to continue|checking your browser|just a moment/i.test(
+        bodyTextAfterLoad,
+      ) && !/[@]/.test(bodyTextAfterLoad); // presence of @ likely means a real form
+    if (isBotBlocked) {
+      console.log(`[login-assist] Bot-detection page detected at ${page.url()} — opening Login Assist immediately`);
+      try {
+        const outcome = await openLoginAssist(`Bot-detection page on ${retailer} login`);
+        if (outcome !== "done") {
+          return {
+            success: false,
+            message:
+              outcome === "giveup"
+                ? "User cancelled login assist"
+                : "Login assist timed out (5 min) — bot detection was not resolved",
+          };
+        }
+        // Fall through — user should have navigated past the block
+      } catch {
+        return { success: false, message: `Bot detection blocked ${retailer} login — complete sign-in manually then retry` };
+      }
+    }
+
     // Wait for the email field to be rendered (JS-heavy pages like Walmart need this)
     let emailFound = await page.waitForSelector(config.emailSel, { state: "visible", timeout: 15000 }).catch(() => null);
 
@@ -205,15 +242,9 @@ export async function loginRetailer(
         // Visual navigator also failed — ask the user to manually navigate
         // to the login form via the Login Assist popup in the app.
         try {
-          const { registerLoginAssist } = await import("../loginAssistManager");
           const currentUrl = page.url();
           const navMsg = navResult ? ` (visual navigator: ${navResult.message})` : "";
-          console.log(
-            `[login-assist] Email field not found (url: ${currentUrl})${navMsg} — requesting human assistance`,
-          );
-
-          const { promise } = registerLoginAssist(page, retailer);
-          const outcome = await promise;
+          const outcome = await openLoginAssist(`Email field not found (url: ${currentUrl})${navMsg}`);
 
           if (outcome === "done") {
             // Re-try finding the email field from wherever the user landed
@@ -286,12 +317,30 @@ export async function loginRetailer(
         .waitForSelector(config.passwordSel, { timeout: 12000 })
         .catch(() => null);
       if (!pwAppeared) {
-        const currentUrl = page.url();
-        const snippet = (await page.textContent("body").catch(() => ""))?.slice(0, 300) ?? "";
-        return {
-          success: false,
-          message: `Password field did not appear after Continue (url: ${currentUrl}) — ${snippet}`,
-        };
+        // The page didn't transition to the password step — this can mean
+        // Walmart sent an OTP, showed a CAPTCHA, or requires manual action.
+        // Open Login Assist so the user can see what's happening and continue.
+        try {
+          const currentUrl = page.url();
+          const outcome = await openLoginAssist(`Password field did not appear after Continue on ${retailer} (url: ${currentUrl})`);
+          if (outcome !== "done") {
+            return {
+              success: false,
+              message:
+                outcome === "giveup"
+                  ? "User cancelled login assist"
+                  : "Login assist timed out (5 min) — password step did not appear",
+            };
+          }
+          // User may have completed the step manually — continue below
+        } catch {
+          const currentUrl = page.url();
+          const snippet = (await page.textContent("body").catch(() => ""))?.slice(0, 300) ?? "";
+          return {
+            success: false,
+            message: `Password field did not appear after Continue (url: ${currentUrl}) — ${snippet}`,
+          };
+        }
       }
       await humanDelay(600, 1000);
     }
@@ -302,7 +351,27 @@ export async function loginRetailer(
 
     const passwordVisible = await page.$(config.passwordSel);
     if (!passwordVisible) {
-      return { success: false, message: "Password field not found — login page may have changed or requires 2FA" };
+      // Password field still not found — open Login Assist so the user can
+      // handle it manually (OTP, CAPTCHA, or Walmart method-select page).
+      try {
+        const outcome = await openLoginAssist(`Password field not found on ${retailer} after email step`);
+        if (outcome !== "done") {
+          return {
+            success: false,
+            message:
+              outcome === "giveup"
+                ? "User cancelled login assist"
+                : "Login assist timed out (5 min) — password field never appeared",
+          };
+        }
+        // If user completed login manually, fall through to the storageState save below
+        const storageState = await context.storageState();
+        saveSession(retailer, email, storageState);
+        await context.close().catch(() => {});
+        return { success: true, message: `Signed in as ${email} — session cached (via manual assist)` };
+      } catch {
+        return { success: false, message: "Password field not found — login page may have changed or requires 2FA" };
+      }
     }
     try {
       await humanType(page, config.passwordSel, password);

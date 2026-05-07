@@ -1,3 +1,3 @@
-- Fixed: Costco (and all retailers) no longer get "Access Denied" from Akamai's bot detection — the browser now presents as current Chrome 135/136 with matching Client Hints headers (Sec-CH-UA) that Akamai validates
-- Previously the bot was using Chrome 118–120 user agents (years old), which Akamai immediately flags as suspicious
-- Strengthened browser fingerprint: realistic plugin list, full chrome.runtime object, correct WebGL vendor strings, and platform-matched stealth patches
+- Fixed: Walmart "password field not found" no longer fails silently — the Login Assist popup now opens immediately so you can see exactly where the login got stuck and complete it manually
+- Fixed: Costco "Access Denied" from Akamai now opens Login Assist right away (instead of waiting 15 seconds before popping up) — you can refresh the page or navigate past the block yourself
+- Login Assist now also opens when the password field doesn't appear after clicking Continue (covers OTP screens, unexpected CAPTCHA steps, or any mid-login page Walmart throws up)
