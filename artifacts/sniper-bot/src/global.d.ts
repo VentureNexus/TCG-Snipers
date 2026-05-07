@@ -94,6 +94,7 @@ declare global {
         onStartFailed: (handler: (info: { reason: string }) => void) => () => void;
         onCrashed: (handler: (info: { reason: string }) => void) => () => void;
         onRecovered: (handler: () => void) => () => void;
+        onDbReset: (handler: () => void) => () => void;
       };
       /** License management — Electron secureStorage + machine fingerprint. */
       license: {

@@ -18,6 +18,7 @@ export function DbErrorBanner() {
   const [failure, setFailure] = useState<ApiFailure | null>(null);
   const [slowWarning, setSlowWarning] = useState(false);
   const [dismissed, setDismissed] = useState(false);
+  const [dbResetNotice, setDbResetNotice] = useState(false);
   const [logs, setLogs] = useState<string[] | null>(null);
   const [showLogs, setShowLogs] = useState(false);
   const probeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -58,6 +59,15 @@ export function DbErrorBanner() {
       }
     });
 
+    const offDbReset = diag.onDbReset?.(() => {
+      if (!cancelled) {
+        startupOk = true;
+        consecutiveFailsRef.current = 0;
+        setFailure(null);
+        setDbResetNotice(true);
+      }
+    }) ?? (() => {});
+
     const startPolling = () => {
       probeIntervalRef.current = setInterval(async () => {
         if (cancelled || !startupOk) return;
@@ -97,6 +107,7 @@ export function DbErrorBanner() {
       offFailed();
       offCrashed();
       offRecovered();
+      offDbReset();
       if (probeTimerRef.current) clearTimeout(probeTimerRef.current);
       if (probeIntervalRef.current) clearInterval(probeIntervalRef.current);
     };
@@ -112,6 +123,31 @@ export function DbErrorBanner() {
   const handleOpenLogFile = () => {
     window.electronAPI?.diagnostics?.openLogFile?.();
   };
+
+  if (dbResetNotice && !failure && !slowWarning) {
+    return (
+      <div
+        role="status"
+        data-testid="db-reset-banner"
+        className="flex items-center gap-3 px-4 py-2 text-sm border-b bg-yellow-500/10 border-yellow-500/40 text-foreground"
+      >
+        <span className="font-semibold text-yellow-600 dark:text-yellow-400">
+          Database auto-recovered
+        </span>
+        <span className="text-muted-foreground flex-1">
+          A corrupted database was detected and reset automatically. Your tasks are running normally — you may need to re-enter any settings or profiles that were lost.
+        </span>
+        <button
+          type="button"
+          onClick={() => setDbResetNotice(false)}
+          className="ml-auto text-muted-foreground hover:text-foreground transition p-0.5 rounded"
+          aria-label="Dismiss"
+        >
+          <X className="h-3.5 w-3.5" />
+        </button>
+      </div>
+    );
+  }
 
   if (!failure && !slowWarning) return null;
   if (dismissed) return null;

@@ -1,0 +1,220 @@
+=== TCG Snipers v1.0.58 started 2026-05-07T00:14:07.618Z ===
+[2026-05-07T00:14:07.619Z] [INFO] Platform: win32, packaged: true
+[2026-05-07T00:14:07.620Z] [INFO] Node version: v20.19.1
+[2026-05-07T00:14:07.620Z] [INFO] Platform: win32 arch: x64
+[2026-05-07T00:14:07.620Z] [INFO] isPackaged: true
+[2026-05-07T00:14:07.620Z] [INFO] DB path: C:\Users\Owner\AppData\Roaming\@workspace\sniper-bot\pgdata
+[2026-05-07T00:14:07.620Z] [INFO] NODE_ENV set to: production
+[2026-05-07T00:14:07.622Z] [INFO] Encryption key loaded from secure store
+[2026-05-07T00:14:07.622Z] [INFO] Using bundled Playwright Chromium: C:\Users\Owner\AppData\Local\Programs\TCG Snipers\resources\playwright-chromium\chromium-1217\chrome-win64\chrome.exe
+[2026-05-07T00:14:07.623Z] [INFO] Browser found: C:\Users\Owner\AppData\Local\Programs\TCG Snipers\resources\playwright-chromium\chromium-1217\chrome-win64\chrome.exe
+[2026-05-07T00:14:07.623Z] [INFO] electron/dist contents (60 files): app-U2NVCVDK.js, app-U2NVCVDK.js.map, captchaAssistManager-33HY4YYL.js, captchaAssistManager-33HY4YYL.js.map, chunk-46EY6KKR.js, chunk-46EY6KKR.js.map, chunk-GTFWJX5H.js, chunk-GTFWJX5H.js.map, chunk-K2OWVA4A.js, chunk-K2OWVA4A.js.map, chunk-KFHPWSTI.js, chunk-KFHPWSTI.js.map, chunk-KXDC6MGZ.js, chunk-KXDC6MGZ.js.map, chunk-LJMNVPSF.js, chunk-LJMNVPSF.js.map, chunk-NAUHXBPF.js, chunk-NAUHXBPF.js.map, chunk-O3JJQCQI.js, chunk-O3JJQCQI.js.map
+[2026-05-07T00:14:07.623Z] [INFO] Step 1: importing API server module…
+[2026-05-07T00:14:08.514Z] [INFO] Step 1 OK: module imported
+[2026-05-07T00:14:08.514Z] [INFO] Step 2: creating HTTP server…
+[2026-05-07T00:14:08.515Z] [INFO] Step 2 OK
+[2026-05-07T00:14:08.515Z] [INFO] WebSocket server initialized on HTTP server
+[2026-05-07T00:14:08.530Z] [INFO] Settings loaded — concurrency: 5, sessionTtlHours: default
+[2026-05-07T00:14:08.530Z] [INFO] Step 3: binding to port…
+[2026-05-07T00:14:08.530Z] [INFO]   trying port 8080…
+[2026-05-07T00:14:08.534Z] [INFO] Step 3 OK: listening on port 8080
+
+
+=== TCG Snipers v1.0.60 started 2026-05-07T00:16:22.894Z ===
+[2026-05-07T00:16:22.899Z] [INFO] Platform: win32, packaged: true
+[2026-05-07T00:16:22.901Z] [INFO] Node version: v20.19.1
+[2026-05-07T00:16:22.901Z] [INFO] Platform: win32 arch: x64
+[2026-05-07T00:16:22.901Z] [INFO] isPackaged: true
+[2026-05-07T00:16:22.901Z] [INFO] DB path: C:\Users\Owner\AppData\Roaming\@workspace\sniper-bot\pgdata
+[2026-05-07T00:16:22.901Z] [INFO] NODE_ENV set to: production
+[2026-05-07T00:16:22.903Z] [INFO] Encryption key loaded from secure store
+[2026-05-07T00:16:22.904Z] [INFO] Using bundled Playwright Chromium: C:\Users\Owner\AppData\Local\Programs\TCG Snipers\resources\playwright-chromium\chromium-1217\chrome-win64\chrome.exe
+[2026-05-07T00:16:22.904Z] [INFO] Browser found: C:\Users\Owner\AppData\Local\Programs\TCG Snipers\resources\playwright-chromium\chromium-1217\chrome-win64\chrome.exe
+[2026-05-07T00:16:22.904Z] [INFO] electron/dist contents (60 files): app-P7YUW36O.js, app-P7YUW36O.js.map, captchaAssistManager-WZDUWQSM.js, captchaAssistManager-WZDUWQSM.js.map, chunk-46EY6KKR.js, chunk-46EY6KKR.js.map, chunk-A5C7UBJH.js, chunk-A5C7UBJH.js.map, chunk-CLYXS4WR.js, chunk-CLYXS4WR.js.map, chunk-KFHPWSTI.js, chunk-KFHPWSTI.js.map, chunk-KXDC6MGZ.js, chunk-KXDC6MGZ.js.map, chunk-LJMNVPSF.js, chunk-LJMNVPSF.js.map, chunk-NAUHXBPF.js, chunk-NAUHXBPF.js.map, chunk-O3JJQCQI.js, chunk-O3JJQCQI.js.map
+[2026-05-07T00:16:22.905Z] [INFO] Step 1: importing API server module…
+[2026-05-07T00:16:24.033Z] [INFO] Step 1 OK: module imported
+[2026-05-07T00:16:24.033Z] [INFO] Step 2: creating HTTP server…
+[2026-05-07T00:16:24.034Z] [INFO] Step 2 OK
+[2026-05-07T00:16:24.034Z] [INFO] WebSocket server initialized on HTTP server
+[2026-05-07T00:16:24.063Z] [INFO] Settings loaded — concurrency: 5, sessionTtlHours: default
+[2026-05-07T00:16:24.063Z] [INFO] Step 3: binding to port…
+[2026-05-07T00:16:24.063Z] [INFO]   trying port 8080…
+[2026-05-07T00:16:24.070Z] [INFO] Step 3 OK: listening on port 8080
+
+
+=== TCG Snipers v1.0.60 started 2026-05-07T00:33:06.019Z ===
+[2026-05-07T00:33:06.021Z] [INFO] Platform: win32, packaged: true
+[2026-05-07T00:33:06.022Z] [INFO] Node version: v20.19.1
+[2026-05-07T00:33:06.022Z] [INFO] Platform: win32 arch: x64
+[2026-05-07T00:33:06.022Z] [INFO] isPackaged: true
+[2026-05-07T00:33:06.022Z] [INFO] DB path: C:\Users\Owner\AppData\Roaming\@workspace\sniper-bot\pgdata
+[2026-05-07T00:33:06.022Z] [INFO] NODE_ENV set to: production
+[2026-05-07T00:33:06.023Z] [INFO] Encryption key loaded from secure store
+[2026-05-07T00:33:06.024Z] [INFO] Using bundled Playwright Chromium: C:\Users\Owner\AppData\Local\Programs\TCG Snipers\resources\playwright-chromium\chromium-1217\chrome-win64\chrome.exe
+[2026-05-07T00:33:06.024Z] [INFO] Browser found: C:\Users\Owner\AppData\Local\Programs\TCG Snipers\resources\playwright-chromium\chromium-1217\chrome-win64\chrome.exe
+[2026-05-07T00:33:06.024Z] [INFO] electron/dist contents (60 files): app-P7YUW36O.js, app-P7YUW36O.js.map, captchaAssistManager-WZDUWQSM.js, captchaAssistManager-WZDUWQSM.js.map, chunk-46EY6KKR.js, chunk-46EY6KKR.js.map, chunk-A5C7UBJH.js, chunk-A5C7UBJH.js.map, chunk-CLYXS4WR.js, chunk-CLYXS4WR.js.map, chunk-KFHPWSTI.js, chunk-KFHPWSTI.js.map, chunk-KXDC6MGZ.js, chunk-KXDC6MGZ.js.map, chunk-LJMNVPSF.js, chunk-LJMNVPSF.js.map, chunk-NAUHXBPF.js, chunk-NAUHXBPF.js.map, chunk-O3JJQCQI.js, chunk-O3JJQCQI.js.map
+[2026-05-07T00:33:06.024Z] [INFO] Step 1: importing API server module…
+[2026-05-07T00:33:07.006Z] [INFO] Step 1 OK: module imported
+[2026-05-07T00:33:07.007Z] [INFO] Step 2: creating HTTP server…
+[2026-05-07T00:33:07.007Z] [INFO] Step 2 OK
+[2026-05-07T00:33:07.007Z] [INFO] WebSocket server initialized on HTTP server
+[2026-05-07T00:33:07.020Z] [INFO] Settings loaded — concurrency: 5, sessionTtlHours: default
+[2026-05-07T00:33:07.020Z] [INFO] Step 3: binding to port…
+[2026-05-07T00:33:07.020Z] [INFO]   trying port 8080…
+[2026-05-07T00:33:07.025Z] [INFO] Step 3 OK: listening on port 8080
+
+
+=== TCG Snipers v1.0.60 started 2026-05-07T00:34:17.192Z ===
+[2026-05-07T00:34:17.193Z] [INFO] Platform: win32, packaged: true
+[2026-05-07T00:34:17.194Z] [INFO] Node version: v20.19.1
+[2026-05-07T00:34:17.195Z] [INFO] Platform: win32 arch: x64
+[2026-05-07T00:34:17.195Z] [INFO] isPackaged: true
+[2026-05-07T00:34:17.195Z] [INFO] DB path: C:\Users\Owner\AppData\Roaming\@workspace\sniper-bot\pgdata
+[2026-05-07T00:34:17.195Z] [INFO] NODE_ENV set to: production
+[2026-05-07T00:34:17.204Z] [INFO] Encryption key loaded from secure store
+[2026-05-07T00:34:17.207Z] [INFO] Using bundled Playwright Chromium: C:\Users\Owner\AppData\Local\Programs\TCG Snipers\resources\playwright-chromium\chromium-1217\chrome-win64\chrome.exe
+[2026-05-07T00:34:17.207Z] [INFO] Browser found: C:\Users\Owner\AppData\Local\Programs\TCG Snipers\resources\playwright-chromium\chromium-1217\chrome-win64\chrome.exe
+[2026-05-07T00:34:17.208Z] [INFO] electron/dist contents (60 files): app-P7YUW36O.js, app-P7YUW36O.js.map, captchaAssistManager-WZDUWQSM.js, captchaAssistManager-WZDUWQSM.js.map, chunk-46EY6KKR.js, chunk-46EY6KKR.js.map, chunk-A5C7UBJH.js, chunk-A5C7UBJH.js.map, chunk-CLYXS4WR.js, chunk-CLYXS4WR.js.map, chunk-KFHPWSTI.js, chunk-KFHPWSTI.js.map, chunk-KXDC6MGZ.js, chunk-KXDC6MGZ.js.map, chunk-LJMNVPSF.js, chunk-LJMNVPSF.js.map, chunk-NAUHXBPF.js, chunk-NAUHXBPF.js.map, chunk-O3JJQCQI.js, chunk-O3JJQCQI.js.map
+[2026-05-07T00:34:17.208Z] [INFO] Step 1: importing API server module…
+[2026-05-07T00:34:17.592Z] [ERROR] === API STARTUP FAILED ===
+[2026-05-07T00:34:17.592Z] [ERROR] RuntimeError: unreachable
+    at wasm://wasm/01edd1ba:wasm-function[3625]:0x2632f0
+    at wasm://wasm/01edd1ba:wasm-function[7801]:0x3e3508
+    at wasm://wasm/01edd1ba:wasm-function[2533]:0x1c1034
+    at Module._pg_initdb (file:///C:/Users/Owner/AppData/Local/Programs/TCG%20Snipers/resources/app.asar/electron/dist/chunk-XWWITKHY.js:4444:117130)
+    at pe3.qe2 (file:///C:/Users/Owner/AppData/Local/Programs/TCG%20Snipers/resources/app.asar/electron/dist/chunk-XWWITKHY.js:5146:20)
+    at async pe3._checkReady (file:///C:/Users/Owner/AppData/Local/Programs/TCG%20Snipers/resources/app.asar/electron/dist/chunk-XWWITKHY.js:4997:20)
+    at async pe3.exec (file:///C:/Users/Owner/AppData/Local/Programs/TCG%20Snipers/resources/app.asar/electron/dist/chunk-XWWITKHY.js:867:12)
+    at async runPgliteMigrations (file:///C:/Users/Owner/AppData/Local/Programs/TCG%20Snipers/resources/app.asar/electron/dist/pglite-migrate-TS7QFOXO.js:13:3)
+    at async file:///C:/Users/Owner/AppData/Local/Programs/TCG%20Snipers/resources/app.asar/electron/dist/chunk-WBHVDCPD.js:11748:3
+[2026-05-07T00:34:17.592Z] [ERROR] === END STARTUP FAILURE ===
+
+
+=== TCG Snipers v1.0.61 started 2026-05-07T00:35:01.727Z ===
+[2026-05-07T00:35:01.729Z] [INFO] Platform: win32, packaged: true
+[2026-05-07T00:35:01.731Z] [INFO] Node version: v20.19.1
+[2026-05-07T00:35:01.731Z] [INFO] Platform: win32 arch: x64
+[2026-05-07T00:35:01.731Z] [INFO] isPackaged: true
+[2026-05-07T00:35:01.731Z] [INFO] DB path: C:\Users\Owner\AppData\Roaming\@workspace\sniper-bot\pgdata
+[2026-05-07T00:35:01.731Z] [INFO] NODE_ENV set to: production
+[2026-05-07T00:35:01.734Z] [INFO] Encryption key loaded from secure store
+[2026-05-07T00:35:01.735Z] [INFO] Using bundled Playwright Chromium: C:\Users\Owner\AppData\Local\Programs\TCG Snipers\resources\playwright-chromium\chromium-1217\chrome-win64\chrome.exe
+[2026-05-07T00:35:01.735Z] [INFO] Browser found: C:\Users\Owner\AppData\Local\Programs\TCG Snipers\resources\playwright-chromium\chromium-1217\chrome-win64\chrome.exe
+[2026-05-07T00:35:01.736Z] [INFO] electron/dist contents (60 files): app-RFHE2274.js, app-RFHE2274.js.map, captchaAssistManager-WZDUWQSM.js, captchaAssistManager-WZDUWQSM.js.map, chunk-46EY6KKR.js, chunk-46EY6KKR.js.map, chunk-A5C7UBJH.js, chunk-A5C7UBJH.js.map, chunk-CLYXS4WR.js, chunk-CLYXS4WR.js.map, chunk-KFHPWSTI.js, chunk-KFHPWSTI.js.map, chunk-KXDC6MGZ.js, chunk-KXDC6MGZ.js.map, chunk-LJMNVPSF.js, chunk-LJMNVPSF.js.map, chunk-NAUHXBPF.js, chunk-NAUHXBPF.js.map, chunk-O3JJQCQI.js, chunk-O3JJQCQI.js.map
+[2026-05-07T00:35:01.736Z] [INFO] Step 1: importing API server module…
+[2026-05-07T00:35:02.094Z] [ERROR] === API STARTUP FAILED ===
+[2026-05-07T00:35:02.095Z] [ERROR] RuntimeError: unreachable
+    at wasm://wasm/01edd1ba:wasm-function[3625]:0x2632f0
+    at wasm://wasm/01edd1ba:wasm-function[7801]:0x3e3508
+    at wasm://wasm/01edd1ba:wasm-function[2533]:0x1c1034
+    at Module._pg_initdb (file:///C:/Users/Owner/AppData/Local/Programs/TCG%20Snipers/resources/app.asar/electron/dist/chunk-XWWITKHY.js:4444:117130)
+    at pe3.qe2 (file:///C:/Users/Owner/AppData/Local/Programs/TCG%20Snipers/resources/app.asar/electron/dist/chunk-XWWITKHY.js:5146:20)
+    at async pe3._checkReady (file:///C:/Users/Owner/AppData/Local/Programs/TCG%20Snipers/resources/app.asar/electron/dist/chunk-XWWITKHY.js:4997:20)
+    at async pe3.exec (file:///C:/Users/Owner/AppData/Local/Programs/TCG%20Snipers/resources/app.asar/electron/dist/chunk-XWWITKHY.js:867:12)
+    at async runPgliteMigrations (file:///C:/Users/Owner/AppData/Local/Programs/TCG%20Snipers/resources/app.asar/electron/dist/pglite-migrate-TS7QFOXO.js:13:3)
+    at async file:///C:/Users/Owner/AppData/Local/Programs/TCG%20Snipers/resources/app.asar/electron/dist/chunk-WBHVDCPD.js:11748:3
+[2026-05-07T00:35:02.095Z] [ERROR] === END STARTUP FAILURE ===
+
+
+=== TCG Snipers v1.0.61 started 2026-05-07T00:35:23.996Z ===
+[2026-05-07T00:35:23.997Z] [INFO] Platform: win32, packaged: true
+[2026-05-07T00:35:23.997Z] [INFO] Node version: v20.19.1
+[2026-05-07T00:35:23.998Z] [INFO] Platform: win32 arch: x64
+[2026-05-07T00:35:23.998Z] [INFO] isPackaged: true
+[2026-05-07T00:35:23.998Z] [INFO] DB path: C:\Users\Owner\AppData\Roaming\@workspace\sniper-bot\pgdata
+[2026-05-07T00:35:23.998Z] [INFO] NODE_ENV set to: production
+[2026-05-07T00:35:23.999Z] [INFO] Encryption key loaded from secure store
+[2026-05-07T00:35:24.000Z] [INFO] Using bundled Playwright Chromium: C:\Users\Owner\AppData\Local\Programs\TCG Snipers\resources\playwright-chromium\chromium-1217\chrome-win64\chrome.exe
+[2026-05-07T00:35:24.000Z] [INFO] Browser found: C:\Users\Owner\AppData\Local\Programs\TCG Snipers\resources\playwright-chromium\chromium-1217\chrome-win64\chrome.exe
+[2026-05-07T00:35:24.000Z] [INFO] electron/dist contents (60 files): app-RFHE2274.js, app-RFHE2274.js.map, captchaAssistManager-WZDUWQSM.js, captchaAssistManager-WZDUWQSM.js.map, chunk-46EY6KKR.js, chunk-46EY6KKR.js.map, chunk-A5C7UBJH.js, chunk-A5C7UBJH.js.map, chunk-CLYXS4WR.js, chunk-CLYXS4WR.js.map, chunk-KFHPWSTI.js, chunk-KFHPWSTI.js.map, chunk-KXDC6MGZ.js, chunk-KXDC6MGZ.js.map, chunk-LJMNVPSF.js, chunk-LJMNVPSF.js.map, chunk-NAUHXBPF.js, chunk-NAUHXBPF.js.map, chunk-O3JJQCQI.js, chunk-O3JJQCQI.js.map
+[2026-05-07T00:35:24.000Z] [INFO] Step 1: importing API server module…
+[2026-05-07T00:35:24.282Z] [ERROR] === API STARTUP FAILED ===
+[2026-05-07T00:35:24.283Z] [ERROR] RuntimeError: unreachable
+    at wasm://wasm/01edd1ba:wasm-function[3625]:0x2632f0
+    at wasm://wasm/01edd1ba:wasm-function[7801]:0x3e3508
+    at wasm://wasm/01edd1ba:wasm-function[2533]:0x1c1034
+    at Module._pg_initdb (file:///C:/Users/Owner/AppData/Local/Programs/TCG%20Snipers/resources/app.asar/electron/dist/chunk-XWWITKHY.js:4444:117130)
+    at pe3.qe2 (file:///C:/Users/Owner/AppData/Local/Programs/TCG%20Snipers/resources/app.asar/electron/dist/chunk-XWWITKHY.js:5146:20)
+    at async pe3._checkReady (file:///C:/Users/Owner/AppData/Local/Programs/TCG%20Snipers/resources/app.asar/electron/dist/chunk-XWWITKHY.js:4997:20)
+    at async pe3.exec (file:///C:/Users/Owner/AppData/Local/Programs/TCG%20Snipers/resources/app.asar/electron/dist/chunk-XWWITKHY.js:867:12)
+    at async runPgliteMigrations (file:///C:/Users/Owner/AppData/Local/Programs/TCG%20Snipers/resources/app.asar/electron/dist/pglite-migrate-TS7QFOXO.js:13:3)
+    at async file:///C:/Users/Owner/AppData/Local/Programs/TCG%20Snipers/resources/app.asar/electron/dist/chunk-WBHVDCPD.js:11748:3
+[2026-05-07T00:35:24.283Z] [ERROR] === END STARTUP FAILURE ===
+
+
+=== TCG Snipers v1.0.61 started 2026-05-07T00:37:56.821Z ===
+[2026-05-07T00:37:56.822Z] [INFO] Platform: win32, packaged: true
+[2026-05-07T00:37:56.823Z] [INFO] Node version: v20.19.1
+[2026-05-07T00:37:56.823Z] [INFO] Platform: win32 arch: x64
+[2026-05-07T00:37:56.823Z] [INFO] isPackaged: true
+[2026-05-07T00:37:56.823Z] [INFO] DB path: C:\Users\Owner\AppData\Roaming\@workspace\sniper-bot\pgdata
+[2026-05-07T00:37:56.823Z] [INFO] NODE_ENV set to: production
+[2026-05-07T00:37:56.824Z] [INFO] Encryption key loaded from secure store
+[2026-05-07T00:37:56.825Z] [INFO] Using bundled Playwright Chromium: C:\Users\Owner\AppData\Local\Programs\TCG Snipers\resources\playwright-chromium\chromium-1217\chrome-win64\chrome.exe
+[2026-05-07T00:37:56.825Z] [INFO] Browser found: C:\Users\Owner\AppData\Local\Programs\TCG Snipers\resources\playwright-chromium\chromium-1217\chrome-win64\chrome.exe
+[2026-05-07T00:37:56.825Z] [INFO] electron/dist contents (60 files): app-RFHE2274.js, app-RFHE2274.js.map, captchaAssistManager-WZDUWQSM.js, captchaAssistManager-WZDUWQSM.js.map, chunk-46EY6KKR.js, chunk-46EY6KKR.js.map, chunk-A5C7UBJH.js, chunk-A5C7UBJH.js.map, chunk-CLYXS4WR.js, chunk-CLYXS4WR.js.map, chunk-KFHPWSTI.js, chunk-KFHPWSTI.js.map, chunk-KXDC6MGZ.js, chunk-KXDC6MGZ.js.map, chunk-LJMNVPSF.js, chunk-LJMNVPSF.js.map, chunk-NAUHXBPF.js, chunk-NAUHXBPF.js.map, chunk-O3JJQCQI.js, chunk-O3JJQCQI.js.map
+[2026-05-07T00:37:56.825Z] [INFO] Step 1: importing API server module…
+[2026-05-07T00:37:57.042Z] [ERROR] === API STARTUP FAILED ===
+[2026-05-07T00:37:57.042Z] [ERROR] RuntimeError: unreachable
+    at wasm://wasm/01edd1ba:wasm-function[3625]:0x2632f0
+    at wasm://wasm/01edd1ba:wasm-function[7801]:0x3e3508
+    at wasm://wasm/01edd1ba:wasm-function[2533]:0x1c1034
+    at Module._pg_initdb (file:///C:/Users/Owner/AppData/Local/Programs/TCG%20Snipers/resources/app.asar/electron/dist/chunk-XWWITKHY.js:4444:117130)
+    at pe3.qe2 (file:///C:/Users/Owner/AppData/Local/Programs/TCG%20Snipers/resources/app.asar/electron/dist/chunk-XWWITKHY.js:5146:20)
+    at async pe3._checkReady (file:///C:/Users/Owner/AppData/Local/Programs/TCG%20Snipers/resources/app.asar/electron/dist/chunk-XWWITKHY.js:4997:20)
+    at async pe3.exec (file:///C:/Users/Owner/AppData/Local/Programs/TCG%20Snipers/resources/app.asar/electron/dist/chunk-XWWITKHY.js:867:12)
+    at async runPgliteMigrations (file:///C:/Users/Owner/AppData/Local/Programs/TCG%20Snipers/resources/app.asar/electron/dist/pglite-migrate-TS7QFOXO.js:13:3)
+    at async file:///C:/Users/Owner/AppData/Local/Programs/TCG%20Snipers/resources/app.asar/electron/dist/chunk-WBHVDCPD.js:11748:3
+[2026-05-07T00:37:57.042Z] [ERROR] === END STARTUP FAILURE ===
+
+
+=== TCG Snipers v1.0.61 started 2026-05-07T00:41:45.061Z ===
+[2026-05-07T00:41:45.064Z] [INFO] Platform: win32, packaged: true
+[2026-05-07T00:41:45.065Z] [INFO] Node version: v20.19.1
+[2026-05-07T00:41:45.065Z] [INFO] Platform: win32 arch: x64
+[2026-05-07T00:41:45.065Z] [INFO] isPackaged: true
+[2026-05-07T00:41:45.065Z] [INFO] DB path: C:\Users\Owner\AppData\Roaming\@workspace\sniper-bot\pgdata
+[2026-05-07T00:41:45.065Z] [INFO] NODE_ENV set to: production
+[2026-05-07T00:41:45.066Z] [INFO] Encryption key loaded from secure store
+[2026-05-07T00:41:45.067Z] [INFO] Using bundled Playwright Chromium: C:\Users\Owner\AppData\Local\Programs\TCG Snipers\resources\playwright-chromium\chromium-1217\chrome-win64\chrome.exe
+[2026-05-07T00:41:45.067Z] [INFO] Browser found: C:\Users\Owner\AppData\Local\Programs\TCG Snipers\resources\playwright-chromium\chromium-1217\chrome-win64\chrome.exe
+[2026-05-07T00:41:45.067Z] [INFO] electron/dist contents (60 files): app-RFHE2274.js, app-RFHE2274.js.map, captchaAssistManager-WZDUWQSM.js, captchaAssistManager-WZDUWQSM.js.map, chunk-46EY6KKR.js, chunk-46EY6KKR.js.map, chunk-A5C7UBJH.js, chunk-A5C7UBJH.js.map, chunk-CLYXS4WR.js, chunk-CLYXS4WR.js.map, chunk-KFHPWSTI.js, chunk-KFHPWSTI.js.map, chunk-KXDC6MGZ.js, chunk-KXDC6MGZ.js.map, chunk-LJMNVPSF.js, chunk-LJMNVPSF.js.map, chunk-NAUHXBPF.js, chunk-NAUHXBPF.js.map, chunk-O3JJQCQI.js, chunk-O3JJQCQI.js.map
+[2026-05-07T00:41:45.067Z] [INFO] Step 1: importing API server module…
+[2026-05-07T00:41:45.356Z] [ERROR] === API STARTUP FAILED ===
+[2026-05-07T00:41:45.356Z] [ERROR] RuntimeError: unreachable
+    at wasm://wasm/01edd1ba:wasm-function[3625]:0x2632f0
+    at wasm://wasm/01edd1ba:wasm-function[7801]:0x3e3508
+    at wasm://wasm/01edd1ba:wasm-function[2533]:0x1c1034
+    at Module._pg_initdb (file:///C:/Users/Owner/AppData/Local/Programs/TCG%20Snipers/resources/app.asar/electron/dist/chunk-XWWITKHY.js:4444:117130)
+    at pe3.qe2 (file:///C:/Users/Owner/AppData/Local/Programs/TCG%20Snipers/resources/app.asar/electron/dist/chunk-XWWITKHY.js:5146:20)
+    at async pe3._checkReady (file:///C:/Users/Owner/AppData/Local/Programs/TCG%20Snipers/resources/app.asar/electron/dist/chunk-XWWITKHY.js:4997:20)
+    at async pe3.exec (file:///C:/Users/Owner/AppData/Local/Programs/TCG%20Snipers/resources/app.asar/electron/dist/chunk-XWWITKHY.js:867:12)
+    at async runPgliteMigrations (file:///C:/Users/Owner/AppData/Local/Programs/TCG%20Snipers/resources/app.asar/electron/dist/pglite-migrate-TS7QFOXO.js:13:3)
+    at async file:///C:/Users/Owner/AppData/Local/Programs/TCG%20Snipers/resources/app.asar/electron/dist/chunk-WBHVDCPD.js:11748:3
+[2026-05-07T00:41:45.356Z] [ERROR] === END STARTUP FAILURE ===
+
+
+=== TCG Snipers v1.0.61 started 2026-05-07T00:50:27.564Z ===
+[2026-05-07T00:50:27.565Z] [INFO] Platform: win32, packaged: true
+[2026-05-07T00:50:27.566Z] [INFO] Node version: v20.19.1
+[2026-05-07T00:50:27.566Z] [INFO] Platform: win32 arch: x64
+[2026-05-07T00:50:27.566Z] [INFO] isPackaged: true
+[2026-05-07T00:50:27.566Z] [INFO] DB path: C:\Users\Owner\AppData\Roaming\@workspace\sniper-bot\pgdata
+[2026-05-07T00:50:27.566Z] [INFO] NODE_ENV set to: production
+[2026-05-07T00:50:27.574Z] [INFO] Encryption key loaded from secure store
+[2026-05-07T00:50:27.574Z] [INFO] Using bundled Playwright Chromium: C:\Users\Owner\AppData\Local\Programs\TCG Snipers\resources\playwright-chromium\chromium-1217\chrome-win64\chrome.exe
+[2026-05-07T00:50:27.575Z] [INFO] Browser found: C:\Users\Owner\AppData\Local\Programs\TCG Snipers\resources\playwright-chromium\chromium-1217\chrome-win64\chrome.exe
+[2026-05-07T00:50:27.575Z] [INFO] electron/dist contents (60 files): app-RFHE2274.js, app-RFHE2274.js.map, captchaAssistManager-WZDUWQSM.js, captchaAssistManager-WZDUWQSM.js.map, chunk-46EY6KKR.js, chunk-46EY6KKR.js.map, chunk-A5C7UBJH.js, chunk-A5C7UBJH.js.map, chunk-CLYXS4WR.js, chunk-CLYXS4WR.js.map, chunk-KFHPWSTI.js, chunk-KFHPWSTI.js.map, chunk-KXDC6MGZ.js, chunk-KXDC6MGZ.js.map, chunk-LJMNVPSF.js, chunk-LJMNVPSF.js.map, chunk-NAUHXBPF.js, chunk-NAUHXBPF.js.map, chunk-O3JJQCQI.js, chunk-O3JJQCQI.js.map
+[2026-05-07T00:50:27.575Z] [INFO] Step 1: importing API server module…
+[2026-05-07T00:50:27.850Z] [ERROR] === API STARTUP FAILED ===
+[2026-05-07T00:50:27.850Z] [ERROR] RuntimeError: unreachable
+    at wasm://wasm/01edd1ba:wasm-function[3625]:0x2632f0
+    at wasm://wasm/01edd1ba:wasm-function[7801]:0x3e3508
+    at wasm://wasm/01edd1ba:wasm-function[2533]:0x1c1034
+    at Module._pg_initdb (file:///C:/Users/Owner/AppData/Local/Programs/TCG%20Snipers/resources/app.asar/electron/dist/chunk-XWWITKHY.js:4444:117130)
+    at pe3.qe2 (file:///C:/Users/Owner/AppData/Local/Programs/TCG%20Snipers/resources/app.asar/electron/dist/chunk-XWWITKHY.js:5146:20)
+    at async pe3._checkReady (file:///C:/Users/Owner/AppData/Local/Programs/TCG%20Snipers/resources/app.asar/electron/dist/chunk-XWWITKHY.js:4997:20)
+    at async pe3.exec (file:///C:/Users/Owner/AppData/Local/Programs/TCG%20Snipers/resources/app.asar/electron/dist/chunk-XWWITKHY.js:867:12)
+    at async runPgliteMigrations (file:///C:/Users/Owner/AppData/Local/Programs/TCG%20Snipers/resources/app.asar/electron/dist/pglite-migrate-TS7QFOXO.js:13:3)
+    at async file:///C:/Users/Owner/AppData/Local/Programs/TCG%20Snipers/resources/app.asar/electron/dist/chunk-WBHVDCPD.js:11748:3
+[2026-05-07T00:50:27.850Z] [ERROR] === END STARTUP FAILURE ===
