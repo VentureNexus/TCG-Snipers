@@ -36,7 +36,7 @@ router.post("/captcha-assist/:id/click", async (req, res): Promise<void> => {
   res.json({ ok });
 });
 
-router.post("/captcha-assist/:id/mousedown", async (req, res): Promise<void> => {
+router.post("/captcha-assist/:id/mousedown", (req, res): void => {
   const taskId = parseInt(req.params.id, 10);
   if (isNaN(taskId)) { res.status(400).json({ error: "Invalid task ID" }); return; }
 
@@ -45,11 +45,12 @@ router.post("/captcha-assist/:id/mousedown", async (req, res): Promise<void> => 
     res.status(400).json({ error: "normalizedX and normalizedY (0–1) are required" }); return;
   }
 
-  const ok = await relayMouseDown(taskId, normalizedX, normalizedY);
-  res.json({ ok });
+  // Respond immediately so the client's mousedown→mouseup round-trip is not blocked by Playwright
+  res.json({ ok: true });
+  relayMouseDown(taskId, normalizedX, normalizedY).catch(() => {});
 });
 
-router.post("/captcha-assist/:id/mouseup", async (req, res): Promise<void> => {
+router.post("/captcha-assist/:id/mouseup", (req, res): void => {
   const taskId = parseInt(req.params.id, 10);
   if (isNaN(taskId)) { res.status(400).json({ error: "Invalid task ID" }); return; }
 
@@ -58,8 +59,9 @@ router.post("/captcha-assist/:id/mouseup", async (req, res): Promise<void> => {
     res.status(400).json({ error: "normalizedX and normalizedY (0–1) are required" }); return;
   }
 
-  const ok = await relayMouseUp(taskId, normalizedX, normalizedY);
-  res.json({ ok });
+  // Respond immediately so the client is unblocked as fast as possible
+  res.json({ ok: true });
+  relayMouseUp(taskId, normalizedX, normalizedY).catch(() => {});
 });
 
 router.post("/captcha-assist/:id/scroll", async (req, res): Promise<void> => {
