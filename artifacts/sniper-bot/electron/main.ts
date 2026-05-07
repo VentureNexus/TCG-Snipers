@@ -235,7 +235,7 @@ function resolveSystemBrowserPath(): string | undefined {
 }
 
 // ── Start Express API server in-process ────────────────────────────────────
-async function startApiServer(): Promise<void> {
+async function startApiServer(isRetry = false): Promise<void> {
   const CANDIDATE_PORTS = [8080, 8081, 8082, 8083];
 
   try {
@@ -368,7 +368,37 @@ async function startApiServer(): Promise<void> {
 
   } catch (err) {
     const stack = err instanceof Error ? (err.stack ?? err.message) : String(err);
-    apiStartFailReason = `Failed to initialize API: ${err instanceof Error ? err.message : String(err)}`;
+    const msg   = err instanceof Error ? err.message : String(err);
+
+    // ── PGlite WASM corruption recovery ───────────────────────────────────
+    // When the pgdata directory is corrupted (e.g. crash during migration),
+    // PGlite's _pg_initdb WASM function hits an `unreachable` instruction.
+    // We detect this and auto-recover by wiping the corrupted data directory
+    // and retrying once — the user loses no settings (stored in the DB) that
+    // can't be re-entered, and the alternative is being permanently stuck.
+    const isPgliteCorruption =
+      !isRetry &&
+      (msg === "unreachable" || (stack && stack.includes("_pg_initdb")));
+
+    if (isPgliteCorruption) {
+      const pgdataPath = path.join(app.getPath("userData"), "pgdata");
+      writeLog("WARN", `PGlite database corrupted (${msg}) — wiping ${pgdataPath} and retrying`);
+      try {
+        fs.rmSync(pgdataPath, { recursive: true, force: true });
+        writeLog("INFO", "Corrupted pgdata deleted — retrying startup");
+        await startApiServer(true);
+        // Notify the renderer that the DB was reset so it can show a banner
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send("api:db-reset");
+        }
+        return;
+      } catch (rmErr) {
+        writeLog("ERROR", `Failed to delete corrupted pgdata: ${rmErr} — startup will fail`);
+        // Fall through to normal failure handling
+      }
+    }
+
+    apiStartFailReason = `Failed to initialize API: ${msg}`;
     writeLog("ERROR", "=== API STARTUP FAILED ===");
     writeLog("ERROR", stack);
     writeLog("ERROR", "=== END STARTUP FAILURE ===");
@@ -756,6 +786,10 @@ const RELEASE_NOTES: Record<string, string> = {
     "- Fixed: Walmart 'password field not found' no longer fails silently — Login Assist now opens immediately so you can see where login got stuck and finish it manually",
     "- Fixed: Costco 'Access Denied' (Akamai block) now opens Login Assist right away instead of waiting 15 seconds before showing the popup",
     "- Login Assist also opens when the password step never appears after Continue (covers OTP screens, unexpected CAPTCHAs, or any mid-login page Walmart throws up)",
+  ].join("\n"),
+  "1.0.62": [
+    "- Fixed: app no longer gets permanently stuck on 'API startup failed' after a crash corrupts the database — corruption is detected automatically and the database is reset so the app starts cleanly",
+    "- A yellow notice banner appears after auto-recovery so you know your settings may need to be re-entered",
   ].join("\n"),
 };
 
