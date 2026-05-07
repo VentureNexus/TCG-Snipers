@@ -752,6 +752,11 @@ const RELEASE_NOTES: Record<string, string> = {
     "- Old Chrome 118–120 user agents flagged immediately by Akamai; all browsers now use Chrome 134–136",
     "- Strengthened fingerprint: realistic plugin list, full chrome.runtime object, correct WebGL GPU strings",
   ].join("\n"),
+  "1.0.61": [
+    "- Fixed: Walmart 'password field not found' no longer fails silently — Login Assist now opens immediately so you can see where login got stuck and finish it manually",
+    "- Fixed: Costco 'Access Denied' (Akamai block) now opens Login Assist right away instead of waiting 15 seconds before showing the popup",
+    "- Login Assist also opens when the password step never appears after Continue (covers OTP screens, unexpected CAPTCHAs, or any mid-login page Walmart throws up)",
+  ].join("\n"),
 };
 
 // Called by the renderer on mount to check if a "What's New" payload is
