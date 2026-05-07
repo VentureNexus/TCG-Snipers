@@ -1,3 +1,2 @@
-- Fixed: Walmart "password field not found" no longer fails silently — the Login Assist popup now opens immediately so you can see exactly where the login got stuck and complete it manually
-- Fixed: Costco "Access Denied" from Akamai now opens Login Assist right away (instead of waiting 15 seconds before popping up) — you can refresh the page or navigate past the block yourself
-- Login Assist now also opens when the password field doesn't appear after clicking Continue (covers OTP screens, unexpected CAPTCHA steps, or any mid-login page Walmart throws up)
+- Fixed: app no longer gets permanently stuck on "API startup failed" after a crash corrupts the database — it now automatically detects the corruption, wipes the damaged data, and restarts cleanly without any user action needed
+- A yellow notice banner will appear after an auto-recovery to let you know your settings may need to be re-entered
