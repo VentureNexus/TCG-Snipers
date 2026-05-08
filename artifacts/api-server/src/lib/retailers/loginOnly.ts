@@ -189,16 +189,35 @@ export async function loginRetailer(
   try {
     const context = await createStealthContext(browser);
     const page = await context.newPage();
-    await page.setDefaultNavigationTimeout(30000);
+    await page.setDefaultNavigationTimeout(45000);
+
+    // When routing through Oxylabs Web Unblocker every sub-resource goes through
+    // their pipeline, making image/media/font requests the biggest source of
+    // latency.  Blocking them cuts load time dramatically and still leaves JS
+    // and CSS intact so the login form renders correctly.
+    if (proxy) {
+      await page.route("**/*", (route) => {
+        const type = route.request().resourceType();
+        if (type === "image" || type === "media" || type === "font") {
+          return route.abort();
+        }
+        return route.continue();
+      });
+    }
 
     // If a warmup URL is configured, visit it first so the site can set its
     // trust cookies (e.g. Akamai) before we navigate to the actual login page.
     if (config.warmupUrl) {
-      await page.goto(config.warmupUrl, { waitUntil: "domcontentloaded", timeout: 20000 }).catch(() => {});
-      await humanDelay(1500, 3000);
+      await page.goto(config.warmupUrl, { waitUntil: "domcontentloaded", timeout: 30000 }).catch(() => {});
+      // Wait for the full load event so JS completes — critical through a proxy
+      // where script bundles arrive slower than domcontentloaded fires.
+      await page.waitForLoadState("load", { timeout: 20000 }).catch(() => {});
+      await humanDelay(2000, 4000);
     }
 
-    await page.goto(config.url, { waitUntil: "domcontentloaded" });
+    await page.goto(config.url, { waitUntil: "domcontentloaded", timeout: 30000 });
+    // Same: wait for full load so the login form's JS has time to render.
+    await page.waitForLoadState("load", { timeout: 20000 }).catch(() => {});
 
     // ── Helper: open Login Assist and wait for the user ───────────────────────
     // Returns the outcome string, or throws if loginAssistManager is unavailable.
