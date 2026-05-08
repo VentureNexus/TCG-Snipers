@@ -1,12 +1,17 @@
 import { Router, type IRouter } from "express";
 import {
   getActiveSession,
+  getCurrentUrl,
   relayLoginClick,
   relayLoginMouseDown,
   relayLoginMouseUp,
   relayLoginScroll,
   relayLoginKey,
   relayLoginSpecialKey,
+  relayLoginNavigate,
+  relayLoginGoBack,
+  relayLoginGoForward,
+  relayLoginReload,
   getLoginScreenshot,
   signalLoginDone,
   signalLoginGiveUp,
@@ -17,6 +22,11 @@ const router: IRouter = Router();
 router.get("/login-assist/active", (_req, res): void => {
   const session = getActiveSession();
   res.json(session ?? null);
+});
+
+router.get("/login-assist/:id/url", (req, res): void => {
+  const url = getCurrentUrl(req.params.id);
+  res.json({ url: url ?? "" });
 });
 
 router.get("/login-assist/:id/screenshot", async (req, res): Promise<void> => {
@@ -30,11 +40,33 @@ router.get("/login-assist/:id/screenshot", async (req, res): Promise<void> => {
   res.send(buf);
 });
 
+router.post("/login-assist/:id/navigate", async (req, res): Promise<void> => {
+  const { url } = req.body as { url?: unknown };
+  if (typeof url !== "string" || !url) {
+    res.status(400).json({ error: "url is required" });
+    return;
+  }
+  const ok = await relayLoginNavigate(req.params.id, url);
+  res.json({ ok });
+});
+
+router.post("/login-assist/:id/back", async (req, res): Promise<void> => {
+  const ok = await relayLoginGoBack(req.params.id);
+  res.json({ ok });
+});
+
+router.post("/login-assist/:id/forward", async (req, res): Promise<void> => {
+  const ok = await relayLoginGoForward(req.params.id);
+  res.json({ ok });
+});
+
+router.post("/login-assist/:id/reload", async (req, res): Promise<void> => {
+  const ok = await relayLoginReload(req.params.id);
+  res.json({ ok });
+});
+
 router.post("/login-assist/:id/click", async (req, res): Promise<void> => {
-  const { normalizedX, normalizedY } = req.body as {
-    normalizedX?: unknown;
-    normalizedY?: unknown;
-  };
+  const { normalizedX, normalizedY } = req.body as { normalizedX?: unknown; normalizedY?: unknown };
   if (typeof normalizedX !== "number" || typeof normalizedY !== "number") {
     res.status(400).json({ error: "normalizedX and normalizedY (0–1) are required" });
     return;
@@ -44,29 +76,21 @@ router.post("/login-assist/:id/click", async (req, res): Promise<void> => {
 });
 
 router.post("/login-assist/:id/mousedown", (req, res): void => {
-  const { normalizedX, normalizedY } = req.body as {
-    normalizedX?: unknown;
-    normalizedY?: unknown;
-  };
+  const { normalizedX, normalizedY } = req.body as { normalizedX?: unknown; normalizedY?: unknown };
   if (typeof normalizedX !== "number" || typeof normalizedY !== "number") {
     res.status(400).json({ error: "normalizedX and normalizedY (0–1) are required" });
     return;
   }
-  // Respond immediately so mouseup is never blocked by mousedown's round-trip
   res.json({ ok: true });
   relayLoginMouseDown(req.params.id, normalizedX, normalizedY).catch(() => {});
 });
 
 router.post("/login-assist/:id/mouseup", (req, res): void => {
-  const { normalizedX, normalizedY } = req.body as {
-    normalizedX?: unknown;
-    normalizedY?: unknown;
-  };
+  const { normalizedX, normalizedY } = req.body as { normalizedX?: unknown; normalizedY?: unknown };
   if (typeof normalizedX !== "number" || typeof normalizedY !== "number") {
     res.status(400).json({ error: "normalizedX and normalizedY (0–1) are required" });
     return;
   }
-  // Respond immediately so the client is unblocked as fast as possible
   res.json({ ok: true });
   relayLoginMouseUp(req.params.id, normalizedX, normalizedY).catch(() => {});
 });
@@ -106,8 +130,8 @@ router.post("/login-assist/:id/key", async (req, res): Promise<void> => {
   res.json({ ok });
 });
 
-router.post("/login-assist/:id/done", (req, res): void => {
-  const ok = signalLoginDone(req.params.id);
+router.post("/login-assist/:id/done", async (req, res): Promise<void> => {
+  const ok = await signalLoginDone(req.params.id);
   res.json({ ok });
 });
 
