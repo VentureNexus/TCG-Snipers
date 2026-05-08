@@ -4,6 +4,8 @@ import { db, retailerAccountsTable } from "@workspace/db";
 import { encrypt, decrypt } from "../lib/crypto";
 import { loadSession, clearSession } from "../lib/retailers/sessionCache";
 import { loginRetailer } from "../lib/retailers/loginOnly";
+import { getOrCreateSettings } from "./settings";
+import { getOxylabsProxy } from "../lib/browser";
 
 const router: IRouter = Router();
 
@@ -150,7 +152,11 @@ router.post("/retailer-accounts/:id/manual-login", async (req, res): Promise<voi
     const { createBrowser, createStealthContext } = await import("../lib/browser");
     const { registerLoginAssist } = await import("../lib/loginAssistManager");
 
-    const browser = await createBrowser(null);
+    // Apply Oxylabs proxy to manual login sessions when globally enabled.
+    const appSettings = await getOrCreateSettings();
+    const manualProxy = appSettings.oxylabsEnabled ? getOxylabsProxy() : null;
+
+    const browser = await createBrowser(manualProxy);
     const context = await createStealthContext(browser);
     const page = await context.newPage();
     await page.setDefaultNavigationTimeout(30000);
