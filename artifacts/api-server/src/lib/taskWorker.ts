@@ -119,7 +119,9 @@ async function runTaskAutomation(task: TaskRow, token: { cancelled: boolean }) {
 
     // Oxylabs Web Unblocker overrides the per-task proxy when enabled globally.
     // It provides residential IP rotation + automatic CAPTCHA solving.
-    const oxylabsProxy = settings.oxylabsEnabled ? getOxylabsProxy() : null;
+    const oxylabsProxy = settings.oxylabsEnabled
+      ? getOxylabsProxy(settings.oxylabsUsername, settings.oxylabsPassword)
+      : null;
     if (oxylabsProxy) {
       log("INFO", `[Oxylabs] Web Unblocker active — routing through residential proxy.`);
     }
