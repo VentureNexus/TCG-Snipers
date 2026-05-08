@@ -238,9 +238,12 @@ export async function createBrowser(proxy?: ProxyConfig | null): Promise<Browser
     ...(proxy
       ? {
           proxy: {
-            // Playwright only supports http://, socks4://, socks5:// — never https://.
-            // All proxy services (including Oxylabs Web Unblocker) must use http://.
-            server: `http://${proxy.host}:${proxy.port}`,
+            // Oxylabs Web Unblocker requires an SSL connection to the proxy server
+            // (https://). Regular proxies use http://. Both carry user traffic over
+            // CONNECT tunnels regardless of the proxy-server scheme.
+            server: proxy.host === "unblock.oxylabs.io"
+              ? `https://${proxy.host}:${proxy.port}`
+              : `http://${proxy.host}:${proxy.port}`,
             ...(proxy.username ? { username: proxy.username } : {}),
             ...(proxy.password ? { password: proxy.password } : {}),
           },
@@ -271,6 +274,10 @@ export async function createStealthContext(
     viewport: vp,
     locale: "en-US",
     timezoneId: "America/New_York",
+    // Required for HTTPS proxy connections (e.g. Oxylabs Web Unblocker). The
+    // ignoreHTTPSErrors flag MUST be on the context, not on browser launch —
+    // putting it on launch has no effect in current Playwright versions.
+    ignoreHTTPSErrors: true,
     extraHTTPHeaders: {
       "Accept-Language": "en-US,en;q=0.9",
       "Accept-Encoding": "gzip, deflate, br, zstd",
