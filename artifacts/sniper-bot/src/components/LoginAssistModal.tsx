@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { getApiBase } from "@/lib/api-base";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, XCircle, MousePointer, Keyboard, ChevronLeft, ChevronRight, RotateCw } from "lucide-react";
+import { CheckCircle, XCircle, MousePointer, ChevronLeft, ChevronRight, RotateCw } from "lucide-react";
 
 interface ActiveSession {
   id: string;
@@ -14,7 +14,7 @@ export function LoginAssistModal() {
   const [screenshotSrc, setScreenshotSrc] = useState<string | null>(null);
   const [clickFeedback, setClickFeedback] = useState<{ x: number; y: number } | null>(null);
   const [signalled, setSignalled] = useState(false);
-  const [typeBuffer, setTypeBuffer] = useState("");
+  const [browserFocused, setBrowserFocused] = useState(false);
 
   // Browser toolbar
   const [currentUrl, setCurrentUrl] = useState("");
@@ -23,6 +23,7 @@ export function LoginAssistModal() {
   const [navigating, setNavigating] = useState(false);
 
   const imgRef = useRef<HTMLImageElement>(null);
+  const screenWrapperRef = useRef<HTMLDivElement>(null);
   const pollScreenshotRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pollSessionRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pollUrlRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -38,13 +39,11 @@ export function LoginAssistModal() {
         if (!data && prev) {
           setScreenshotSrc(null);
           setSignalled(false);
-          setTypeBuffer("");
           setCurrentUrl("");
           setAddressBarValue("");
         }
         if (data && (!prev || prev.id !== data.id)) {
           setSignalled(false);
-          setTypeBuffer("");
           setCurrentUrl("");
           setAddressBarValue("");
         }
@@ -53,20 +52,17 @@ export function LoginAssistModal() {
     } catch { /* ignore */ }
   }, [apiBase]);
 
-  const fetchScreenshot = useCallback(
-    async (id: string) => {
-      try {
-        const res = await fetch(`${apiBase}/api/login-assist/${id}/screenshot`, { cache: "no-store" });
-        if (!res.ok) return;
-        const blob = await res.blob();
-        const url = URL.createObjectURL(blob);
-        if (prevObjectUrl.current) URL.revokeObjectURL(prevObjectUrl.current);
-        prevObjectUrl.current = url;
-        setScreenshotSrc(url);
-      } catch { /* ignore */ }
-    },
-    [apiBase],
-  );
+  const fetchScreenshot = useCallback(async (id: string) => {
+    try {
+      const res = await fetch(`${apiBase}/api/login-assist/${id}/screenshot`, { cache: "no-store" });
+      if (!res.ok) return;
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      if (prevObjectUrl.current) URL.revokeObjectURL(prevObjectUrl.current);
+      prevObjectUrl.current = url;
+      setScreenshotSrc(url);
+    } catch { /* ignore */ }
+  }, [apiBase]);
 
   const fetchUrl = useCallback(async (id: string) => {
     try {
@@ -102,7 +98,7 @@ export function LoginAssistModal() {
     };
   }, [session, fetchScreenshot, fetchUrl]);
 
-  // ── Browser toolbar actions ──────────────────────────────────────────────
+  // ── Browser toolbar ────────────────────────────────────────────────────
 
   const handleBack = () => {
     if (!session || signalled) return;
@@ -144,14 +140,50 @@ export function LoginAssistModal() {
     }
   };
 
-  // ── Mouse / keyboard relays ──────────────────────────────────────────────
+  // ── Direct keyboard capture on the screenshot ──────────────────────────
+  // Clicking the screenshot focuses the wrapper div → keystrokes go straight
+  // to the live browser with no intermediate input field needed.
+
+  const forwardKey = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (!session || signalled) return;
+    e.preventDefault();
+
+    const key = e.key;
+
+    // Single printable character (Shift already baked into e.key, e.g. "A" vs "a")
+    if (key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      fetch(`${apiBase}/api/login-assist/${session.id}/type`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: key }),
+      }).catch(() => {});
+      return;
+    }
+
+    // Special / modified key — build Playwright key string
+    const mods = [
+      e.ctrlKey  ? "Control" : "",
+      e.altKey   ? "Alt"     : "",
+      e.metaKey  ? "Meta"    : "",
+      e.shiftKey && key.length > 1 ? "Shift" : "",
+    ].filter(Boolean);
+    const playwrightKey = [...mods, key].join("+");
+    fetch(`${apiBase}/api/login-assist/${session.id}/key`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key: playwrightKey }),
+    }).catch(() => {});
+  }, [session, signalled, apiBase]);
+
+  // ── Mouse relay ────────────────────────────────────────────────────────
 
   function getNormalized(e: React.MouseEvent<HTMLImageElement>): { nx: number; ny: number } | null {
     if (!imgRef.current) return null;
     const rect = imgRef.current.getBoundingClientRect();
-    const nx = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-    const ny = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
-    return { nx, ny };
+    return {
+      nx: Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)),
+      ny: Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height)),
+    };
   }
 
   const handleMouseDown = (e: React.MouseEvent<HTMLImageElement>) => {
@@ -161,6 +193,8 @@ export function LoginAssistModal() {
     if (!pos) return;
     const rect = imgRef.current!.getBoundingClientRect();
     setClickFeedback({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+    // Focus the wrapper so subsequent keystrokes are captured
+    screenWrapperRef.current?.focus({ preventScroll: true });
     fetch(`${apiBase}/api/login-assist/${session.id}/mousedown`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -186,75 +220,23 @@ export function LoginAssistModal() {
     const rect = imgRef.current.getBoundingClientRect();
     const nx = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
     const ny = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
-    try {
-      await fetch(`${apiBase}/api/login-assist/${session.id}/scroll`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ normalizedX: nx, normalizedY: ny, deltaX: e.deltaX, deltaY: e.deltaY }),
-      });
-    } catch { /* ignore */ }
-  };
-
-  const handleTypeKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (!session || signalled) return;
-    if (e.key === "Enter") {
-      e.preventDefault();
-      await fetch(`${apiBase}/api/login-assist/${session.id}/key`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ key: "Enter" }),
-      }).catch(() => {});
-      return;
-    }
-    if (e.key === "Backspace") {
-      e.preventDefault();
-      await fetch(`${apiBase}/api/login-assist/${session.id}/key`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ key: "Backspace" }),
-      }).catch(() => {});
-      setTypeBuffer((b) => b.slice(0, -1));
-      return;
-    }
-    if (e.key === "Tab") {
-      e.preventDefault();
-      await fetch(`${apiBase}/api/login-assist/${session.id}/key`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ key: "Tab" }),
-      }).catch(() => {});
-      return;
-    }
-  };
-
-  const handleTypeChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!session || signalled) return;
-    const newVal = e.target.value;
-    const added = newVal.slice(typeBuffer.length);
-    setTypeBuffer(newVal);
-    if (added) {
-      await fetch(`${apiBase}/api/login-assist/${session.id}/type`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: added }),
-      }).catch(() => {});
-    }
+    await fetch(`${apiBase}/api/login-assist/${session.id}/scroll`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ normalizedX: nx, normalizedY: ny, deltaX: e.deltaX, deltaY: e.deltaY }),
+    }).catch(() => {});
   };
 
   const handleDone = async () => {
     if (!session || signalled) return;
     setSignalled(true);
-    try {
-      await fetch(`${apiBase}/api/login-assist/${session.id}/done`, { method: "POST" });
-    } catch { /* ignore */ }
+    await fetch(`${apiBase}/api/login-assist/${session.id}/done`, { method: "POST" }).catch(() => {});
   };
 
   const handleGiveUp = async () => {
     if (!session || signalled) return;
     setSignalled(true);
-    try {
-      await fetch(`${apiBase}/api/login-assist/${session.id}/give-up`, { method: "POST" });
-    } catch { /* ignore */ }
+    await fetch(`${apiBase}/api/login-assist/${session.id}/give-up`, { method: "POST" }).catch(() => {});
   };
 
   if (!session) return null;
@@ -280,31 +262,16 @@ export function LoginAssistModal() {
 
         {/* Browser toolbar */}
         <div className="flex items-center gap-1.5 px-3 py-2 border-b border-border/30 bg-zinc-950/60 shrink-0">
-          <button
-            type="button"
-            onClick={handleBack}
-            disabled={signalled}
-            className="flex items-center justify-center h-7 w-7 rounded hover:bg-zinc-800 text-muted-foreground hover:text-foreground disabled:opacity-30 transition"
-            title="Back"
-          >
+          <button type="button" onClick={handleBack} disabled={signalled}
+            className="flex items-center justify-center h-7 w-7 rounded hover:bg-zinc-800 text-muted-foreground hover:text-foreground disabled:opacity-30 transition" title="Back">
             <ChevronLeft className="w-4 h-4" />
           </button>
-          <button
-            type="button"
-            onClick={handleForward}
-            disabled={signalled}
-            className="flex items-center justify-center h-7 w-7 rounded hover:bg-zinc-800 text-muted-foreground hover:text-foreground disabled:opacity-30 transition"
-            title="Forward"
-          >
+          <button type="button" onClick={handleForward} disabled={signalled}
+            className="flex items-center justify-center h-7 w-7 rounded hover:bg-zinc-800 text-muted-foreground hover:text-foreground disabled:opacity-30 transition" title="Forward">
             <ChevronRight className="w-4 h-4" />
           </button>
-          <button
-            type="button"
-            onClick={handleReload}
-            disabled={signalled || navigating}
-            className="flex items-center justify-center h-7 w-7 rounded hover:bg-zinc-800 text-muted-foreground hover:text-foreground disabled:opacity-30 transition"
-            title="Reload"
-          >
+          <button type="button" onClick={handleReload} disabled={signalled || navigating}
+            className="flex items-center justify-center h-7 w-7 rounded hover:bg-zinc-800 text-muted-foreground hover:text-foreground disabled:opacity-30 transition" title="Reload">
             <RotateCw className={`w-3.5 h-3.5 ${navigating ? "animate-spin" : ""}`} />
           </button>
           <div className="flex-1 mx-1">
@@ -312,10 +279,7 @@ export function LoginAssistModal() {
               type="text"
               value={addressBarFocused ? addressBarValue : (currentUrl || addressBarValue)}
               onChange={(e) => setAddressBarValue(e.target.value)}
-              onFocus={() => {
-                setAddressBarFocused(true);
-                setAddressBarValue(currentUrl);
-              }}
+              onFocus={() => { setAddressBarFocused(true); setAddressBarValue(currentUrl); }}
               onBlur={() => setAddressBarFocused(false)}
               onKeyDown={handleAddressKeyDown}
               disabled={signalled}
@@ -332,29 +296,36 @@ export function LoginAssistModal() {
           <p className="text-xs text-muted-foreground leading-relaxed">
             {isManual ? (
               <>
-                <strong className="text-foreground">Use the browser above</strong> to navigate
-                to {session.retailer} and complete sign-in yourself — use the back/forward buttons,
-                type a URL in the bar, or click the live browser below. When you are fully
-                signed in, click <strong className="text-emerald-400">I'm Done</strong> — your
-                session will be saved and future logins will happen automatically.
+                <strong className="text-foreground">Click anywhere in the browser</strong> to
+                focus it, then type freely — it works just like a real browser. Navigate to{" "}
+                {session.retailer} and sign in. When fully signed in, click{" "}
+                <strong className="text-emerald-400">I'm Signed In</strong> — your session is
+                saved and future logins happen automatically.
               </>
             ) : (
               <>
                 The bot couldn't find the login form.{" "}
-                <strong className="text-foreground">Click the image</strong> to navigate the live
-                browser — open menus, click Sign In, reach the login page. Use the keyboard bar to
-                type. When the login form is visible, click{" "}
+                <strong className="text-foreground">Click the browser</strong> to interact —
+                navigate to the login page, then click{" "}
                 <strong className="text-emerald-400">I'm Done</strong> and the bot fills your
-                credentials automatically.
+                credentials automatically. Click the browser and type freely — no separate
+                keyboard bar needed.
               </>
             )}
           </p>
         </div>
 
-        {/* Screenshot */}
-        <div className="px-5 pb-2 flex-1 min-h-0 overflow-hidden">
+        {/* Screenshot — focusable so keystrokes go straight to the browser */}
+        <div className="px-5 pb-3 flex-1 min-h-0 overflow-hidden">
           <div
-            className="relative rounded-lg overflow-hidden border border-border/30 bg-black select-none"
+            ref={screenWrapperRef}
+            tabIndex={0}
+            onKeyDown={forwardKey}
+            onFocus={() => setBrowserFocused(true)}
+            onBlur={() => setBrowserFocused(false)}
+            className={`relative rounded-lg overflow-hidden border bg-black select-none outline-none transition ${
+              browserFocused ? "border-blue-500/60 ring-1 ring-blue-500/30" : "border-border/30"
+            }`}
             style={{ minHeight: 200, cursor: "crosshair" }}
           >
             {screenshotSrc ? (
@@ -371,10 +342,8 @@ export function LoginAssistModal() {
                   style={{ userSelect: "none", WebkitUserSelect: "none" }}
                 />
                 {clickFeedback && (
-                  <div
-                    className="absolute pointer-events-none"
-                    style={{ left: clickFeedback.x, top: clickFeedback.y, transform: "translate(-50%,-50%)" }}
-                  >
+                  <div className="absolute pointer-events-none"
+                    style={{ left: clickFeedback.x, top: clickFeedback.y, transform: "translate(-50%,-50%)" }}>
                     <div className="h-7 w-7 rounded-full border-2 border-blue-400 bg-blue-400/25 animate-ping" />
                   </div>
                 )}
@@ -388,42 +357,21 @@ export function LoginAssistModal() {
           </div>
           <p className="mt-1.5 text-[11px] text-muted-foreground text-center">
             <MousePointer className="inline w-3 h-3 mr-1 -mt-0.5" />
-            Click or hold to interact · Scroll to scroll the page
+            {browserFocused
+              ? "Keyboard active — typing goes to the browser"
+              : "Click the browser to focus, then type freely · Scroll to scroll"}
           </p>
-        </div>
-
-        {/* Keyboard bar */}
-        <div className="px-5 pb-2 shrink-0">
-          <div className="flex items-center gap-2 rounded-md border border-border/50 bg-zinc-950 px-3 py-1.5">
-            <Keyboard className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-            <input
-              type="text"
-              value={typeBuffer}
-              onChange={handleTypeChange}
-              onKeyDown={handleTypeKeyDown}
-              disabled={signalled}
-              placeholder="Click here then type to send keystrokes to the browser…"
-              className="flex-1 bg-transparent text-xs text-foreground placeholder:text-muted-foreground/50 outline-none"
-            />
-          </div>
         </div>
 
         {/* Actions */}
         <div className="flex items-center gap-3 px-5 py-3 border-t border-border/40 bg-zinc-950/40 shrink-0">
-          <Button
-            onClick={handleDone}
-            disabled={signalled}
-            className="flex-1 gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
-          >
+          <Button onClick={handleDone} disabled={signalled}
+            className="flex-1 gap-2 bg-emerald-600 hover:bg-emerald-700 text-white">
             <CheckCircle className="w-4 h-4" />
             {isManual ? "I'm Signed In — Save Session" : "I'm Done — Continue Bot"}
           </Button>
-          <Button
-            variant="outline"
-            onClick={handleGiveUp}
-            disabled={signalled}
-            className="gap-2 border-red-500/40 text-red-400 hover:bg-red-500/10"
-          >
+          <Button variant="outline" onClick={handleGiveUp} disabled={signalled}
+            className="gap-2 border-red-500/40 text-red-400 hover:bg-red-500/10">
             <XCircle className="w-4 h-4" />
             {isManual ? "Cancel" : "Give Up — Cancel Login"}
           </Button>

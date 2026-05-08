@@ -178,6 +178,18 @@ export async function relayScroll(
   } catch { return false; }
 }
 
+export async function relayType(taskId: number, text: string): Promise<boolean> {
+  const s = sessions.get(taskId);
+  if (!s) return false;
+  try { await s.page.keyboard.type(text); return true; } catch { return false; }
+}
+
+export async function relayKey(taskId: number, key: string): Promise<boolean> {
+  const s = sessions.get(taskId);
+  if (!s) return false;
+  try { await s.page.keyboard.press(key); return true; } catch { return false; }
+}
+
 export function getScreenshot(taskId: number): Buffer | null {
   const session = sessions.get(taskId);
   if (!session) return null;

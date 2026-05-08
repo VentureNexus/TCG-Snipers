@@ -2,7 +2,7 @@ import { Router, type IRouter } from "express";
 import { eq, and } from "drizzle-orm";
 import { db, retailerAccountsTable } from "@workspace/db";
 import { encrypt, decrypt } from "../lib/crypto";
-import { loadSession } from "../lib/retailers/sessionCache";
+import { loadSession, clearSession } from "../lib/retailers/sessionCache";
 import { loginRetailer } from "../lib/retailers/loginOnly";
 
 const router: IRouter = Router();
@@ -89,6 +89,8 @@ router.patch("/retailer-accounts/:id", async (req, res): Promise<void> => {
 router.delete("/retailer-accounts/:id", async (req, res): Promise<void> => {
   const id = parseInt(req.params.id);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  const [row] = await db.select().from(retailerAccountsTable).where(eq(retailerAccountsTable.id, id));
+  if (row) clearSession(row.retailer, row.email);
   await db.delete(retailerAccountsTable).where(eq(retailerAccountsTable.id, id));
   res.sendStatus(204);
 });
