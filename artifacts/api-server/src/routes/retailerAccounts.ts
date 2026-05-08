@@ -158,14 +158,22 @@ router.post("/retailer-accounts/:id/manual-login", async (req, res): Promise<voi
       ? getOxylabsProxy(appSettings.oxylabsUsername, appSettings.oxylabsPassword)
       : null;
 
+    console.log(
+      `[manual-login] proxy=${manualProxy ? `${manualProxy.host}:${manualProxy.port} user=${manualProxy.username} pass=${manualProxy.password ? "set" : "MISSING"}` : "none (direct)"}`
+    );
+
     const browser = await createBrowser(manualProxy);
     const context = await createStealthContext(browser);
     const page = await context.newPage();
     await page.setDefaultNavigationTimeout(30000);
 
-    // Navigate to the retailer homepage (not the login page — let the user
-    // navigate there themselves so we capture the full interaction path)
-    await page.goto(homepage, { waitUntil: "domcontentloaded", timeout: 20000 }).catch(() => {});
+    // Navigate to the retailer homepage. Log navigation errors (they don't
+    // prevent the session from opening — the user sees whatever loaded).
+    try {
+      await page.goto(homepage, { waitUntil: "domcontentloaded", timeout: 20000 });
+    } catch (navErr) {
+      console.warn(`[manual-login] homepage navigation failed: ${String(navErr)}`);
+    }
 
     // Register the assist session — isManual=true means:
     // 1. The LoginAssistModal shows "manual" mode instructions
