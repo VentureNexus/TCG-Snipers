@@ -5,6 +5,7 @@ import { db, settingsTable } from "@workspace/db";
 import { updateSettingsSchema } from "@workspace/db";
 import { setMaxConcurrency } from "../lib/taskWorker";
 import { setTtlHours } from "../lib/retailers/sessionCache";
+import { getOxylabsProxy, createBrowser, createStealthContext } from "../lib/browser";
 
 const CONCURRENCY_HARD_MAX = 50;
 
@@ -56,6 +57,71 @@ router.put("/settings", async (req, res): Promise<void> => {
   }
   setTtlHours(updated.sessionTtlHours ?? null);
   res.json({ ...stripPrivateFields(updated as unknown as Record<string, unknown>), ...getSystemConcurrencyHint() });
+});
+
+/**
+ * POST /settings/test-oxylabs
+ * Launches a headless browser with the configured Oxylabs proxy, fetches
+ * https://api.ipify.org/ to get the outbound IP, and returns the result.
+ * This lets the user confirm that credentials are correct and traffic is
+ * actually routing through Oxylabs before using it for real login sessions.
+ */
+router.post("/settings/test-oxylabs", async (_req, res): Promise<void> => {
+  const settings = await getOrCreateSettings();
+
+  if (!settings.oxylabsEnabled) {
+    res.json({ ok: false, error: "Oxylabs Web Unblocker is not enabled in Settings." });
+    return;
+  }
+
+  const proxy = getOxylabsProxy(settings.oxylabsUsername, settings.oxylabsPassword);
+  if (!proxy) {
+    res.json({ ok: false, error: "No credentials configured — enter your Oxylabs username and password in Settings and click Save." });
+    return;
+  }
+
+  let browser: import("playwright-core").Browser | null = null;
+  try {
+    browser = await createBrowser(proxy);
+    const context = await createStealthContext(browser);
+    const page = await context.newPage();
+
+    const response = await page.goto("https://api.ipify.org/?format=json", {
+      waitUntil: "domcontentloaded",
+      timeout: 20000,
+    });
+
+    if (!response) {
+      res.json({ ok: false, error: "No response from test URL — proxy may be timing out or blocking the connection." });
+      return;
+    }
+
+    const status = response.status();
+    const body = await page.textContent("body").catch(() => null);
+
+    if (status === 407) {
+      res.json({ ok: false, error: "Proxy returned 407 — credentials are incorrect or the account is not active." });
+      return;
+    }
+    if (status !== 200) {
+      res.json({ ok: false, error: `Unexpected response status ${status}: ${body ?? ""}` });
+      return;
+    }
+
+    let ip = "unknown";
+    try {
+      ip = JSON.parse(body ?? "{}").ip ?? body ?? "unknown";
+    } catch {
+      ip = body ?? "unknown";
+    }
+
+    res.json({ ok: true, ip, message: `Traffic routed through Oxylabs. Outbound IP: ${ip}` });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    res.json({ ok: false, error: `Connection failed: ${msg}` });
+  } finally {
+    if (browser) await browser.close().catch(() => {});
+  }
 });
 
 export { getOrCreateSettings };
