@@ -80,6 +80,8 @@ export default function SettingsPage() {
   const [oxylabsEnabled, setOxylabsEnabled] = useState(false);
   const [oxylabsUsername, setOxylabsUsername] = useState("");
   const [oxylabsPassword, setOxylabsPassword] = useState("");
+  const [oxylabsTesting, setOxylabsTesting] = useState(false);
+  const [oxylabsTestResult, setOxylabsTestResult] = useState<{ ok: boolean; message?: string; error?: string } | null>(null);
   const [discordConnecting, setDiscordConnecting] = useState(false);
 
   const [taskDefaults, setTaskDefaults] = useState<TaskDefaults>(loadTaskDefaults);
@@ -150,6 +152,7 @@ export default function SettingsPage() {
   }, [updateSettingsMutation, toast]);
 
   const handleOxylabsCredentialsSave = useCallback(() => {
+    setOxylabsTestResult(null);
     updateSettingsMutation.mutate(
       { data: { oxylabsUsername, oxylabsPassword } as any },
       {
@@ -158,6 +161,20 @@ export default function SettingsPage() {
       },
     );
   }, [updateSettingsMutation, oxylabsUsername, oxylabsPassword, toast]);
+
+  const handleOxylabsTest = useCallback(async () => {
+    setOxylabsTesting(true);
+    setOxylabsTestResult(null);
+    try {
+      const resp = await fetch(`${getApiBase()}/api/settings/test-oxylabs`, { method: "POST" });
+      const data = await resp.json();
+      setOxylabsTestResult(data);
+    } catch {
+      setOxylabsTestResult({ ok: false, error: "Request to test endpoint failed — server may be restarting." });
+    } finally {
+      setOxylabsTesting(false);
+    }
+  }, []);
 
   useEffect(() => {
     if (isError) {
@@ -626,24 +643,39 @@ export default function SettingsPage() {
                     disabled={saving}
                   />
                 </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
                     <div className={`h-2 w-2 rounded-full shrink-0 ${oxylabsUsername && oxylabsPassword ? "bg-[#23a55a]" : "bg-muted-foreground/40"}`} />
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-muted-foreground truncate">
                       {oxylabsUsername && oxylabsPassword
                         ? <span>Endpoint: <span className="font-mono">unblock.oxylabs.io:60000</span></span>
                         : "Enter your Oxylabs Sub-user credentials above"}
                     </p>
                   </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={handleOxylabsCredentialsSave}
-                    disabled={saving}
-                  >
-                    Save
-                  </Button>
+                  <div className="flex gap-2 shrink-0">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleOxylabsCredentialsSave}
+                      disabled={saving}
+                    >
+                      Save
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={handleOxylabsTest}
+                      disabled={oxylabsTesting || saving || !oxylabsEnabled}
+                    >
+                      {oxylabsTesting ? "Testing…" : "Test Connection"}
+                    </Button>
+                  </div>
                 </div>
+                {oxylabsTestResult && (
+                  <div className={`rounded-md border px-3 py-2 text-xs ${oxylabsTestResult.ok ? "border-green-500/30 bg-green-500/10 text-green-400" : "border-destructive/30 bg-destructive/10 text-destructive"}`}>
+                    {oxylabsTestResult.ok ? oxylabsTestResult.message : oxylabsTestResult.error}
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>

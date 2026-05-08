@@ -1,0 +1,99 @@
+TCG Snipers Diagnostic Report
+Generated: 2026-05-08T19:20:20.484Z
+Version: 1.0.70
+
+=== Server Status ===
+API alive: true
+Port: 8080
+Start OK: true
+Uptime: 5m 56s
+
+
+=== Server Requests (last 200) ===
+02:20:11 PM  GET    /login-assist/active                     200  0ms
+02:20:11 PM  GET    /login-assist/costco-1778268001685/screenshot 200  1ms
+02:20:11 PM  GET    /login-assist/costco-1778268001685/url   200  1ms
+02:20:11 PM  GET    /login-assist/costco-1778268001685/screenshot 200  1ms
+02:20:11 PM  GET    /login-assist/costco-1778268001685/screenshot 200  1ms
+02:20:12 PM  GET    /login-assist/costco-1778268001685/screenshot 200  1ms
+02:20:12 PM  GET    /tasks                                   304  4ms
+02:20:12 PM  GET    /login-assist/costco-1778268001685/screenshot 200  1ms
+02:20:12 PM  GET    /login-assist/costco-1778268001685/screenshot 200  1ms
+02:20:12 PM  GET    /login-assist/costco-1778268001685/screenshot 200  1ms
+02:20:12 PM  GET    /login-assist/costco-1778268001685/url   200  0ms
+02:20:12 PM  GET    /login-assist/costco-1778268001685/screenshot 200  1ms
+02:20:12 PM  GET    /login-assist/costco-1778268001685/screenshot 200  1ms
+02:20:13 PM  GET    /login-assist/costco-1778268001685/screenshot 200  1ms
+02:20:13 PM  GET    /login-assist/costco-1778268001685/screenshot 200  1ms
+02:20:13 PM  POST   /login-assist/costco-1778268001685/give-up 200  0ms
+02:20:13 PM  GET    /login-assist/costco-1778268001685/screenshot 404  0ms
+02:19:39 PM  POST   /retailer-accounts/67/login              200  33.5s
+02:20:13 PM  GET    /login-assist/costco-1778268001685/screenshot 404  0ms
+02:20:13 PM  GET    /login-assist/costco-1778268001685/screenshot 404  1ms
+02:20:13 PM  GET    /login-assist/active                     200  1ms
+02:20:14 PM  GET    /tasks                                   304  6ms
+02:20:14 PM  GET    /analytics/summary                       304  16ms
+02:20:15 PM  GET    /settings                                200  5ms
+02:20:15 PM  GET    /checkout-results                        304  6ms
+02:20:15 PM  GET    /login-assist/active                     200  0ms
+02:20:16 PM  GET    /tasks                                   304  7ms
+02:20:17 PM  GET    /analytics/summary                       304  20ms
+02:20:17 PM  GET    /login-assist/active                     200  1ms
+02:20:18 PM  GET    /tasks                                   304  7ms
+
+=== Client Errors (3) ===
+02:20:13 PM  GET    /api/login-assist/costco-1778268001685/screenshot 404  5ms  
+02:20:13 PM  GET    /api/login-assist/costco-1778268001685/screenshot 404  4ms  
+02:20:13 PM  GET    /api/login-assist/costco-1778268001685/screenshot 404  8ms  
+
+=== Client Requests (last 50) ===
+02:20:09 PM  GET    /api/login-assist/costco-1778268001685/url 200  5ms
+02:20:09 PM  GET    /api/login-assist/costco-1778268001685/screenshot 200  6ms
+02:20:09 PM  GET    /api/login-assist/costco-1778268001685/screenshot 200  5ms
+02:20:10 PM  GET    /api/login-assist/costco-1778268001685/screenshot 200  7ms
+02:20:10 PM  GET    /api/tasks                               200  15ms
+02:20:10 PM  GET    /api/login-assist/costco-1778268001685/screenshot 200  6ms
+02:20:10 PM  GET    /api/login-assist/costco-1778268001685/screenshot 200  7ms
+02:20:10 PM  GET    /api/login-assist/costco-1778268001685/screenshot 200  6ms
+02:20:10 PM  GET    /api/login-assist/costco-1778268001685/url 200  3ms
+02:20:10 PM  GET    /api/login-assist/costco-1778268001685/screenshot 200  6ms
+02:20:10 PM  GET    /api/login-assist/costco-1778268001685/screenshot 200  2ms
+02:20:11 PM  GET    /api/login-assist/costco-1778268001685/screenshot 200  5ms
+02:20:11 PM  GET    /api/login-assist/costco-1778268001685/screenshot 200  9ms
+02:20:11 PM  GET    /api/analytics/summary                   200  26ms
+02:20:11 PM  GET    /api/login-assist/costco-1778268001685/screenshot 200  2ms
+02:20:11 PM  GET    /api/login-assist/costco-1778268001685/screenshot 200  4ms
+02:20:11 PM  GET    /api/login-assist/costco-1778268001685/screenshot 200  7ms
+02:20:11 PM  GET    /api/login-assist/active                 200  4ms
+02:20:11 PM  GET    /api/login-assist/costco-1778268001685/screenshot 200  3ms
+02:20:11 PM  GET    /api/login-assist/costco-1778268001685/url 200  3ms
+02:20:11 PM  GET    /api/login-assist/costco-1778268001685/screenshot 200  8ms
+02:20:11 PM  GET    /api/login-assist/costco-1778268001685/screenshot 200  10ms
+02:20:12 PM  GET    /api/login-assist/costco-1778268001685/screenshot 200  6ms
+02:20:12 PM  GET    /api/tasks                               200  8ms
+02:20:12 PM  GET    /api/login-assist/costco-1778268001685/screenshot 200  10ms
+02:20:12 PM  GET    /api/login-assist/costco-1778268001685/screenshot 200  7ms
+02:20:12 PM  GET    /api/login-assist/costco-1778268001685/screenshot 200  6ms
+02:20:12 PM  GET    /api/login-assist/costco-1778268001685/url 200  5ms
+02:20:12 PM  GET    /api/login-assist/costco-1778268001685/screenshot 200  6ms
+02:20:12 PM  GET    /api/login-assist/costco-1778268001685/screenshot 200  8ms
+02:20:13 PM  GET    /api/login-assist/costco-1778268001685/screenshot 200  6ms
+02:20:13 PM  GET    /api/login-assist/costco-1778268001685/screenshot 200  5ms
+02:20:13 PM  POST   /api/login-assist/costco-1778268001685/give-up 200  7ms
+02:20:13 PM  GET    /api/login-assist/costco-1778268001685/screenshot 404  5ms
+02:19:39 PM  POST   /api/retailer-accounts/67/login          200  33.5s
+02:20:13 PM  GET    /api/login-assist/costco-1778268001685/screenshot 404  4ms
+02:20:13 PM  GET    /api/login-assist/costco-1778268001685/screenshot 404  8ms
+02:20:13 PM  GET    /api/login-assist/active                 200  6ms
+02:20:14 PM  GET    /api/tasks                               200  10ms
+02:20:14 PM  GET    /api/analytics/summary                   200  21ms
+02:20:15 PM  GET    /api/settings                            200  32ms
+02:20:15 PM  GET    /api/checkout-results                    200  33ms
+02:20:15 PM  GET    /api/login-assist/active                 200  4ms
+02:20:16 PM  GET    /api/tasks                               200  13ms
+02:20:17 PM  GET    /api/analytics/summary                   200  26ms
+02:20:17 PM  GET    /api/login-assist/active                 200  6ms
+02:20:18 PM  GET    /api/tasks                               200  13ms
+02:20:19 PM  GET    /api/login-assist/active                 200  5ms
+02:20:20 PM  GET    /api/tasks                               200  8ms
+02:20:20 PM  GET    /api/analytics/summary                   200  19ms
