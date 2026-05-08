@@ -1117,6 +1117,8 @@ function RetailerAccountsDialog({ open, onOpenChange, profiles }: RetailerAccoun
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({});
   const [loggingIn, setLoggingIn] = useState<Set<number>>(new Set());
+  const [loginFailed, setLoginFailed] = useState<Set<number>>(new Set());
+  const [manualLoggingIn, setManualLoggingIn] = useState<Set<number>>(new Set());
 
   // Form state for add/edit
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -1149,14 +1151,36 @@ function RetailerAccountsDialog({ open, onOpenChange, profiles }: RetailerAccoun
       if (data.success) {
         toast({ title: `${retailer} — signed in`, description: "Session cached — login will be skipped at checkout" });
         setAccounts((prev) => prev.map((a) => a.id === id ? { ...a, sessionActive: true } : a));
+        setLoginFailed((prev) => { const s = new Set(prev); s.delete(id); return s; });
       } else {
-        toast({ title: `${retailer} — sign-in failed`, description: data.message, variant: "destructive" });
+        toast({ title: `${retailer} — sign-in failed`, description: data.message ?? "Try signing in manually instead.", variant: "destructive" });
         setAccounts((prev) => prev.map((a) => a.id === id ? { ...a, sessionActive: false } : a));
+        setLoginFailed((prev) => new Set([...prev, id]));
       }
     } catch {
       toast({ title: "Sign-in request failed", variant: "destructive" });
+      setLoginFailed((prev) => new Set([...prev, id]));
     } finally {
       setLoggingIn((prev) => { const s = new Set(prev); s.delete(id); return s; });
+    }
+  }, [apiBase, toast]);
+
+  const triggerManualLogin = useCallback(async (id: number, retailer: string) => {
+    setManualLoggingIn((prev) => new Set([...prev, id]));
+    try {
+      const res = await fetch(`${apiBase}/api/retailer-accounts/${id}/manual-login`, { method: "POST" });
+      const data = await res.json() as { ok: boolean; error?: string };
+      if (data.ok) {
+        // LoginAssistModal will appear automatically once it polls and sees the active session
+        toast({ title: `${retailer} — browser opening…`, description: "Complete the sign-in, then click 'I'm Signed In' in the popup." });
+        setLoginFailed((prev) => { const s = new Set(prev); s.delete(id); return s; });
+      } else {
+        toast({ title: `${retailer} — couldn't open browser`, description: data.error ?? "Unknown error", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Failed to start manual login", variant: "destructive" });
+    } finally {
+      setManualLoggingIn((prev) => { const s = new Set(prev); s.delete(id); return s; });
     }
   }, [apiBase, toast]);
 
@@ -1270,8 +1294,10 @@ function RetailerAccountsDialog({ open, onOpenChange, profiles }: RetailerAccoun
           ) : (
             accounts.map((acct) => {
               const isLoggingIn = loggingIn.has(acct.id);
+              const isFailed = loginFailed.has(acct.id);
+              const isManualLoggingIn = manualLoggingIn.has(acct.id);
               return (
-                <div key={acct.id} className="flex items-center justify-between gap-3 rounded-lg border border-border/50 px-3 py-2.5 bg-muted/10">
+                <div key={acct.id} className={`flex items-center justify-between gap-3 rounded-lg border px-3 py-2.5 bg-muted/10 ${isFailed ? "border-orange-500/40 bg-orange-500/5" : "border-border/50"}`}>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       {/* Session status dot */}
@@ -1279,16 +1305,34 @@ function RetailerAccountsDialog({ open, onOpenChange, profiles }: RetailerAccoun
                         <Loader2 className="w-2.5 h-2.5 animate-spin text-muted-foreground shrink-0" />
                       ) : (
                         <span
-                          className={`w-2 h-2 rounded-full shrink-0 ${acct.sessionActive ? "bg-green-500" : "bg-red-500"}`}
-                          title={acct.sessionActive ? "Session active — login cached" : "Not signed in"}
+                          className={`w-2 h-2 rounded-full shrink-0 ${acct.sessionActive ? "bg-green-500" : isFailed ? "bg-orange-500" : "bg-red-500"}`}
+                          title={acct.sessionActive ? "Session active — login cached" : isFailed ? "Auto sign-in failed — sign in manually" : "Not signed in"}
                         />
                       )}
                       <span className="text-xs font-medium text-foreground">{acct.retailer}</span>
                       <span className="text-[10px] text-muted-foreground bg-muted/30 px-1.5 py-0.5 rounded">{profileName(acct.profileId)}</span>
+                      {isFailed && (
+                        <span className="text-[10px] text-orange-400 font-medium">sign-in failed</span>
+                      )}
                     </div>
                     <p className="text-xs text-muted-foreground truncate mt-0.5 pl-4">{acct.email}</p>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
+                    {isFailed && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 text-[11px] gap-1 text-orange-400 hover:text-orange-300 hover:bg-orange-500/10"
+                        onClick={() => triggerManualLogin(acct.id, acct.retailer)}
+                        disabled={isManualLoggingIn}
+                        title="Sign in manually using your browser"
+                      >
+                        {isManualLoggingIn
+                          ? <Loader2 className="w-3 h-3 animate-spin" />
+                          : <KeyRound className="w-3 h-3" />}
+                        Manual
+                      </Button>
+                    )}
                     <Button
                       variant="ghost" size="icon"
                       className="h-7 w-7 text-muted-foreground hover:text-foreground"
