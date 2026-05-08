@@ -154,7 +154,9 @@ router.post("/retailer-accounts/:id/manual-login", async (req, res): Promise<voi
 
     // Apply Oxylabs proxy to manual login sessions when globally enabled.
     const appSettings = await getOrCreateSettings();
-    const manualProxy = appSettings.oxylabsEnabled ? getOxylabsProxy() : null;
+    const manualProxy = appSettings.oxylabsEnabled
+      ? getOxylabsProxy(appSettings.oxylabsUsername, appSettings.oxylabsPassword)
+      : null;
 
     const browser = await createBrowser(manualProxy);
     const context = await createStealthContext(browser);
