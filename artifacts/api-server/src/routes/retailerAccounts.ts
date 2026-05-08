@@ -116,7 +116,16 @@ router.post("/retailer-accounts/:id/login", async (req, res): Promise<void> => {
     return;
   }
 
-  const result = await loginRetailer(row.retailer, row.email, password);
+  const appSettings = await getOrCreateSettings();
+  const loginProxy = appSettings.oxylabsEnabled
+    ? getOxylabsProxy(appSettings.oxylabsUsername, appSettings.oxylabsPassword)
+    : null;
+
+  console.log(
+    `[auto-login] retailer=${row.retailer} proxy=${loginProxy ? `${loginProxy.host}:${loginProxy.port} user=${loginProxy.username}` : "none (direct)"}`
+  );
+
+  const result = await loginRetailer(row.retailer, row.email, password, loginProxy ?? undefined);
   res.json({ ...result, sessionActive: result.success });
 });
 
