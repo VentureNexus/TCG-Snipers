@@ -293,18 +293,20 @@ export async function createStealthContext(
 }
 
 /**
- * Returns a ProxyConfig for the Oxylabs Web Unblocker if credentials are
- * configured via environment variables, otherwise returns null.
+ * Returns a ProxyConfig for the Oxylabs Web Unblocker.
+ * Credentials are resolved in order:
+ *   1. Explicit params (from Settings DB — required for packaged Electron app)
+ *   2. Environment variables (fallback for dev/server environments)
  */
-export function getOxylabsProxy(): ProxyConfig | null {
-  const username = process.env.OXYLABS_USERNAME;
-  const password = process.env.OXYLABS_PASSWORD;
-  if (!username || !password) return null;
+export function getOxylabsProxy(username?: string, password?: string): ProxyConfig | null {
+  const u = (username?.trim()) || process.env.OXYLABS_USERNAME;
+  const p = (password?.trim()) || process.env.OXYLABS_PASSWORD;
+  if (!u || !p) return null;
   return {
     host: "unblock.oxylabs.io",
     port: "60000",
-    username,
-    password,
+    username: u,
+    password: p,
   };
 }
 

@@ -78,6 +78,8 @@ export default function SettingsPage() {
 
   const [captchaAssistEnabled, setCaptchaAssistEnabled] = useState(false);
   const [oxylabsEnabled, setOxylabsEnabled] = useState(false);
+  const [oxylabsUsername, setOxylabsUsername] = useState("");
+  const [oxylabsPassword, setOxylabsPassword] = useState("");
   const [discordConnecting, setDiscordConnecting] = useState(false);
 
   const [taskDefaults, setTaskDefaults] = useState<TaskDefaults>(loadTaskDefaults);
@@ -116,6 +118,8 @@ export default function SettingsPage() {
     if (settingsData) {
       setCaptchaAssistEnabled(settingsData.captchaAssist ?? false);
       setOxylabsEnabled(settingsData.oxylabsEnabled ?? false);
+      setOxylabsUsername((settingsData as any).oxylabsUsername ?? "");
+      setOxylabsPassword((settingsData as any).oxylabsPassword ?? "");
     }
   }, [settingsData, formInitialized]);
 
@@ -144,6 +148,16 @@ export default function SettingsPage() {
       },
     );
   }, [updateSettingsMutation, toast]);
+
+  const handleOxylabsCredentialsSave = useCallback(() => {
+    updateSettingsMutation.mutate(
+      { data: { oxylabsUsername, oxylabsPassword } as any },
+      {
+        onSuccess: () => toast({ title: "Oxylabs credentials saved" }),
+        onError: () => toast({ title: "Failed to save credentials", variant: "destructive" }),
+      },
+    );
+  }, [updateSettingsMutation, oxylabsUsername, oxylabsPassword, toast]);
 
   useEffect(() => {
     if (isError) {
@@ -588,11 +602,47 @@ export default function SettingsPage() {
                   <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${oxylabsEnabled ? "translate-x-6" : "translate-x-1"}`} />
                 </button>
               </div>
-              <div className="rounded-lg border border-border/50 px-4 py-3 bg-muted/10 flex items-center gap-3">
-                <div className="h-2 w-2 rounded-full bg-[#23a55a] shrink-0" />
-                <div>
-                  <p className="text-xs font-medium">Credentials configured</p>
-                  <p className="text-xs text-muted-foreground">Proxy endpoint: <span className="font-mono">unblock.oxylabs.io:60000</span></p>
+              <div className="space-y-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="oxylabsUsername">Oxylabs Username</Label>
+                  <Input
+                    id="oxylabsUsername"
+                    value={oxylabsUsername}
+                    onChange={(e) => setOxylabsUsername(e.target.value)}
+                    placeholder="customer-YOURUSER"
+                    autoComplete="off"
+                    disabled={saving}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="oxylabsPassword">Oxylabs Password</Label>
+                  <Input
+                    id="oxylabsPassword"
+                    type="password"
+                    value={oxylabsPassword}
+                    onChange={(e) => setOxylabsPassword(e.target.value)}
+                    placeholder="••••••••"
+                    autoComplete="new-password"
+                    disabled={saving}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className={`h-2 w-2 rounded-full shrink-0 ${oxylabsUsername && oxylabsPassword ? "bg-[#23a55a]" : "bg-muted-foreground/40"}`} />
+                    <p className="text-xs text-muted-foreground">
+                      {oxylabsUsername && oxylabsPassword
+                        ? <span>Endpoint: <span className="font-mono">unblock.oxylabs.io:60000</span></span>
+                        : "Enter your Oxylabs Sub-user credentials above"}
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleOxylabsCredentialsSave}
+                    disabled={saving}
+                  >
+                    Save
+                  </Button>
                 </div>
               </div>
             </CardContent>

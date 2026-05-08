@@ -1,0 +1,107 @@
+TCG Snipers Diagnostic Report
+Generated: 2026-05-08T18:52:29.268Z
+Version: 1.0.69
+
+=== Server Status ===
+API alive: true
+Port: 8080
+Start OK: true
+Uptime: 3m 38s
+
+
+=== Server Requests (last 200) ===
+01:52:01 PM  GET    /tasks                                   304  3ms
+01:52:01 PM  GET    /analytics/summary                       304  16ms
+01:52:02 PM  GET    /login-assist/active                     200  0ms
+01:52:03 PM  GET    /tasks                                   304  7ms
+01:52:04 PM  GET    /analytics/summary                       304  19ms
+01:52:04 PM  GET    /login-assist/active                     200  1ms
+01:52:05 PM  GET    /tasks                                   304  5ms
+01:52:06 PM  GET    /login-assist/active                     200  0ms
+01:52:07 PM  GET    /tasks                                   304  5ms
+01:52:07 PM  GET    /analytics/summary                       304  17ms
+01:52:08 PM  GET    /login-assist/active                     200  0ms
+01:52:09 PM  GET    /tasks                                   304  4ms
+01:52:10 PM  GET    /analytics/summary                       304  20ms
+01:52:10 PM  GET    /login-assist/active                     200  1ms
+01:52:13 PM  GET    /login-assist/active                     200  1ms
+01:52:15 PM  GET    /login-assist/active                     200  1ms
+01:52:17 PM  GET    /login-assist/active                     200  0ms
+01:52:19 PM  GET    /login-assist/active                     200  0ms
+01:52:21 PM  GET    /login-assist/active                     200  1ms
+01:52:22 PM  GET    /tasks                                   304  7ms
+01:52:22 PM  GET    /profiles                                304  5ms
+01:52:22 PM  GET    /analytics/summary                       304  22ms
+01:52:22 PM  GET    /settings                                304  6ms
+01:52:22 PM  GET    /checkout-results                        304  4ms
+01:52:22 PM  GET    /login-assist/active                     200  0ms
+01:52:24 PM  GET    /tasks                                   304  4ms
+01:52:24 PM  GET    /login-assist/active                     200  1ms
+01:52:25 PM  GET    /analytics/summary                       304  21ms
+01:52:26 PM  GET    /tasks                                   304  5ms
+01:52:26 PM  GET    /login-assist/active                     200  1ms
+
+=== Client Errors (11) ===
+01:51:43 PM  GET    /api/login-assist/costco-1778266197908/screenshot 404  3ms  
+01:51:43 PM  GET    /api/login-assist/costco-1778266197908/screenshot 404  3ms  
+01:51:43 PM  GET    /api/login-assist/costco-1778266197908/screenshot 404  7ms  
+01:51:43 PM  GET    /api/login-assist/costco-1778266197908/screenshot 404  5ms  
+01:51:43 PM  GET    /api/login-assist/costco-1778266197908/screenshot 404  4ms  
+01:51:44 PM  GET    /api/login-assist/costco-1778266197908/screenshot 404  5ms  
+01:51:44 PM  GET    /api/login-assist/costco-1778266197908/screenshot 404  5ms  
+01:51:44 PM  GET    /api/login-assist/costco-1778266197908/screenshot 404  3ms  
+01:51:44 PM  GET    /api/login-assist/costco-1778266197908/screenshot 404  5ms  
+01:51:44 PM  GET    /api/login-assist/costco-1778266197908/screenshot 404  4ms  
+01:51:44 PM  GET    /api/login-assist/costco-1778266197908/screenshot 404  6ms  
+
+=== Client Requests (last 50) ===
+01:51:49 PM  GET    /api/analytics/summary                   200  20ms
+01:51:50 PM  GET    /api/login-assist/active                 200  3ms
+01:51:51 PM  GET    /api/tasks                               200  11ms
+01:51:52 PM  GET    /api/analytics/summary                   200  22ms
+01:51:52 PM  GET    /api/login-assist/active                 200  4ms
+01:51:53 PM  GET    /api/tasks                               200  8ms
+01:51:54 PM  GET    /api/login-assist/active                 200  4ms
+01:51:55 PM  GET    /api/tasks                               200  8ms
+01:51:55 PM  GET    /api/analytics/summary                   200  19ms
+01:51:56 PM  GET    /api/login-assist/active                 200  4ms
+01:51:57 PM  GET    /api/settings                            200  32ms
+01:51:57 PM  GET    /api/checkout-results                    200  31ms
+01:51:57 PM  GET    /api/tasks                               200  34ms
+01:51:58 PM  GET    /api/analytics/summary                   200  25ms
+01:51:58 PM  GET    /api/login-assist/active                 200  5ms
+01:51:59 PM  GET    /api/tasks                               200  7ms
+01:52:00 PM  GET    /api/login-assist/active                 200  3ms
+01:52:01 PM  GET    /api/tasks                               200  8ms
+01:52:01 PM  GET    /api/analytics/summary                   200  20ms
+01:52:02 PM  GET    /api/login-assist/active                 200  3ms
+01:52:03 PM  GET    /api/tasks                               200  13ms
+01:52:04 PM  GET    /api/analytics/summary                   200  24ms
+01:52:04 PM  GET    /api/login-assist/active                 200  3ms
+01:52:05 PM  GET    /api/tasks                               200  10ms
+01:52:06 PM  GET    /api/login-assist/active                 200  5ms
+01:52:07 PM  GET    /api/tasks                               200  12ms
+01:52:07 PM  GET    /api/analytics/summary                   200  20ms
+01:52:08 PM  GET    /api/login-assist/active                 200  5ms
+01:52:09 PM  GET    /api/tasks                               200  11ms
+01:52:10 PM  GET    /api/analytics/summary                   200  25ms
+01:52:10 PM  GET    /api/login-assist/active                 200  5ms
+01:52:13 PM  GET    /api/login-assist/active                 200  5ms
+01:52:15 PM  GET    /api/login-assist/active                 200  8ms
+01:52:17 PM  GET    /api/login-assist/active                 200  5ms
+01:52:19 PM  GET    /api/login-assist/active                 200  5ms
+01:52:21 PM  GET    /api/login-assist/active                 200  20ms
+01:52:22 PM  GET    /api/tasks                               200  31ms
+01:52:22 PM  GET    /api/profiles                            200  39ms
+01:52:22 PM  GET    /api/analytics/summary                   200  60ms
+01:52:22 PM  GET    /api/settings                            200  66ms
+01:52:22 PM  GET    /api/checkout-results                    200  71ms
+01:52:22 PM  GET    /api/login-assist/active                 200  5ms
+01:52:24 PM  GET    /api/tasks                               200  8ms
+01:52:24 PM  GET    /api/login-assist/active                 200  5ms
+01:52:25 PM  GET    /api/analytics/summary                   200  27ms
+01:52:26 PM  GET    /api/tasks                               200  9ms
+01:52:26 PM  GET    /api/login-assist/active                 200  5ms
+01:52:28 PM  GET    /api/tasks                               200  11ms
+01:52:28 PM  GET    /api/analytics/summary                   200  19ms
+01:52:28 PM  GET    /api/login-assist/active                 200  5ms
