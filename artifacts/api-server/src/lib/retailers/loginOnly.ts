@@ -8,6 +8,12 @@ import { saveSession, clearSession } from "./sessionCache";
 import { navigateTo, detectChallenge } from "./visualNavigator";
 
 interface RetailerConfig {
+  /**
+   * Optional homepage to visit first before navigating to `url`. Mimics human
+   * browsing behaviour and avoids triggering bot-detection on sites like Costco
+   * that block direct deep-links to their login page.
+   */
+  warmupUrl?: string;
   url: string;
   emailSel: string;
   continueSel?: string;
@@ -103,6 +109,10 @@ const CONFIGS: Record<string, RetailerConfig> = {
     failureCheck: "#username, #password",
   },
   Costco: {
+    // Visit the homepage first so Akamai sets its trust cookies before we
+    // navigate to the login form — landing directly on /LogonForm triggers
+    // an immediate "Access Denied" block.
+    warmupUrl: "https://www.costco.com",
     url: "https://www.costco.com/LogonForm",
     emailSel: "#signInName, input[name='logonId'], input[name='email'], input[type='email']",
     passwordSel: "#logonPassword, input[name='logonPassword'], input[name='password'], input[type='password']",
@@ -180,6 +190,13 @@ export async function loginRetailer(
     const context = await createStealthContext(browser);
     const page = await context.newPage();
     await page.setDefaultNavigationTimeout(30000);
+
+    // If a warmup URL is configured, visit it first so the site can set its
+    // trust cookies (e.g. Akamai) before we navigate to the actual login page.
+    if (config.warmupUrl) {
+      await page.goto(config.warmupUrl, { waitUntil: "domcontentloaded", timeout: 20000 }).catch(() => {});
+      await humanDelay(1500, 3000);
+    }
 
     await page.goto(config.url, { waitUntil: "domcontentloaded" });
 
