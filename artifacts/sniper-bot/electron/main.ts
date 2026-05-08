@@ -60,6 +60,9 @@ const cpuPoller = setInterval(() => {
 cpuPoller.unref();
 
 let mainWindow: BrowserWindow | null = null;
+
+/** Tracks per-account BrowserWindows opened for the "Browser Login" feature. */
+const loginBrowserWindows = new Map<number, BrowserWindow>();
 let apiServer: http.Server | null = null;
 let apiPort = 8080;
 
@@ -791,6 +794,12 @@ const RELEASE_NOTES: Record<string, string> = {
     "- Fixed: app no longer gets permanently stuck on 'API startup failed' after a crash corrupts the database — corruption is detected automatically and the database is reset so the app starts cleanly",
     "- A yellow notice banner appears after auto-recovery so you know your settings may need to be re-entered",
   ].join("\n"),
+  "1.0.74": [
+    "- Browser Login: sign in to any retailer using a real browser window — no proxy or headless tricks, just your normal browser on your own IP",
+    "- After signing in, click 'Save Session' in TCG Snipers — your cookies are imported automatically so the bot skips login at checkout",
+    "- Fixes Costco blank login page: the white screen was caused by Akamai blocking the headless browser; Browser Login bypasses this entirely",
+    "- Available as a 'Browser Login' button on any retailer account when the automated login fails",
+  ].join("\n"),
 };
 
 // Called by the renderer on mount to check if a "What's New" payload is
@@ -846,6 +855,101 @@ function markVersionSeen(seenPath: string, version: string): void {
     fs.writeFileSync(seenPath, JSON.stringify(seen), "utf-8");
   } catch { /* non-fatal */ }
 }
+
+// ── Retailer Browser Login IPC ───────────────────────────────────────────────
+//
+// Opens a native BrowserWindow so the user can sign in with their real browser
+// (their residential IP, no proxy). Cookies are extracted from that window's
+// session and returned so the renderer can POST them to the API for import.
+
+ipcMain.handle("retailer:openLoginWindow", async (_e, { accountId, url, retailer }: { accountId: number; url: string; retailer: string }) => {
+  try {
+    const existing = loginBrowserWindows.get(accountId);
+    if (existing && !existing.isDestroyed()) {
+      existing.focus();
+      return { ok: true };
+    }
+
+    const win = new BrowserWindow({
+      width: 1280,
+      height: 860,
+      title: `Sign in to ${retailer} — TCG Snipers`,
+      webPreferences: {
+        contextIsolation: true,
+        nodeIntegration: false,
+      },
+    });
+
+    win.on("closed", () => {
+      loginBrowserWindows.delete(accountId);
+      writeLog("INFO", `[retailer:browser-login] window closed for accountId=${accountId}`);
+    });
+
+    loginBrowserWindows.set(accountId, win);
+
+    writeLog("INFO", `[retailer:browser-login] opening ${url} for accountId=${accountId} (${retailer})`);
+    await win.loadURL(url);
+    return { ok: true };
+  } catch (err) {
+    writeLog("ERROR", `[retailer:browser-login] openLoginWindow error: ${String(err)}`);
+    return { ok: false, error: err instanceof Error ? err.message : String(err) };
+  }
+});
+
+ipcMain.handle("retailer:extractCookies", async (_e, { accountId, urls }: { accountId: number; urls: string[] }) => {
+  const win = loginBrowserWindows.get(accountId);
+  if (!win || win.isDestroyed()) {
+    return { ok: false, error: "Login window not found — it may have been closed. Please open it again." };
+  }
+
+  try {
+    const allCookies: Electron.Cookie[] = [];
+    for (const url of urls) {
+      const cookies = await win.webContents.session.cookies.get({ url });
+      allCookies.push(...cookies);
+    }
+
+    // Deduplicate by name + domain + path
+    const seen = new Set<string>();
+    const deduped = allCookies.filter((c) => {
+      const key = `${c.name}|${c.domain ?? ""}|${c.path ?? "/"}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+
+    // Convert Electron cookie format → Playwright StorageState cookie format
+    const playwrightCookies = deduped.map((c) => ({
+      name: c.name,
+      value: c.value,
+      domain: c.domain ?? "",
+      path: c.path ?? "/",
+      expires: c.expirationDate ?? -1,
+      httpOnly: c.httpOnly ?? false,
+      secure: c.secure ?? false,
+      sameSite: (
+        c.sameSite === "strict" ? "Strict" :
+        c.sameSite === "lax"    ? "Lax"    : "None"
+      ) as "Strict" | "Lax" | "None",
+    }));
+
+    writeLog("INFO", `[retailer:browser-login] extracted ${playwrightCookies.length} cookies for accountId=${accountId}`);
+    win.close();
+    loginBrowserWindows.delete(accountId);
+
+    return { ok: true, cookies: playwrightCookies };
+  } catch (err) {
+    writeLog("ERROR", `[retailer:browser-login] extractCookies error: ${String(err)}`);
+    return { ok: false, error: err instanceof Error ? err.message : String(err) };
+  }
+});
+
+ipcMain.handle("retailer:closeLoginWindow", (_e, { accountId }: { accountId: number }) => {
+  const win = loginBrowserWindows.get(accountId);
+  if (win && !win.isDestroyed()) win.close();
+  loginBrowserWindows.delete(accountId);
+  return { ok: true };
+});
 
 // ── App lifecycle ────────────────────────────────────────────────────────────
 app.whenReady().then(async () => {

@@ -2,7 +2,7 @@ import { Router, type IRouter } from "express";
 import { eq, and } from "drizzle-orm";
 import { db, retailerAccountsTable } from "@workspace/db";
 import { encrypt, decrypt } from "../lib/crypto";
-import { loadSession, clearSession } from "../lib/retailers/sessionCache";
+import { loadSession, clearSession, saveSession } from "../lib/retailers/sessionCache";
 import { loginRetailer } from "../lib/retailers/loginOnly";
 import { getOrCreateSettings } from "./settings";
 import { getOxylabsProxy } from "../lib/browser";
@@ -221,6 +221,31 @@ router.post("/retailer-accounts/:id/manual-login", async (req, res): Promise<voi
   } else {
     res.status(500).json({ ok: false, error: errorMessage ?? "Failed to start manual login" });
   }
+});
+
+/**
+ * Import a browser-extracted session (cookies) into the Playwright session cache.
+ * Called by the Electron renderer after the user logs in via a native BrowserWindow.
+ * The cookies array must match Playwright's BrowserContextOptions.storageState cookie format.
+ */
+router.post("/retailer-accounts/:id/import-session", async (req, res): Promise<void> => {
+  const id = parseInt(req.params.id);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+
+  const [row] = await db.select().from(retailerAccountsTable).where(eq(retailerAccountsTable.id, id));
+  if (!row) { res.status(404).json({ error: "Account not found" }); return; }
+
+  const { cookies } = req.body as { cookies?: unknown[] };
+  if (!Array.isArray(cookies) || cookies.length === 0) {
+    res.status(400).json({ error: "No cookies provided" });
+    return;
+  }
+
+  const storageState = { cookies: cookies as Parameters<typeof saveSession>[2]["cookies"], origins: [] };
+  saveSession(row.retailer, row.email, storageState);
+
+  console.log(`[import-session] saved ${cookies.length} cookies for ${row.retailer} / ${row.email}`);
+  res.json({ success: true, message: `Session imported — ${cookies.length} cookies saved for ${row.email}` });
 });
 
 /** Internal-only: returns decrypted password. Used by taskWorker only. */

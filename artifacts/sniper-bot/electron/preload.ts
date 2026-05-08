@@ -133,6 +133,20 @@ const api = {
       ramPercent: number;
     }> => ipcRenderer.invoke("system:getMetrics"),
   },
+
+  /**
+   * Browser-based retailer login — opens a real Electron BrowserWindow so the
+   * user can sign in with their normal browser (their residential IP, no proxy),
+   * then extracts the session cookies and imports them into the bot's session.
+   */
+  retailer: {
+    openLoginWindow: (accountId: number, url: string, retailer: string): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke("retailer:openLoginWindow", { accountId, url, retailer }),
+    extractCookies: (accountId: number, urls: string[]): Promise<{ ok: boolean; cookies?: Array<{ name: string; value: string; domain: string; path: string; expires: number; httpOnly: boolean; secure: boolean; sameSite: "Strict" | "Lax" | "None" }>; error?: string }> =>
+      ipcRenderer.invoke("retailer:extractCookies", { accountId, urls }),
+    closeLoginWindow: (accountId: number): Promise<{ ok: boolean }> =>
+      ipcRenderer.invoke("retailer:closeLoginWindow", { accountId }),
+  },
 };
 
 contextBridge.exposeInMainWorld("electronAPI", api);

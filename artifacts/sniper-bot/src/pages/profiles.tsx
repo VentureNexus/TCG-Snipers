@@ -84,6 +84,8 @@ import {
   Eye,
   EyeOff,
   RefreshCw,
+  Globe,
+  CheckCircle2,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { getApiBase } from "@/lib/api-base";
@@ -1094,6 +1096,28 @@ const SUPPORTED_RETAILERS = [
   "Pokemon Center",
 ] as const;
 
+/** URL opened in the native BrowserWindow for each retailer's login page. */
+const RETAILER_LOGIN_URLS: Record<string, string> = {
+  "Amazon":         "https://www.amazon.com/ap/signin",
+  "Walmart":        "https://www.walmart.com/account/login",
+  "Best Buy":       "https://www.bestbuy.com/identity/global/signin",
+  "Target":         "https://www.target.com/account",
+  "Costco":         "https://www.costco.com/LogonForm",
+  "Sam's Club":     "https://www.samsclub.com/account/sign-in",
+  "Pokemon Center": "https://www.pokemoncenter.com/account/login",
+};
+
+/** Cookie extraction URLs per retailer — we pull cookies from these URLs after login. */
+const RETAILER_COOKIE_URLS: Record<string, string[]> = {
+  "Amazon":         ["https://www.amazon.com"],
+  "Walmart":        ["https://www.walmart.com"],
+  "Best Buy":       ["https://www.bestbuy.com"],
+  "Target":         ["https://www.target.com"],
+  "Costco":         ["https://www.costco.com"],
+  "Sam's Club":     ["https://www.samsclub.com"],
+  "Pokemon Center": ["https://www.pokemoncenter.com"],
+};
+
 interface RetailerAccount {
   id: number;
   retailer: string;
@@ -1119,6 +1143,8 @@ function RetailerAccountsDialog({ open, onOpenChange, profiles }: RetailerAccoun
   const [loggingIn, setLoggingIn] = useState<Set<number>>(new Set());
   const [loginFailed, setLoginFailed] = useState<Set<number>>(new Set());
   const [manualLoggingIn, setManualLoggingIn] = useState<Set<number>>(new Set());
+  const [browserLoginId, setBrowserLoginId] = useState<number | null>(null);
+  const [savingBrowserSession, setSavingBrowserSession] = useState(false);
 
   // Form state for add/edit
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -1164,6 +1190,61 @@ function RetailerAccountsDialog({ open, onOpenChange, profiles }: RetailerAccoun
       setLoggingIn((prev) => { const s = new Set(prev); s.delete(id); return s; });
     }
   }, [apiBase, toast]);
+
+  const triggerBrowserLogin = useCallback(async (acct: RetailerAccount) => {
+    const electronAPI = (window as Window & { electronAPI?: { retailer?: { openLoginWindow: (id: number, url: string, retailer: string) => Promise<{ ok: boolean; error?: string }> } } }).electronAPI;
+    if (!electronAPI?.retailer) {
+      toast({ title: "Browser Login is only available in the desktop app", variant: "destructive" });
+      return;
+    }
+    const loginUrl = RETAILER_LOGIN_URLS[acct.retailer] ?? `https://www.${acct.retailer.toLowerCase().replace(/\s+/g, "")}.com`;
+    const result = await electronAPI.retailer.openLoginWindow(acct.id, loginUrl, acct.retailer);
+    if (result.ok) {
+      setBrowserLoginId(acct.id);
+      setLoginFailed((prev) => { const s = new Set(prev); s.delete(acct.id); return s; });
+    } else {
+      toast({ title: `Couldn't open browser window`, description: result.error, variant: "destructive" });
+    }
+  }, [toast]);
+
+  const saveBrowserSession = useCallback(async (acct: RetailerAccount) => {
+    const electronAPI = (window as Window & { electronAPI?: { retailer?: { extractCookies: (id: number, urls: string[]) => Promise<{ ok: boolean; cookies?: unknown[]; error?: string }> } } }).electronAPI;
+    if (!electronAPI?.retailer) return;
+
+    setSavingBrowserSession(true);
+    try {
+      const cookieUrls = RETAILER_COOKIE_URLS[acct.retailer] ?? [`https://www.${acct.retailer.toLowerCase().replace(/\s+/g, "")}.com`];
+      const result = await electronAPI.retailer.extractCookies(acct.id, cookieUrls);
+      if (!result.ok) {
+        toast({ title: "Couldn't extract cookies", description: result.error, variant: "destructive" });
+        return;
+      }
+
+      const res = await fetch(`${apiBase}/api/retailer-accounts/${acct.id}/import-session`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cookies: result.cookies }),
+      });
+      const data = await res.json() as { success?: boolean; message?: string; error?: string };
+      if (data.success) {
+        toast({ title: `${acct.retailer} — session saved`, description: data.message ?? "Login will be skipped at checkout." });
+        setAccounts((prev) => prev.map((a) => a.id === acct.id ? { ...a, sessionActive: true } : a));
+        setBrowserLoginId(null);
+      } else {
+        toast({ title: "Session import failed", description: data.error ?? "Unknown error", variant: "destructive" });
+      }
+    } catch (err) {
+      toast({ title: "Session import failed", description: err instanceof Error ? err.message : undefined, variant: "destructive" });
+    } finally {
+      setSavingBrowserSession(false);
+    }
+  }, [apiBase, toast]);
+
+  const cancelBrowserLogin = useCallback(async (acctId: number) => {
+    const electronAPI = (window as Window & { electronAPI?: { retailer?: { closeLoginWindow: (id: number) => Promise<{ ok: boolean }> } } }).electronAPI;
+    await electronAPI?.retailer?.closeLoginWindow(acctId);
+    setBrowserLoginId(null);
+  }, []);
 
   const triggerManualLogin = useCallback(async (id: number, retailer: string) => {
     setManualLoggingIn((prev) => new Set([...prev, id]));
@@ -1285,6 +1366,17 @@ function RetailerAccountsDialog({ open, onOpenChange, profiles }: RetailerAccoun
           </DialogDescription>
         </DialogHeader>
 
+        {/* Browser login in-progress banner */}
+        {browserLoginId !== null && (
+          <div className="flex items-start gap-3 rounded-lg border border-blue-500/30 bg-blue-500/10 px-3 py-2.5 text-xs text-blue-300">
+            <Globe className="w-3.5 h-3.5 mt-0.5 shrink-0 text-blue-400" />
+            <div className="space-y-0.5">
+              <p className="font-medium">Browser window is open — sign in now</p>
+              <p className="text-blue-300/70">Complete the sign-in in the browser window, then click <span className="font-medium text-green-400">Save Session</span> on the account row below.</p>
+            </div>
+          </div>
+        )}
+
         {/* Existing accounts */}
         <div className="space-y-2">
           {loading ? (
@@ -1318,20 +1410,61 @@ function RetailerAccountsDialog({ open, onOpenChange, profiles }: RetailerAccoun
                     <p className="text-xs text-muted-foreground truncate mt-0.5 pl-4">{acct.email}</p>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
-                    {isFailed && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 px-2 text-[11px] gap-1 text-orange-400 hover:text-orange-300 hover:bg-orange-500/10"
-                        onClick={() => triggerManualLogin(acct.id, acct.retailer)}
-                        disabled={isManualLoggingIn}
-                        title="Sign in manually using your browser"
-                      >
-                        {isManualLoggingIn
-                          ? <Loader2 className="w-3 h-3 animate-spin" />
-                          : <KeyRound className="w-3 h-3" />}
-                        Manual
-                      </Button>
+                    {/* Browser Login — always visible; shown prominently when auto-login fails */}
+                    {browserLoginId === acct.id ? (
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 px-2 text-[11px] gap-1 text-green-400 hover:text-green-300 hover:bg-green-500/10"
+                          onClick={() => saveBrowserSession(acct)}
+                          disabled={savingBrowserSession}
+                          title="Extract cookies and save session"
+                        >
+                          {savingBrowserSession
+                            ? <Loader2 className="w-3 h-3 animate-spin" />
+                            : <CheckCircle2 className="w-3 h-3" />}
+                          Save Session
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 px-2 text-[11px] text-muted-foreground hover:text-foreground"
+                          onClick={() => cancelBrowserLogin(acct.id)}
+                          disabled={savingBrowserSession}
+                          title="Cancel browser login"
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    ) : (
+                      <>
+                        {isFailed && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 px-2 text-[11px] gap-1 text-orange-400 hover:text-orange-300 hover:bg-orange-500/10"
+                            onClick={() => triggerManualLogin(acct.id, acct.retailer)}
+                            disabled={isManualLoggingIn}
+                            title="Sign in manually using a bot-controlled browser"
+                          >
+                            {isManualLoggingIn
+                              ? <Loader2 className="w-3 h-3 animate-spin" />
+                              : <KeyRound className="w-3 h-3" />}
+                            Manual
+                          </Button>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className={`h-7 px-2 text-[11px] gap-1 ${isFailed ? "text-blue-400 hover:text-blue-300 hover:bg-blue-500/10" : "text-muted-foreground hover:text-foreground"}`}
+                          onClick={() => triggerBrowserLogin(acct)}
+                          title="Open your real browser to sign in (best for Costco and sites that block bots)"
+                        >
+                          <Globe className="w-3 h-3" />
+                          Browser
+                        </Button>
+                      </>
                     )}
                     <Button
                       variant="ghost" size="icon"
