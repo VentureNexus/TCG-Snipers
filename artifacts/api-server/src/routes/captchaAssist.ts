@@ -9,6 +9,8 @@ import {
   relayGoBack,
   relayGoForward,
   relayReload,
+  relayType,
+  relayKey,
   getScreenshot,
   signalDone,
   signalGiveUp,
@@ -109,6 +111,24 @@ router.post("/captcha-assist/:id/scroll", async (req, res): Promise<void> => {
     res.status(400).json({ error: "normalizedX, normalizedY, deltaX, deltaY are required" }); return;
   }
   const ok = await relayScroll(taskId, normalizedX, normalizedY, deltaX, deltaY);
+  res.json({ ok });
+});
+
+router.post("/captcha-assist/:id/type", async (req, res): Promise<void> => {
+  const taskId = parseInt(req.params.id, 10);
+  if (isNaN(taskId)) { res.status(400).json({ error: "Invalid task ID" }); return; }
+  const { text } = req.body as { text?: unknown };
+  if (typeof text !== "string" || !text) { res.status(400).json({ error: "text is required" }); return; }
+  const ok = await relayType(taskId, text);
+  res.json({ ok });
+});
+
+router.post("/captcha-assist/:id/key", async (req, res): Promise<void> => {
+  const taskId = parseInt(req.params.id, 10);
+  if (isNaN(taskId)) { res.status(400).json({ error: "Invalid task ID" }); return; }
+  const { key } = req.body as { key?: unknown };
+  if (typeof key !== "string" || !key) { res.status(400).json({ error: "key is required" }); return; }
+  const ok = await relayKey(taskId, key);
   res.json({ ok });
 });
 
