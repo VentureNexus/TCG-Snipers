@@ -8,6 +8,7 @@ import { getOrCreateSettings } from "../routes/settings";
 import type { ImapConfig } from "./imap";
 import { isSessionFresh } from "./retailers/sessionCache";
 import { loginRetailer } from "./retailers/loginOnly";
+import { getOxylabsProxy } from "./browser";
 
 interface TaskRow {
   id: number;
@@ -139,7 +140,7 @@ async function runTaskAutomation(task: TaskRow, token: { cancelled: boolean }) {
       ? (await db.select().from(proxiesTable).where(eq(proxiesTable.id, task.proxyId)))[0] ?? null
       : null;
 
-    const proxy = proxyRow
+    const taskProxy = proxyRow
       ? {
           host: proxyRow.host,
           port: proxyRow.port,
@@ -149,6 +150,14 @@ async function runTaskAutomation(task: TaskRow, token: { cancelled: boolean }) {
       : null;
 
     const settings = await getOrCreateSettings();
+
+    // Oxylabs Web Unblocker overrides the per-task proxy when enabled globally.
+    // It provides residential IP rotation + automatic CAPTCHA solving.
+    const oxylabsProxy = settings.oxylabsEnabled ? getOxylabsProxy() : null;
+    if (oxylabsProxy) {
+      log("INFO", `[Oxylabs] Web Unblocker active — routing through residential proxy.`);
+    }
+    const proxy = oxylabsProxy ?? taskProxy;
 
     // Build global IMAP config from app Settings.
     let globalImapConfig: ImapConfig | null = null;
