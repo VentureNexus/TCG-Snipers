@@ -16,6 +16,7 @@ export const settingsTable = pgTable("settings", {
   discordChannelName: text("discord_channel_name"),
   sessionTtlHours: real("session_ttl_hours"),
   captchaAssist: boolean("captcha_assist").notNull().default(false),
+  oxylabsEnabled: boolean("oxylabs_enabled").notNull().default(false),
   licenseToken: text("license_token"),
 });
 
