@@ -17,6 +17,8 @@ export const settingsTable = pgTable("settings", {
   sessionTtlHours: real("session_ttl_hours"),
   captchaAssist: boolean("captcha_assist").notNull().default(false),
   oxylabsEnabled: boolean("oxylabs_enabled").notNull().default(false),
+  oxylabsUsername: text("oxylabs_username").notNull().default(""),
+  oxylabsPassword: text("oxylabs_password").notNull().default(""),
   licenseToken: text("license_token"),
 });
 
