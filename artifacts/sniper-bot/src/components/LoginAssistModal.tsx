@@ -195,10 +195,16 @@ export function LoginAssistModal() {
     setClickFeedback({ x: e.clientX - rect.left, y: e.clientY - rect.top });
     // Focus the wrapper so subsequent keystrokes are captured
     screenWrapperRef.current?.focus({ preventScroll: true });
-    fetch(`${apiBase}/api/login-assist/${session.id}/mousedown`, {
+    const id = session.id;
+    fetch(`${apiBase}/api/login-assist/${id}/mousedown`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ normalizedX: pos.nx, normalizedY: pos.ny }),
+    }).then(() => {
+      // Eagerly refresh the screenshot right after the click is processed
+      // instead of waiting up to 150 ms for the next poll tick.
+      void fetchScreenshot(id);
+      setTimeout(() => void fetchScreenshot(id), 180);
     }).catch(() => {});
   };
 
@@ -208,10 +214,14 @@ export function LoginAssistModal() {
     setTimeout(() => setClickFeedback(null), 600);
     const pos = getNormalized(e);
     if (!pos) return;
-    fetch(`${apiBase}/api/login-assist/${session.id}/mouseup`, {
+    const id = session.id;
+    fetch(`${apiBase}/api/login-assist/${id}/mouseup`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ normalizedX: pos.nx, normalizedY: pos.ny }),
+    }).then(() => {
+      void fetchScreenshot(id);
+      setTimeout(() => void fetchScreenshot(id), 180);
     }).catch(() => {});
   };
 
@@ -326,7 +336,7 @@ export function LoginAssistModal() {
             className={`relative rounded-lg overflow-hidden border bg-black select-none outline-none transition ${
               browserFocused ? "border-blue-500/60 ring-1 ring-blue-500/30" : "border-border/30"
             }`}
-            style={{ minHeight: 200, cursor: "crosshair" }}
+            style={{ minHeight: 200, cursor: "default" }}
           >
             {screenshotSrc ? (
               <>
