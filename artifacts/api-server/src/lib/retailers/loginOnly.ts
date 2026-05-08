@@ -3,7 +3,7 @@
  * and saves the Playwright storage state (cookies + localStorage) to disk so
  * that subsequent checkout runs skip the login step entirely.
  */
-import { createBrowser, createStealthContext, humanDelay, humanType } from "../browser";
+import { createBrowser, createStealthContext, humanDelay, humanType, type ProxyConfig } from "../browser";
 import { saveSession, clearSession } from "./sessionCache";
 import { navigateTo, detectChallenge } from "./visualNavigator";
 
@@ -168,13 +168,14 @@ export async function loginRetailer(
   retailer: string,
   email: string,
   password: string,
+  proxy?: ProxyConfig | null,
 ): Promise<LoginResult> {
   const config = CONFIGS[retailer];
   if (!config) {
     return { success: false, message: `Unsupported retailer: ${retailer}` };
   }
 
-  const browser = await createBrowser(null);
+  const browser = await createBrowser(proxy ?? null);
   try {
     const context = await createStealthContext(browser);
     const page = await context.newPage();
