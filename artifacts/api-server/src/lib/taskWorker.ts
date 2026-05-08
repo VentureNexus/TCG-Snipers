@@ -100,6 +100,31 @@ async function runTaskAutomation(task: TaskRow, token: { cancelled: boolean }) {
   };
 
   try {
+    // ── Resolve settings + proxy first so they are available for the pre-task
+    // login and every subsequent browser session in this run. ─────────────────
+    const settings = await getOrCreateSettings();
+
+    const proxyRow = task.proxyId
+      ? (await db.select().from(proxiesTable).where(eq(proxiesTable.id, task.proxyId)))[0] ?? null
+      : null;
+
+    const taskProxy = proxyRow
+      ? {
+          host: proxyRow.host,
+          port: proxyRow.port,
+          username: proxyRow.username || undefined,
+          password: proxyRow.password || undefined,
+        }
+      : null;
+
+    // Oxylabs Web Unblocker overrides the per-task proxy when enabled globally.
+    // It provides residential IP rotation + automatic CAPTCHA solving.
+    const oxylabsProxy = settings.oxylabsEnabled ? getOxylabsProxy() : null;
+    if (oxylabsProxy) {
+      log("INFO", `[Oxylabs] Web Unblocker active — routing through residential proxy.`);
+    }
+    const proxy = oxylabsProxy ?? taskProxy;
+
     const profile = task.profileId
       ? (await db.select().from(profilesTable).where(eq(profilesTable.id, task.profileId)))[0] ?? null
       : null;
@@ -124,6 +149,7 @@ async function runTaskAutomation(task: TaskRow, token: { cancelled: boolean }) {
             task.retailer,
             retailerAccount.email,
             retailerAccount.password,
+            proxy,
           );
           if (loginResult.success) {
             log("SUCCESS", `[${task.retailer}] Pre-task login successful — session cached, checkout will be faster.`);
@@ -135,29 +161,6 @@ async function runTaskAutomation(task: TaskRow, token: { cancelled: boolean }) {
         }
       }
     }
-
-    const proxyRow = task.proxyId
-      ? (await db.select().from(proxiesTable).where(eq(proxiesTable.id, task.proxyId)))[0] ?? null
-      : null;
-
-    const taskProxy = proxyRow
-      ? {
-          host: proxyRow.host,
-          port: proxyRow.port,
-          username: proxyRow.username || undefined,
-          password: proxyRow.password || undefined,
-        }
-      : null;
-
-    const settings = await getOrCreateSettings();
-
-    // Oxylabs Web Unblocker overrides the per-task proxy when enabled globally.
-    // It provides residential IP rotation + automatic CAPTCHA solving.
-    const oxylabsProxy = settings.oxylabsEnabled ? getOxylabsProxy() : null;
-    if (oxylabsProxy) {
-      log("INFO", `[Oxylabs] Web Unblocker active — routing through residential proxy.`);
-    }
-    const proxy = oxylabsProxy ?? taskProxy;
 
     // Build global IMAP config from app Settings.
     let globalImapConfig: ImapConfig | null = null;
