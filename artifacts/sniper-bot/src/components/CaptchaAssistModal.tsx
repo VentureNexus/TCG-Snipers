@@ -169,10 +169,14 @@ export function CaptchaAssistModal() {
     mouseDownPos.current = pos;
     setClickFeedback({ x: e.clientX - imgRef.current!.getBoundingClientRect().left, y: e.clientY - imgRef.current!.getBoundingClientRect().top });
     screenWrapperRef.current?.focus({ preventScroll: true });
-    fetch(`${apiBase}/api/captcha-assist/${taskId}/mousedown`, {
+    const id = taskId;
+    fetch(`${apiBase}/api/captcha-assist/${id}/mousedown`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ normalizedX: pos.nx, normalizedY: pos.ny }),
+    }).then(() => {
+      void fetchScreenshot(id);
+      setTimeout(() => void fetchScreenshot(id), 180);
     }).catch(() => {});
   };
 
@@ -183,10 +187,14 @@ export function CaptchaAssistModal() {
     const pos = getNormalized(e);
     if (!pos) return;
     mouseDownPos.current = null;
-    fetch(`${apiBase}/api/captcha-assist/${taskId}/mouseup`, {
+    const id = taskId;
+    fetch(`${apiBase}/api/captcha-assist/${id}/mouseup`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ normalizedX: pos.nx, normalizedY: pos.ny }),
+    }).then(() => {
+      void fetchScreenshot(id);
+      setTimeout(() => void fetchScreenshot(id), 180);
     }).catch(() => {});
   };
 
@@ -285,7 +293,7 @@ export function CaptchaAssistModal() {
             className={`relative rounded-lg overflow-hidden border bg-black select-none outline-none transition ${
               browserFocused ? "border-amber-500/60 ring-1 ring-amber-500/30" : "border-border/30"
             }`}
-            style={{ minHeight: 200, cursor: "crosshair" }}
+            style={{ minHeight: 200, cursor: "default" }}
           >
             {screenshotSrc ? (
               <>
