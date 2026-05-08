@@ -238,15 +238,12 @@ export async function createBrowser(proxy?: ProxyConfig | null): Promise<Browser
     ...(proxy
       ? {
           proxy: {
-            // Oxylabs Web Unblocker uses HTTPS; regular proxies use HTTP
-            server: proxy.host === "unblock.oxylabs.io"
-              ? `https://${proxy.host}:${proxy.port}`
-              : `http://${proxy.host}:${proxy.port}`,
+            // Playwright only supports http://, socks4://, socks5:// — never https://.
+            // All proxy services (including Oxylabs Web Unblocker) must use http://.
+            server: `http://${proxy.host}:${proxy.port}`,
             ...(proxy.username ? { username: proxy.username } : {}),
             ...(proxy.password ? { password: proxy.password } : {}),
           },
-          // Required for HTTPS proxy (Oxylabs uses a self-signed cert)
-          ...(proxy.host === "unblock.oxylabs.io" ? { ignoreHTTPSErrors: true } : {}),
         }
       : {}),
   });
