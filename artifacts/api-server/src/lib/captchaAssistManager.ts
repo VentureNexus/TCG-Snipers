@@ -56,10 +56,9 @@ export function registerSession(
       clicks: [],
       timeoutHandle,
       screenshotCache: null,
-      captureInterval: setInterval(() => {}, 999999), // placeholder, replaced below
+      captureInterval: setInterval(() => {}, 999999),
     };
 
-    // Background capture loop — always-fresh frames served instantly on request
     let capturing = false;
     session.captureInterval = setInterval(async () => {
       if (capturing) return;
@@ -82,10 +81,47 @@ function getXY(session: AssistSession, nx: number, ny: number): { x: number; y: 
   };
 }
 
+// ── Navigation ─────────────────────────────────────────────────────────────
+
+export function getCurrentUrl(taskId: number): string | null {
+  const s = sessions.get(taskId);
+  if (!s) return null;
+  try { return s.page.url(); } catch { return null; }
+}
+
+export async function relayNavigate(taskId: number, url: string): Promise<boolean> {
+  const s = sessions.get(taskId);
+  if (!s) return false;
+  try {
+    let target = url.trim();
+    if (target && !/^https?:\/\//i.test(target)) target = `https://${target}`;
+    await s.page.goto(target, { waitUntil: "domcontentloaded", timeout: 20000 });
+    return true;
+  } catch { return false; }
+}
+
+export async function relayGoBack(taskId: number): Promise<boolean> {
+  const s = sessions.get(taskId);
+  if (!s) return false;
+  try { await s.page.goBack({ timeout: 10000 }); return true; } catch { return false; }
+}
+
+export async function relayGoForward(taskId: number): Promise<boolean> {
+  const s = sessions.get(taskId);
+  if (!s) return false;
+  try { await s.page.goForward({ timeout: 10000 }); return true; } catch { return false; }
+}
+
+export async function relayReload(taskId: number): Promise<boolean> {
+  const s = sessions.get(taskId);
+  if (!s) return false;
+  try { await s.page.reload({ timeout: 20000, waitUntil: "domcontentloaded" }); return true; } catch { return false; }
+}
+
+// ── Mouse / keyboard ───────────────────────────────────────────────────────
+
 export async function relayClick(
-  taskId: number,
-  normalizedX: number,
-  normalizedY: number,
+  taskId: number, normalizedX: number, normalizedY: number,
 ): Promise<boolean> {
   const session = sessions.get(taskId);
   if (!session) return false;
@@ -98,15 +134,11 @@ export async function relayClick(
     await session.page.mouse.up();
     session.clicks.push({ nx: normalizedX, ny: normalizedY });
     return true;
-  } catch {
-    return false;
-  }
+  } catch { return false; }
 }
 
 export async function relayMouseDown(
-  taskId: number,
-  normalizedX: number,
-  normalizedY: number,
+  taskId: number, normalizedX: number, normalizedY: number,
 ): Promise<boolean> {
   const session = sessions.get(taskId);
   if (!session) return false;
@@ -116,15 +148,11 @@ export async function relayMouseDown(
     await session.page.mouse.move(x, y);
     await session.page.mouse.down();
     return true;
-  } catch {
-    return false;
-  }
+  } catch { return false; }
 }
 
 export async function relayMouseUp(
-  taskId: number,
-  normalizedX: number,
-  normalizedY: number,
+  taskId: number, normalizedX: number, normalizedY: number,
 ): Promise<boolean> {
   const session = sessions.get(taskId);
   if (!session) return false;
@@ -134,17 +162,11 @@ export async function relayMouseUp(
     await session.page.mouse.up();
     session.clicks.push({ nx: normalizedX, ny: normalizedY });
     return true;
-  } catch {
-    return false;
-  }
+  } catch { return false; }
 }
 
 export async function relayScroll(
-  taskId: number,
-  normalizedX: number,
-  normalizedY: number,
-  deltaX: number,
-  deltaY: number,
+  taskId: number, normalizedX: number, normalizedY: number, deltaX: number, deltaY: number,
 ): Promise<boolean> {
   const session = sessions.get(taskId);
   if (!session) return false;
@@ -153,9 +175,7 @@ export async function relayScroll(
     await session.page.mouse.move(x, y);
     await session.page.mouse.wheel(deltaX, deltaY);
     return true;
-  } catch {
-    return false;
-  }
+  } catch { return false; }
 }
 
 export function getScreenshot(taskId: number): Buffer | null {
@@ -163,6 +183,8 @@ export function getScreenshot(taskId: number): Buffer | null {
   if (!session) return null;
   return session.screenshotCache;
 }
+
+// ── Lifecycle ──────────────────────────────────────────────────────────────
 
 export function signalDone(taskId: number): boolean {
   const session = sessions.get(taskId);
@@ -216,11 +238,8 @@ export function saveLearning(
       recordedAt: new Date().toISOString(),
     };
     fs.writeFileSync(path.join(LEARN_DIR, filename), JSON.stringify(data, null, 2));
-  } catch {
-    // non-fatal
-  }
+  } catch { /* non-fatal */ }
 
-  // Share successful solves with the community knowledge base (fire-and-forget)
   if (success) {
     void (async () => {
       try {
