@@ -1,0 +1,79 @@
+20s
+Run pnpm --filter @workspace/sniper-bot run dist:win -- --publish always
+
+> @workspace/sniper-bot@1.0.63 dist:win D:\a\TCG-Snipers\TCG-Snipers\artifacts\sniper-bot
+> pnpm run electron:build -- --win "--" "--publish" "always"
+
+
+> @workspace/sniper-bot@1.0.63 electron:build D:\a\TCG-Snipers\TCG-Snipers\artifacts\sniper-bot
+> pnpm run build && pnpm run electron:compile && electron-builder --config electron-builder.yml "--" "--win" "--" "--publish" "always"
+
+
+> @workspace/sniper-bot@1.0.63 build D:\a\TCG-Snipers\TCG-Snipers\artifacts\sniper-bot
+> vite build --config vite.config.ts
+
+vite v7.3.3 building client environment for production...
+transforming...
+src/components/ui/tooltip.tsx (2:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+src/components/ui/label.tsx (2:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+src/components/ui/dropdown-menu.tsx (2:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+src/components/ui/select.tsx (2:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+✓ 2812 modules transformed.
+rendering chunks...
+computing gzip size...
+
+dist/public/index.html                               0.76 kB │ gzip:   0.42 kB
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+dist/public/assets/logo-charmander-DZDQvH41.png    219.85 kB
+dist/public/assets/logo-squirtle-BXlem_Ii.png      678.85 kB
+dist/public/assets/logo-pikachu-iGvbrBys.png       713.75 kB
+dist/public/assets/index-CY1p0G9b.css              142.99 kB │ gzip:  22.01 kB
+dist/public/assets/index-BIsHBhND.js             1,151.44 kB │ gzip: 328.97 kB
+✓ built in 8.00s
+
+> @workspace/sniper-bot@1.0.63 electron:compile D:\a\TCG-Snipers\TCG-Snipers\artifacts\sniper-bot
+> node electron/build.mjs
+
+✓ DISCORD_OAUTH_CLIENT_ID will be baked into the bundle
+✓ DISCORD_OAUTH_CLIENT_SECRET will be baked into the bundle
+✓ PGlite WASM assets copied to electron/dist/
+✓ Electron main process compiled
+  • electron-builder  version=25.1.8 os=10.0.26100
+  • artifacts will be published  reason=tag is defined tag=v1.0.63
+  • loaded configuration  file=D:\a\TCG-Snipers\TCG-Snipers\artifacts\sniper-bot\electron-builder.yml
+  • executing @electron/rebuild  electronVersion=34.5.8 arch=x64 buildFromSource=false appDir=./
+  • installing native dependencies  arch=x64
+  • completed installing native dependencies
+  • packaging       platform=win32 arch=x64 electron=34.5.8 appOutDir=release\win-unpacked
+  • downloading     url=https://github.com/electron/electron/releases/download/v34.5.8/electron-v34.5.8-win32-x64.zip size=116 MB parts=8
+  • downloaded      url=https://github.com/electron/electron/releases/download/v34.5.8/electron-v34.5.8-win32-x64.zip duration=629ms
+  • updating asar integrity executable resource  executablePath=release\win-unpacked\TCG Snipers.exe
+  • signing with signtool.exe  path=release\win-unpacked\resources\playwright-chromium\winldd-1007\PrintDeps.exe
+  • no signing info identified, signing is skipped  signHook=false cscInfo=null
+  • signing with signtool.exe  path=release\win-unpacked\resources\playwright-chromium\ffmpeg-1011\ffmpeg-win64.exe
+  • no signing info identified, signing is skipped  signHook=false cscInfo=null
+  • signing with signtool.exe  path=release\win-unpacked\resources\playwright-chromium\chromium_headless_shell-1217\chrome-headless-shell-win64\chrome-headless-shell.exe
+  • no signing info identified, signing is skipped  signHook=false cscInfo=null
+  • signing with signtool.exe  path=release\win-unpacked\resources\playwright-chromium\chromium-1217\chrome-win64\setup.exe
+  • no signing info identified, signing is skipped  signHook=false cscInfo=null
+  • signing with signtool.exe  path=release\win-unpacked\resources\playwright-chromium\chromium-1217\chrome-win64\notification_helper.exe
+  • no signing info identified, signing is skipped  signHook=false cscInfo=null
+  • signing with signtool.exe  path=release\win-unpacked\resources\playwright-chromium\chromium-1217\chrome-win64\elevation_service.exe
+  • no signing info identified, signing is skipped  signHook=false cscInfo=null
+  • signing with signtool.exe  path=release\win-unpacked\resources\playwright-chromium\chromium-1217\chrome-win64\elevated_tracing_service.exe
+  • no signing info identified, signing is skipped  signHook=false cscInfo=null
+  • signing with signtool.exe  path=release\win-unpacked\resources\playwright-chromium\chromium-1217\chrome-win64\chrome_pwa_launcher.exe
+  • no signing info identified, signing is skipped  signHook=false cscInfo=null
+  • signing with signtool.exe  path=release\win-unpacked\resources\playwright-chromium\chromium-1217\chrome-win64\chrome_proxy.exe
+  • no signing info identified, signing is skipped  signHook=false cscInfo=null
+  • signing with signtool.exe  path=release\win-unpacked\resources\playwright-chromium\chromium-1217\chrome-win64\chrome.exe
+  • no signing info identified, signing is skipped  signHook=false cscInfo=null
+  ⨯ image D:\a\TCG-Snipers\TCG-Snipers\artifacts\sniper-bot\build\icon.ico must be at least 256x256
+ ELIFECYCLE  Command failed with exit code 1.
+D:\a\TCG-Snipers\TCG-Snipers\artifacts\sniper-bot:
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @workspace/sniper-bot@1.0.63 dist:win: `pnpm run electron:build -- --win "--" "--publish" "always"`
+Exit status 1
+Error: Process completed with exit code 1.
