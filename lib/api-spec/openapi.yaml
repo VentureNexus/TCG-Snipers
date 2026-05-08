@@ -887,6 +887,9 @@ components:
         captchaAssist:
           type: boolean
           description: When true, a popup lets the user manually solve CAPTCHAs the bot cannot auto-solve.
+        oxylabsEnabled:
+          type: boolean
+          description: When true, all browser sessions are routed through the Oxylabs Web Unblocker for residential IP rotation and automatic CAPTCHA solving.
       required:
         - id
         - concurrency
@@ -921,6 +924,9 @@ components:
         captchaAssist:
           type: boolean
           description: When true, a popup lets the user manually solve CAPTCHAs the bot cannot auto-solve.
+        oxylabsEnabled:
+          type: boolean
+          description: When true, all browser sessions are routed through the Oxylabs Web Unblocker for residential IP rotation and automatic CAPTCHA solving.
         licenseToken:
           type: string
           description: Write-only — stores the license JWT in the local api-server for community knowledge-base auth. Never returned in GET responses.
