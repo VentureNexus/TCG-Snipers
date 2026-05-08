@@ -174,12 +174,26 @@ router.post("/retailer-accounts/:id/manual-login", async (req, res): Promise<voi
     const browser = await createBrowser(manualProxy);
     const context = await createStealthContext(browser);
     const page = await context.newPage();
-    await page.setDefaultNavigationTimeout(30000);
+    await page.setDefaultNavigationTimeout(45000);
+
+    // When routing through Oxylabs, block images/media/fonts so the pages
+    // load fast enough for the user to interact with them.  JS and CSS are
+    // still delivered so the page renders correctly.
+    if (manualProxy) {
+      await page.route("**/*", (route) => {
+        const type = route.request().resourceType();
+        if (type === "image" || type === "media" || type === "font") {
+          return route.abort();
+        }
+        return route.continue();
+      });
+    }
 
     // Navigate to the retailer homepage. Log navigation errors (they don't
     // prevent the session from opening — the user sees whatever loaded).
     try {
-      await page.goto(homepage, { waitUntil: "domcontentloaded", timeout: 20000 });
+      await page.goto(homepage, { waitUntil: "domcontentloaded", timeout: 30000 });
+      await page.waitForLoadState("load", { timeout: 20000 }).catch(() => {});
     } catch (navErr) {
       console.warn(`[manual-login] homepage navigation failed: ${String(navErr)}`);
     }
