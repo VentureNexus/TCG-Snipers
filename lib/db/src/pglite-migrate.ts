@@ -61,6 +61,10 @@ export async function runPgliteMigrations(client: PGlite): Promise<void> {
     ALTER TABLE settings ADD COLUMN IF NOT EXISTS license_token TEXT;
   `).catch(() => { /* table may not exist yet — CREATE below will include it */ });
 
+  await client.exec(`
+    ALTER TABLE settings ADD COLUMN IF NOT EXISTS oxylabs_enabled BOOLEAN NOT NULL DEFAULT FALSE;
+  `).catch(() => { /* table may not exist yet — CREATE below will include it */ });
+
   // Convert TEXT priority to INTEGER if needed (upgrade path from string-based priority)
   await client.exec(`
     ALTER TABLE tasks ALTER COLUMN priority TYPE INTEGER
@@ -224,6 +228,7 @@ export async function runPgliteMigrations(client: PGlite): Promise<void> {
       discord_channel_name TEXT,
       session_ttl_hours REAL,
       captcha_assist BOOLEAN NOT NULL DEFAULT FALSE,
+      oxylabs_enabled BOOLEAN NOT NULL DEFAULT FALSE,
       license_token TEXT
     );
   `);
