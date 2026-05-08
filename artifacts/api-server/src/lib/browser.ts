@@ -238,10 +238,15 @@ export async function createBrowser(proxy?: ProxyConfig | null): Promise<Browser
     ...(proxy
       ? {
           proxy: {
-            server: `http://${proxy.host}:${proxy.port}`,
+            // Oxylabs Web Unblocker uses HTTPS; regular proxies use HTTP
+            server: proxy.host === "unblock.oxylabs.io"
+              ? `https://${proxy.host}:${proxy.port}`
+              : `http://${proxy.host}:${proxy.port}`,
             ...(proxy.username ? { username: proxy.username } : {}),
             ...(proxy.password ? { password: proxy.password } : {}),
           },
+          // Required for HTTPS proxy (Oxylabs uses a self-signed cert)
+          ...(proxy.host === "unblock.oxylabs.io" ? { ignoreHTTPSErrors: true } : {}),
         }
       : {}),
   });
@@ -281,6 +286,22 @@ export async function createStealthContext(
   });
   await context.addInitScript(buildStealthScript(profile.platform));
   return context;
+}
+
+/**
+ * Returns a ProxyConfig for the Oxylabs Web Unblocker if credentials are
+ * configured via environment variables, otherwise returns null.
+ */
+export function getOxylabsProxy(): ProxyConfig | null {
+  const username = process.env.OXYLABS_USERNAME;
+  const password = process.env.OXYLABS_PASSWORD;
+  if (!username || !password) return null;
+  return {
+    host: "unblock.oxylabs.io",
+    port: "60000",
+    username,
+    password,
+  };
 }
 
 export async function humanDelay(min = 50, max = 300): Promise<void> {

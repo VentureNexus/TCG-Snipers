@@ -28,6 +28,8 @@ export interface Settings {
   recommendedMax?: number;
   /** When true, a popup lets the user manually solve CAPTCHAs the bot cannot auto-solve. */
   captchaAssist?: boolean;
+  /** When true, all browser sessions are routed through the Oxylabs Web Unblocker for residential IP rotation and automatic CAPTCHA solving. */
+  oxylabsEnabled?: boolean;
 }
 
 export interface UpdateSettingsBody {
@@ -42,6 +44,8 @@ export interface UpdateSettingsBody {
   sessionTtlHours?: number | null;
   /** When true, a popup lets the user manually solve CAPTCHAs the bot cannot auto-solve. */
   captchaAssist?: boolean;
+  /** When true, all browser sessions are routed through the Oxylabs Web Unblocker for residential IP rotation and automatic CAPTCHA solving. */
+  oxylabsEnabled?: boolean;
   /** Write-only — stores the license JWT in the local api-server for community knowledge-base auth. Never returned in GET responses. */
   licenseToken?: string;
 }

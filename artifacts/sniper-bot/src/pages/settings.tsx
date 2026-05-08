@@ -77,6 +77,7 @@ export default function SettingsPage() {
   const [savedTick, setSavedTick] = useState(0);
 
   const [captchaAssistEnabled, setCaptchaAssistEnabled] = useState(false);
+  const [oxylabsEnabled, setOxylabsEnabled] = useState(false);
   const [discordConnecting, setDiscordConnecting] = useState(false);
 
   const [taskDefaults, setTaskDefaults] = useState<TaskDefaults>(loadTaskDefaults);
@@ -114,6 +115,7 @@ export default function SettingsPage() {
     }
     if (settingsData) {
       setCaptchaAssistEnabled(settingsData.captchaAssist ?? false);
+      setOxylabsEnabled(settingsData.oxylabsEnabled ?? false);
     }
   }, [settingsData, formInitialized]);
 
@@ -124,6 +126,19 @@ export default function SettingsPage() {
       {
         onError: () => {
           setCaptchaAssistEnabled(!enabled);
+          toast({ title: "Failed to save setting", variant: "destructive" });
+        },
+      },
+    );
+  }, [updateSettingsMutation, toast]);
+
+  const handleOxylabsToggle = useCallback((enabled: boolean) => {
+    setOxylabsEnabled(enabled);
+    updateSettingsMutation.mutate(
+      { data: { oxylabsEnabled: enabled } },
+      {
+        onError: () => {
+          setOxylabsEnabled(!enabled);
           toast({ title: "Failed to save setting", variant: "destructive" });
         },
       },
@@ -543,6 +558,42 @@ export default function SettingsPage() {
                 >
                   <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${captchaAssistEnabled ? "translate-x-6" : "translate-x-1"}`} />
                 </button>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="glass-card">
+            <CardHeader>
+              <CardTitle>Oxylabs Web Unblocker</CardTitle>
+              <CardDescription>
+                Route all browser sessions through Oxylabs residential proxies with built-in CAPTCHA solving and bot-detection bypass. Overrides per-task proxies when enabled.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium">Enable Web Unblocker</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Default: <strong>off</strong>. When turned on, every task uses the Oxylabs residential proxy instead of its assigned proxy.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={oxylabsEnabled}
+                  onClick={() => handleOxylabsToggle(!oxylabsEnabled)}
+                  disabled={saving}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none disabled:opacity-50 ${oxylabsEnabled ? "bg-primary" : "bg-muted"}`}
+                >
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${oxylabsEnabled ? "translate-x-6" : "translate-x-1"}`} />
+                </button>
+              </div>
+              <div className="rounded-lg border border-border/50 px-4 py-3 bg-muted/10 flex items-center gap-3">
+                <div className="h-2 w-2 rounded-full bg-[#23a55a] shrink-0" />
+                <div>
+                  <p className="text-xs font-medium">Credentials configured</p>
+                  <p className="text-xs text-muted-foreground">Proxy endpoint: <span className="font-mono">unblock.oxylabs.io:60000</span></p>
+                </div>
               </div>
             </CardContent>
           </Card>

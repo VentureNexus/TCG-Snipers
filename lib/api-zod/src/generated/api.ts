@@ -53,6 +53,12 @@ export const GetSettingsResponse = zod.object({
     .describe(
       "When true, a popup lets the user manually solve CAPTCHAs the bot cannot auto-solve.",
     ),
+  oxylabsEnabled: zod
+    .boolean()
+    .optional()
+    .describe(
+      "When true, all browser sessions are routed through the Oxylabs Web Unblocker for residential IP rotation and automatic CAPTCHA solving.",
+    ),
 });
 
 /**
@@ -77,6 +83,12 @@ export const UpdateSettingsBody = zod.object({
     .optional()
     .describe(
       "When true, a popup lets the user manually solve CAPTCHAs the bot cannot auto-solve.",
+    ),
+  oxylabsEnabled: zod
+    .boolean()
+    .optional()
+    .describe(
+      "When true, all browser sessions are routed through the Oxylabs Web Unblocker for residential IP rotation and automatic CAPTCHA solving.",
     ),
   licenseToken: zod
     .string()
@@ -120,6 +132,12 @@ export const UpdateSettingsResponse = zod.object({
     .optional()
     .describe(
       "When true, a popup lets the user manually solve CAPTCHAs the bot cannot auto-solve.",
+    ),
+  oxylabsEnabled: zod
+    .boolean()
+    .optional()
+    .describe(
+      "When true, all browser sessions are routed through the Oxylabs Web Unblocker for residential IP rotation and automatic CAPTCHA solving.",
     ),
 });
 
