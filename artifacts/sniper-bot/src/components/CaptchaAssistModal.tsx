@@ -15,6 +15,7 @@ export function CaptchaAssistModal() {
   const [screenshotSrc, setScreenshotSrc] = useState<string | null>(null);
   const [clickFeedback, setClickFeedback] = useState<{ x: number; y: number } | null>(null);
   const [signalled, setSignalled] = useState(false);
+  const [browserFocused, setBrowserFocused] = useState(false);
 
   // Browser toolbar
   const [currentUrl, setCurrentUrl] = useState("");
@@ -23,26 +24,24 @@ export function CaptchaAssistModal() {
   const [navigating, setNavigating] = useState(false);
 
   const imgRef = useRef<HTMLImageElement>(null);
+  const screenWrapperRef = useRef<HTMLDivElement>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pollUrlRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const prevObjectUrl = useRef<string | null>(null);
   const mouseDownPos = useRef<{ nx: number; ny: number } | null>(null);
   const apiBase = getApiBase();
 
-  const fetchScreenshot = useCallback(
-    async (id: number) => {
-      try {
-        const res = await fetch(`${apiBase}/api/captcha-assist/${id}/screenshot`, { cache: "no-store" });
-        if (!res.ok) return;
-        const blob = await res.blob();
-        const url = URL.createObjectURL(blob);
-        if (prevObjectUrl.current) URL.revokeObjectURL(prevObjectUrl.current);
-        prevObjectUrl.current = url;
-        setScreenshotSrc(url);
-      } catch { /* ignore */ }
-    },
-    [apiBase],
-  );
+  const fetchScreenshot = useCallback(async (id: number) => {
+    try {
+      const res = await fetch(`${apiBase}/api/captcha-assist/${id}/screenshot`, { cache: "no-store" });
+      if (!res.ok) return;
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      if (prevObjectUrl.current) URL.revokeObjectURL(prevObjectUrl.current);
+      prevObjectUrl.current = url;
+      setScreenshotSrc(url);
+    } catch { /* ignore */ }
+  }, [apiBase]);
 
   const fetchUrl = useCallback(async (id: number) => {
     try {
@@ -118,14 +117,48 @@ export function CaptchaAssistModal() {
     }
   };
 
+  // ── Direct keyboard capture on the screenshot ──────────────────────────
+
+  const forwardKey = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (!taskId || signalled) return;
+    e.preventDefault();
+
+    const key = e.key;
+
+    // Single printable character — Shift is already baked into e.key (e.g. "A" vs "a")
+    if (key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      fetch(`${apiBase}/api/captcha-assist/${taskId}/type`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: key }),
+      }).catch(() => {});
+      return;
+    }
+
+    // Special / modified key — build Playwright key string
+    const mods = [
+      e.ctrlKey  ? "Control" : "",
+      e.altKey   ? "Alt"     : "",
+      e.metaKey  ? "Meta"    : "",
+      e.shiftKey && key.length > 1 ? "Shift" : "",
+    ].filter(Boolean);
+    const playwrightKey = [...mods, key].join("+");
+    fetch(`${apiBase}/api/captcha-assist/${taskId}/key`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key: playwrightKey }),
+    }).catch(() => {});
+  }, [taskId, signalled, apiBase]);
+
   // ── Mouse relay ────────────────────────────────────────────────────────
 
   function getNormalized(e: React.MouseEvent<HTMLImageElement>): { nx: number; ny: number } | null {
     if (!imgRef.current) return null;
     const rect = imgRef.current.getBoundingClientRect();
-    const nx = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-    const ny = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
-    return { nx, ny };
+    return {
+      nx: Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)),
+      ny: Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height)),
+    };
   }
 
   const handleMouseDown = (e: React.MouseEvent<HTMLImageElement>) => {
@@ -135,6 +168,7 @@ export function CaptchaAssistModal() {
     if (!pos) return;
     mouseDownPos.current = pos;
     setClickFeedback({ x: e.clientX - imgRef.current!.getBoundingClientRect().left, y: e.clientY - imgRef.current!.getBoundingClientRect().top });
+    screenWrapperRef.current?.focus({ preventScroll: true });
     fetch(`${apiBase}/api/captcha-assist/${taskId}/mousedown`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -161,25 +195,23 @@ export function CaptchaAssistModal() {
     const rect = imgRef.current.getBoundingClientRect();
     const nx = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
     const ny = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
-    try {
-      await fetch(`${apiBase}/api/captcha-assist/${taskId}/scroll`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ normalizedX: nx, normalizedY: ny, deltaX: e.deltaX, deltaY: e.deltaY }),
-      });
-    } catch { /* ignore */ }
+    await fetch(`${apiBase}/api/captcha-assist/${taskId}/scroll`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ normalizedX: nx, normalizedY: ny, deltaX: e.deltaX, deltaY: e.deltaY }),
+    }).catch(() => {});
   };
 
   const handleDone = async () => {
     if (!taskId || signalled) return;
     setSignalled(true);
-    try { await fetch(`${apiBase}/api/captcha-assist/${taskId}/done`, { method: "POST" }); } catch { /* ignore */ }
+    await fetch(`${apiBase}/api/captcha-assist/${taskId}/done`, { method: "POST" }).catch(() => {});
   };
 
   const handleGiveUp = async () => {
     if (!taskId || signalled) return;
     setSignalled(true);
-    try { await fetch(`${apiBase}/api/captcha-assist/${taskId}/give-up`, { method: "POST" }); } catch { /* ignore */ }
+    await fetch(`${apiBase}/api/captcha-assist/${taskId}/give-up`, { method: "POST" }).catch(() => {});
   };
 
   if (!assistTask) return null;
@@ -195,39 +227,22 @@ export function CaptchaAssistModal() {
           <div className="flex items-center gap-2.5">
             <span className="h-2 w-2 rounded-full bg-amber-400 animate-pulse block" />
             <span className="text-sm font-semibold text-amber-300">CAPTCHA Human Assist</span>
-            <span className="text-xs text-muted-foreground">
-              Task #{assistTask.id} · {assistTask.retailer}
-            </span>
+            <span className="text-xs text-muted-foreground">Task #{assistTask.id} · {assistTask.retailer}</span>
           </div>
         </div>
 
         {/* Browser toolbar */}
         <div className="flex items-center gap-1.5 px-3 py-2 border-b border-border/30 bg-zinc-950/60 shrink-0">
-          <button
-            type="button"
-            onClick={handleBack}
-            disabled={signalled}
-            className="flex items-center justify-center h-7 w-7 rounded hover:bg-zinc-800 text-muted-foreground hover:text-foreground disabled:opacity-30 transition"
-            title="Back"
-          >
+          <button type="button" onClick={handleBack} disabled={signalled}
+            className="flex items-center justify-center h-7 w-7 rounded hover:bg-zinc-800 text-muted-foreground hover:text-foreground disabled:opacity-30 transition" title="Back">
             <ChevronLeft className="w-4 h-4" />
           </button>
-          <button
-            type="button"
-            onClick={handleForward}
-            disabled={signalled}
-            className="flex items-center justify-center h-7 w-7 rounded hover:bg-zinc-800 text-muted-foreground hover:text-foreground disabled:opacity-30 transition"
-            title="Forward"
-          >
+          <button type="button" onClick={handleForward} disabled={signalled}
+            className="flex items-center justify-center h-7 w-7 rounded hover:bg-zinc-800 text-muted-foreground hover:text-foreground disabled:opacity-30 transition" title="Forward">
             <ChevronRight className="w-4 h-4" />
           </button>
-          <button
-            type="button"
-            onClick={handleReload}
-            disabled={signalled || navigating}
-            className="flex items-center justify-center h-7 w-7 rounded hover:bg-zinc-800 text-muted-foreground hover:text-foreground disabled:opacity-30 transition"
-            title="Reload"
-          >
+          <button type="button" onClick={handleReload} disabled={signalled || navigating}
+            className="flex items-center justify-center h-7 w-7 rounded hover:bg-zinc-800 text-muted-foreground hover:text-foreground disabled:opacity-30 transition" title="Reload">
             <RotateCw className={`w-3.5 h-3.5 ${navigating ? "animate-spin" : ""}`} />
           </button>
           <div className="flex-1 mx-1">
@@ -252,17 +267,24 @@ export function CaptchaAssistModal() {
           <p className="text-xs text-muted-foreground leading-relaxed">
             The bot couldn't auto-solve this CAPTCHA.{" "}
             <strong className="text-foreground">Click directly on the image</strong> to interact
-            with the live browser — tick checkboxes, select tiles, press buttons. For{" "}
-            <strong className="text-foreground">press-and-hold</strong> challenges, hold your mouse
-            button down on the image. When done, click{" "}
+            — tick checkboxes, select tiles, press buttons. For{" "}
+            <strong className="text-foreground">press-and-hold</strong> challenges, hold your
+            mouse button down. Click the browser and type freely if needed. When done, click{" "}
             <strong className="text-emerald-400">I'm Done</strong>.
           </p>
         </div>
 
-        {/* Screenshot */}
+        {/* Screenshot — focusable so keystrokes go straight to the browser */}
         <div className="px-5 pb-3 flex-1 min-h-0 overflow-hidden">
           <div
-            className="relative rounded-lg overflow-hidden border border-border/30 bg-black select-none"
+            ref={screenWrapperRef}
+            tabIndex={0}
+            onKeyDown={forwardKey}
+            onFocus={() => setBrowserFocused(true)}
+            onBlur={() => setBrowserFocused(false)}
+            className={`relative rounded-lg overflow-hidden border bg-black select-none outline-none transition ${
+              browserFocused ? "border-amber-500/60 ring-1 ring-amber-500/30" : "border-border/30"
+            }`}
             style={{ minHeight: 200, cursor: "crosshair" }}
           >
             {screenshotSrc ? (
@@ -279,10 +301,8 @@ export function CaptchaAssistModal() {
                   style={{ userSelect: "none", WebkitUserSelect: "none" }}
                 />
                 {clickFeedback && (
-                  <div
-                    className="absolute pointer-events-none"
-                    style={{ left: clickFeedback.x, top: clickFeedback.y, transform: "translate(-50%,-50%)" }}
-                  >
+                  <div className="absolute pointer-events-none"
+                    style={{ left: clickFeedback.x, top: clickFeedback.y, transform: "translate(-50%,-50%)" }}>
                     <div className="h-7 w-7 rounded-full border-2 border-amber-400 bg-amber-400/25 animate-ping" />
                   </div>
                 )}
@@ -296,26 +316,21 @@ export function CaptchaAssistModal() {
           </div>
           <p className="mt-1.5 text-[11px] text-muted-foreground text-center">
             <MousePointer className="inline w-3 h-3 mr-1 -mt-0.5" />
-            Click or hold to interact · Scroll to scroll the page
+            {browserFocused
+              ? "Keyboard active — typing goes to the browser"
+              : "Click the browser to focus, then type freely · Scroll to scroll"}
           </p>
         </div>
 
         {/* Actions */}
         <div className="flex items-center gap-3 px-5 py-3 border-t border-border/40 bg-zinc-950/40 shrink-0">
-          <Button
-            onClick={handleDone}
-            disabled={signalled}
-            className="flex-1 gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
-          >
+          <Button onClick={handleDone} disabled={signalled}
+            className="flex-1 gap-2 bg-emerald-600 hover:bg-emerald-700 text-white">
             <CheckCircle className="w-4 h-4" />
             I'm Done — Continue Bot
           </Button>
-          <Button
-            variant="outline"
-            onClick={handleGiveUp}
-            disabled={signalled}
-            className="gap-2 border-red-500/40 text-red-400 hover:bg-red-500/10"
-          >
+          <Button variant="outline" onClick={handleGiveUp} disabled={signalled}
+            className="gap-2 border-red-500/40 text-red-400 hover:bg-red-500/10">
             <XCircle className="w-4 h-4" />
             Give Up — Pause Task
           </Button>
