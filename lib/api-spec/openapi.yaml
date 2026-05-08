@@ -1445,6 +1445,8 @@ components:
             - Best Buy
             - Costco
             - Pokemon Center
+            - Walmart
+            - Sam's Club
         productUrl:
           type: string
         productKeywords:
@@ -1477,6 +1479,8 @@ components:
             - Best Buy
             - Costco
             - Pokemon Center
+            - Walmart
+            - Sam's Club
         productUrl:
           type: string
         productKeywords:
